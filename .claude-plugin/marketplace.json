@@ -1,0 +1,18 @@
+{
+  "name": "vibe-cto",
+  "description": "Your AI CTO co-pilot — opinionated, research-backed plugins for building SaaS products that ship",
+  "owner": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "plugins": [
+    {
+      "name": "saas-design-principles",
+      "description": "The holy principles of SaaS design: research-backed guidance for building fast, predictable, and progressively powerful SaaS products",
+      "version": "0.1.0",
+      "source": "./saas-design-principles",
+      "author": {
+        "name": "Dr. Oliver Borchers"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "saas-design-principles",
+  "version": "0.1.0",
+  "description": "The holy principles of SaaS design: research-backed, opinionated guidance for building fast, predictable, and progressively powerful SaaS products",
+  "author": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "repository": "https://github.com/oborchers/vibe-cto",
+  "license": "MIT",
+  "keywords": ["saas", "design", "ux", "accessibility", "forms", "tables", "navigation", "onboarding", "authentication"]
+}
