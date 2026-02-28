@@ -1,6 +1,6 @@
 # structured-brainstorming
 
-Structured thinking methods that counteract LLM reasoning biases during problem exploration. Gives Claude 8 specific methods — selected because they fight known failure modes like premature convergence, sycophancy, and mode collapse — organized into light, medium, and heavy effort tiers.
+Structured thinking methods that counteract LLM reasoning biases during problem exploration. Gives Claude 8 specific methods — selected because they fight known failure modes like premature convergence, sycophancy, and mode collapse. For deep dives, spawns parallel subagents that explore the problem from different angles simultaneously.
 
 ## The Problem
 
@@ -19,14 +19,6 @@ Without deliberate structure, LLM responses gravitate toward the most probable a
 | Assumption Surfacing | Authority bias | "What am I taking for granted?" |
 | Diverge-then-Converge | Premature convergence | "How many options exist before I evaluate?" |
 
-## Effort Tiers
-
-| Tier | Methods | Agents | Use When |
-|------|---------|--------|----------|
-| **Light** | 2-3 inline | 0 | Quick decisions, clear scope |
-| **Medium** | 4-5 sequential | 0 | Architecture decisions, unclear trade-offs |
-| **Heavy** | All 8, parallel | 3-5 | Greenfield, high-stakes, many unknowns |
-
 ## Usage
 
 ### Automatic Skill Activation
@@ -39,21 +31,19 @@ The skill activates when Claude detects relevant work: "how should I approach th
 /brainstorm "How should we design the auth system for our SaaS product?"
 ```
 
-Auto-selects the effort tier based on problem complexity. Override by specifying: "use heavy tier."
+### Parallel Subagent Exploration
 
-### Heavy Tier (Parallel Agents)
-
-In heavy mode, Claude spawns `brainstorm-explorer` subagents in parallel — each applying different methods to the same problem. Agents can search the codebase and the web for cross-domain analogies.
+For high-stakes or ambiguous problems, Claude spawns `brainstorm-explorer` subagents in parallel — each applying different methods to the same problem. Agents can search the codebase and the web for cross-domain analogies.
 
 ## Plugin Components
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| Skill | `skills/structured-brainstorming/SKILL.md` | Core methods, tier system, method selection |
+| Skill | `skills/structured-brainstorming/SKILL.md` | Core methods, method selection, subagent dispatch |
 | References | `skills/structured-brainstorming/references/` | Detailed per-method guides (8 files) |
-| Examples | `skills/structured-brainstorming/examples/` | Worked sessions per tier (3 files) |
+| Examples | `skills/structured-brainstorming/examples/` | Worked sessions: inline and parallel agent (2 files) |
 | Command | `commands/brainstorm.md` | `/brainstorm` slash command |
-| Agent | `agents/brainstorm-explorer.md` | Heavy-tier subagent definition |
+| Agent | `agents/brainstorm-explorer.md` | Subagent for parallel exploration |
 | Hook | `hooks/hooks.json` | SessionStart awareness injection |
 
 ## Installation

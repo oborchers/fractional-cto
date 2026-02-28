@@ -1,12 +1,8 @@
-# Medium Tier Example: Event System Design
+# Inline Brainstorm: Event System Design
 
 ## User Prompt
 
 "We need to add an event system to our monolith. When a user signs up, we need to send a welcome email, create a Stripe customer, provision default settings, and track analytics. Right now these are all inline function calls in the signup handler and it's becoming a mess. How should I design this?"
-
-## Tier Assessment
-
-**Medium** — Multiple valid approaches (synchronous chain, async queue, event bus, outbox pattern), moderate stakes (signup is critical path), unclear trade-offs between approaches. Not heavy because the scope is bounded (one event type initially) and the codebase is a monolith.
 
 ## Method Application
 

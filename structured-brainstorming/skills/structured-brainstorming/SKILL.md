@@ -1,6 +1,6 @@
 ---
 name: structured-brainstorming
-description: "This skill should be used when the user needs to brainstorm, explore a problem space, think through design decisions, is stuck on an approach, wants to explore multiple solutions, asks 'how should I approach this', 'what are my options', 'help me think through this', 'help me decide between X and Y', 'what are the pros and cons', 'weigh the options', needs to evaluate alternatives, or wants structured thinking about a complex problem. Covers 8 bias-counteracting methods organized into light/medium/heavy effort tiers with optional parallel subagent exploration."
+description: "This skill should be used when the user needs to brainstorm, explore a problem space, think through design decisions, is stuck on an approach, wants to explore multiple solutions, asks 'how should I approach this', 'what are my options', 'help me think through this', 'help me decide between X and Y', 'what are the pros and cons', 'weigh the options', needs to evaluate alternatives, or wants structured thinking about a complex problem. Covers 8 bias-counteracting methods with optional parallel subagent exploration for deep dives."
 version: 0.1.0
 ---
 
@@ -8,7 +8,7 @@ version: 0.1.0
 
 Structured brainstorming applies specific thinking methods that counteract LLM reasoning biases during problem exploration. Without deliberate structure, LLM responses gravitate toward the most probable answer, skip genuine alternative exploration, and converge prematurely on conventional solutions.
 
-This skill provides 8 methods selected because they fight known LLM failure modes, organized into three effort tiers (light, medium, heavy) based on problem complexity.
+This skill provides 8 methods selected because they fight known LLM failure modes. For complex or high-stakes problems, spawn parallel `brainstorm-explorer` subagents for deep multi-angle exploration.
 
 ## Why Structure Matters for LLMs
 
@@ -54,43 +54,19 @@ Match problem type to recommended methods:
 | "How do others solve X?" | Analogy Search, Perspective Forcing | First Principles |
 | "How do I prioritize X?" | MECE Decomposition, Diverge-then-Converge | Perspective Forcing |
 
-## Effort Tiers
+## Applying Methods
 
-Assess problem complexity and select the appropriate tier. Auto-select based on the heuristics below, but let the user override.
+Select methods from the table above based on the problem type. Apply each one inline — spend enough depth per method to produce a concrete finding, not a platitude. Use the reference files for the detailed step-by-step process of each method.
 
-### Light -- Inline, 2-3 methods
+## Parallel Exploration with Subagents
 
-**When:** Quick design decisions, straightforward "which approach?" questions, time-sensitive explorations. Problem has clear scope, limited options, or low stakes.
+For high-stakes decisions, greenfield designs, or problems where premature convergence would be costly, spawn `brainstorm-explorer` subagents in parallel using the Task tool. Each agent explores the problem from a different angle simultaneously.
 
-**Process:**
-1. Select 2-3 methods from the selection table
-2. Apply each method briefly (2-4 sentences per method)
-3. Synthesize into a recommendation with trade-offs
-
-**Output:** Inline in conversation. Brief structured analysis followed by a recommendation.
-
-### Medium -- Inline, 4-5 methods sequentially
-
-**When:** Architecture decisions, multi-stakeholder problems, anything where "it depends" is the honest first answer. Problem has multiple valid approaches, moderate-to-high stakes, or unclear trade-offs.
-
-**Process:**
-1. Apply 4-5 methods sequentially, each producing a distinct section
-2. Spend 1-2 paragraphs per method with specific, concrete findings
-3. Converge: compare approaches, identify agreement and tension
-4. Deliver a structured recommendation with explicit trade-offs
-
-**Output:** Structured document with method-labeled sections and a convergence summary.
-
-### Heavy -- Parallel subagents, full exploration
-
-**When:** High-stakes architectural decisions, greenfield designs, problems where premature convergence would be costly. Problem is ambiguous, touches multiple systems, or the user explicitly asks for thorough exploration.
-
-**Process:**
-1. Decompose the problem into 3-5 exploration angles
-2. Spawn `brainstorm-explorer` subagents in parallel using the Task tool, each assigned the problem statement and 1-2 specific methods
-3. Wait for all agents to complete
-4. Synthesize: identify convergent themes, genuine disagreements, and surprising findings
-5. Present a structured recommendation with the full exploration visible
+**When to use subagents:**
+- The problem is ambiguous with many unknowns
+- Multiple systems or stakeholders are involved
+- The user explicitly asks for thorough exploration
+- The cost of committing to the wrong approach is high
 
 **Agent dispatch pattern:**
 - Agent 1: First Principles + Assumption Surfacing (strip to fundamentals)
@@ -100,11 +76,11 @@ Assess problem complexity and select the appropriate tier. Auto-select based on 
 
 Each agent receives: the problem statement, the assigned methods with their reference material, and instructions to explore deeply. Give agents access to the codebase (Read, Grep, Glob). If WebSearch is available, also grant it for cross-domain research in Analogy Search and Constraint Manipulation.
 
-**Output:** Synthesis document with per-agent findings and a convergence section.
+After all agents complete, synthesize: identify convergent themes, genuine disagreements, and surprising findings. Present a structured recommendation with the full exploration visible.
 
 ## Output Structure
 
-Every brainstorming session, regardless of tier, produces:
+Every brainstorming session produces:
 
 1. **Problem restatement** -- confirm understanding before exploring
 2. **Method application** -- labeled sections showing each method's findings
@@ -127,8 +103,7 @@ Detailed method descriptions, step-by-step processes, and application prompts:
 
 ## Example Files
 
-Worked brainstorming sessions demonstrating each tier:
+Worked brainstorming sessions:
 
-- **`examples/light-tier-design-decision.md`** -- API versioning decision (2 methods, inline)
-- **`examples/medium-tier-architecture.md`** -- Event system design (5 methods, sequential)
-- **`examples/heavy-tier-problem-exploration.md`** -- Auth system greenfield (4 agents, full parallel exploration)
+- **`examples/inline-brainstorm.md`** -- Event system design (5 methods applied inline)
+- **`examples/parallel-agent-exploration.md`** -- Auth system greenfield (4 subagents, full parallel exploration)

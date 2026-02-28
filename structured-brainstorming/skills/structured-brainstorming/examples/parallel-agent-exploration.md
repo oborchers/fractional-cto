@@ -1,12 +1,12 @@
-# Heavy Tier Example: Auth System Greenfield
+# Parallel Agent Exploration: Auth System Greenfield
 
 ## User Prompt
 
 "We're building a new SaaS product. How should we design the authentication and authorization system?"
 
-## Tier Assessment
+## Why Subagents
 
-**Heavy** — Greenfield, high-stakes (auth failures are security incidents), many valid approaches, touches every part of the system, premature convergence here would be costly. Spawning parallel agents.
+Greenfield, high-stakes (auth failures are security incidents), many valid approaches, touches every part of the system — premature convergence here would be costly. Spawning parallel `brainstorm-explorer` agents.
 
 ## Agent Dispatch
 

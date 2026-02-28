@@ -16,7 +16,7 @@ Built by [Dr. Oliver Borchers](https://linkedin.com/in/oliverborchers) -- AI eng
 | **[python-package](./python-package)** | 11 | Research-backed Python packaging -- project structure, pyproject.toml, Ruff/mypy, pytest, CI/CD, MkDocs, versioning, API design, wheels, supply chain security, developer experience |
 | **[cloud-foundation-principles](./cloud-foundation-principles)** | 15 | Cloud infrastructure foundations -- multi-account governance, naming conventions, IaC organization, networking, security, deployment pipelines, operational hygiene, and more -- cloud-agnostic with provider-specific translation tables |
 | **[visual-design-principles](./visual-design-principles)** | 11 | Visual design quality -- layout, typography, color theory, whitespace, accessibility, and more -- grounded in VisAWI, Gestalt psychology, WCAG 2.2, and empirical aesthetics research |
-| **[structured-brainstorming](./structured-brainstorming)** | 1 | Structured thinking methods that counteract LLM reasoning biases -- 8 methods (first principles, inversion, constraint manipulation, perspective forcing, analogy search, MECE, assumption surfacing, diverge-then-converge) organized into light/medium/heavy effort tiers with parallel subagent exploration |
+| **[structured-brainstorming](./structured-brainstorming)** | 1 | Structured thinking methods that counteract LLM reasoning biases -- 8 methods (first principles, inversion, constraint manipulation, perspective forcing, analogy search, MECE, assumption surfacing, diverge-then-converge) with parallel subagent exploration for deep dives |
 
 Each plugin includes principle skills with review checklists, working code examples, review commands, a reviewer agent, and a session hook that loads the skill index on startup.
 

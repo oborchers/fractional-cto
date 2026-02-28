@@ -61,7 +61,7 @@
     },
     {
       "name": "structured-brainstorming",
-      "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration — first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, organized into light/medium/heavy effort tiers with parallel subagent exploration",
+      "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration — first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, with parallel subagent exploration for deep dives",
       "version": "0.1.0",
       "source": "./structured-brainstorming",
       "author": {
