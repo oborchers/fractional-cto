@@ -1,6 +1,6 @@
 {
   "name": "python-package",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Research-backed best practices for building modern, production-grade Python packages — project structure, pyproject.toml, typing, testing, CI/CD, documentation, versioning, API design, packaging, security, and developer experience",
   "author": {
     "name": "Dr. Oliver Borchers"
