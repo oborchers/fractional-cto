@@ -79,11 +79,11 @@ Define the version in exactly one place. Prefer git-tag-derived versioning for o
 
 | Scenario | Approach |
 |----------|----------|
-| Open source library | **hatch-vcs** or **setuptools-scm** (git tag as source) |
-| Internal/private package | Static version in `pyproject.toml` + `importlib.metadata` |
+| Open source library | **hatch-vcs** or **setuptools-scm** (git tag as source, generates `_version.py`) |
+| Internal/private package | Static version in `pyproject.toml` |
 | Simple script/tool | `__version__` in source |
 
-For runtime access, always prefer `importlib.metadata.version("my-package")` over maintaining a separate `__version__` string. It reads from installed package metadata and is always correct.
+For runtime access, import from the generated `_version.py` file (see `project-structure` skill for the full rationale on why `_version.py` is preferred over `importlib.metadata.version()`).
 
 ## Deprecation Strategy
 
@@ -170,7 +170,7 @@ When reviewing code for versioning, releases, and changelogs:
 
 - [ ] Version follows SemVer (`MAJOR.MINOR.PATCH`) with correct segment bumped for the change type
 - [ ] All version strings comply with PEP 440 (use `1.0.0a1`, not `1.0.0-alpha.1`)
-- [ ] Version is derived from a single source of truth (git tag via hatch-vcs/setuptools-scm, or static in pyproject.toml with `importlib.metadata` for runtime)
+- [ ] Version is derived from a single source of truth (git tag via hatch-vcs/setuptools-scm generating `_version.py`, or static in pyproject.toml)
 - [ ] `CHANGELOG.md` follows Keep a Changelog format with entries grouped by Added/Changed/Deprecated/Removed/Fixed/Security
 - [ ] Changelog entries are written from the user's perspective, not the developer's
 - [ ] Every PR includes a Towncrier news fragment (or equivalent) for user-facing changes

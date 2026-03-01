@@ -127,7 +127,7 @@ Ship an `.editorconfig` to enforce consistent whitespace regardless of individua
 
 ### SECURITY.md
 
-Document how to report security vulnerabilities privately. Link to GitHub's security advisory feature. Never ask reporters to use public issues.
+See the `security-supply-chain` skill for the full SECURITY.md template, reporting channels, and response timeline.
 
 ## README Best Practices
 

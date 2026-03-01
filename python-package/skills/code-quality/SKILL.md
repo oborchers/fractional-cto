@@ -34,6 +34,10 @@ select = [
 ignore = ["E501"]  # Line too long -- handled by formatter
 ```
 
+**Also consider adding:**
+- `"TCH"` -- moves type-only imports behind `if TYPE_CHECKING:` guards, reducing import time and breaking circular imports. Most valuable for typed libraries where downstream users pay your import cost.
+- `"C90"` -- flags functions exceeding a cyclomatic complexity threshold (default 10). A code review guardrail for functions that are too complex to maintain and test. Pair with `[tool.ruff.lint.mccabe] max-complexity = 10`.
+
 ### Rule tier reference
 
 | Tier | Prefixes | Notes |
@@ -110,6 +114,18 @@ disallow_untyped_defs = false
 
 Always specify error codes in `# type: ignore[error-code]`. Bare `# type: ignore` silences all errors on the line, hiding real bugs. Ruff rule `PGH003` catches this automatically.
 
+### pyright configuration (for libraries running both checkers)
+
+```toml
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "standard"
+reportUnnecessaryTypeIgnoreComment = true
+enableTypeIgnoreComments = false
+```
+
+`typeCheckingMode = "standard"` is the practical starting point -- strict pyright is significantly noisier than strict mypy, and most exemplar libraries (Pydantic, Flask, SQLAlchemy) do not use strict mode. `enableTypeIgnoreComments = false` separates suppression concerns: `# type: ignore[code]` is for mypy only, `# pyright: ignore[rule]` is for pyright only. This is the pattern typeshed uses and eliminates cross-contamination between the two checkers.
+
 ## Modern Type Hints
 
 Use the newest syntax your minimum Python version supports. Ruff's `UP` rules auto-fix old patterns.
@@ -122,18 +138,9 @@ Use the newest syntax your minimum Python version supports. Ruff's `UP` rules au
 | `TypeAlias = Union[...]` | `type Alias = str \| int` | Python 3.12 (PEP 695) |
 | `from __future__ import annotations` | Remove it | Python 3.14 (PEP 649) |
 
-### Ship py.typed
+### Ship `py.typed`
 
-Every typed package must include an empty `py.typed` marker in the package root. Without it, type checkers ignore your annotations for downstream users -- the most common typing mistake in the ecosystem.
-
-```
-src/my_package/
-    __init__.py
-    py.typed        # Empty file -- its presence signals typed package
-    core.py
-```
-
-Add the PyPI classifier: `"Typing :: Typed"`.
+Every typed package must include an empty `py.typed` marker file and the `Typing :: Typed` classifier. Without it, type checkers ignore your annotations for downstream users. See the `project-structure` skill for the full explanation, file placement, and PEP 561 details.
 
 ### TYPE_CHECKING guard
 
@@ -148,6 +155,8 @@ if TYPE_CHECKING:
 ```
 
 Ruff's `TCH` rules detect imports that should be behind this guard.
+
+**Pydantic and runtime annotation frameworks:** Do not guard imports behind `TYPE_CHECKING` if the type is used in Pydantic models, dataclasses with runtime validation, or any framework that evaluates annotations at runtime (serializers, dependency injection containers). Pydantic needs the actual class at runtime for validation -- guarding it behind `TYPE_CHECKING` causes `NameError`. When using `TCH` rules, configure Ruff to recognize your runtime annotation framework: `[tool.ruff.lint.flake8-type-checking] runtime-evaluated-base-classes = ["pydantic.BaseModel"]`.
 
 ## Pre-commit Hooks
 
@@ -217,9 +226,16 @@ enable_error_code = ["ignore-without-code", "redundant-cast", "truthy-bool"]
 module = "tests.*"
 disallow_untyped_defs = false
 
+# -- pyright (for libraries running both checkers) -----------------
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "standard"
+reportUnnecessaryTypeIgnoreComment = true
+enableTypeIgnoreComments = false
+
 # -- Dependency group ----------------------------------------------
 [dependency-groups]
-lint = ["ruff>=0.9", "mypy>=1.14"]
+lint = ["ruff>=0.9", "mypy>=1.14", "pyright>=1.1"]
 ```
 
 ## Review Checklist
@@ -232,6 +248,7 @@ When reviewing code for quality tooling and type safety:
 - [ ] `E501` is in the ignore list when using `ruff format` (formatter handles line length)
 - [ ] mypy runs in strict mode (`strict = true`) with `enable_error_code = ["ignore-without-code"]`
 - [ ] No bare `# type: ignore` comments -- all have specific error codes
+- [ ] For library projects, pyright is configured alongside mypy (`typeCheckingMode = "standard"`, `enableTypeIgnoreComments = false`)
 - [ ] `py.typed` marker file exists in the package root and is included in the wheel
 - [ ] Type hints use modern syntax appropriate for the minimum Python version (`list[str]`, `str | None`)
 - [ ] Pre-commit config contains only Ruff hooks and file hygiene -- no mypy, pytest, or security scanners
@@ -239,3 +256,4 @@ When reviewing code for quality tooling and type safety:
 - [ ] Type checkers run in CI, not in pre-commit
 - [ ] `per-file-ignores` relaxes rules for tests and `__init__.py` re-exports
 - [ ] McCabe complexity threshold is set (`max-complexity = 10`) if `C90` is enabled
+- [ ] `TYPE_CHECKING` guards do not hide types used by runtime validation frameworks (Pydantic, attrs, dataclasses)

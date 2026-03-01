@@ -32,7 +32,7 @@ Structure every CI pipeline as a dependency graph of discrete jobs:
 
 ## Test Matrix
 
-Run the full Python version matrix on Linux, latest-only on macOS and Windows. This cuts jobs from 12 to 6 while still catching platform-specific issues (path separators, case sensitivity).
+Run the full Python version matrix on Linux. Add macOS and Windows only if your package has platform-specific behavior (path handling, native extensions, OS-specific dependencies). When cross-platform testing is needed, test oldest + newest Python versions only to keep CI costs manageable.
 
 ```yaml
 strategy:
@@ -41,7 +41,10 @@ strategy:
     python-version: ["3.10", "3.11", "3.12", "3.13"]
     os: [ubuntu-latest]
     include:
+      # Add these only if your package has platform-specific behavior
+      - { python-version: "3.10", os: macos-latest }
       - { python-version: "3.13", os: macos-latest }
+      - { python-version: "3.10", os: windows-latest }
       - { python-version: "3.13", os: windows-latest }
 ```
 
@@ -49,7 +52,7 @@ Upload coverage from a single matrix entry (latest Python, Linux) to avoid dupli
 
 ## Trusted Publishing (OIDC)
 
-Publish to PyPI with zero secrets. The `pypa/gh-action-pypi-publish` action handles the OIDC token exchange automatically. No `password`, no `user`, no `PYPI_API_TOKEN`.
+Publish to PyPI with zero secrets. The `pypa/gh-action-pypi-publish` action handles the OIDC token exchange automatically. No `password`, no `user`, no `PYPI_API_TOKEN`. See the `security-supply-chain` skill for the threat model and broader supply chain hardening context.
 
 | Bad Pattern | Good Pattern |
 |-------------|-------------|
@@ -114,7 +117,29 @@ changelog:
 
 ## Dependabot
 
-Configure `.github/dependabot.yml` with both `pip` and `github-actions` ecosystems on a weekly schedule. Use `groups` to combine minor/patch updates into single PRs instead of one-PR-per-dependency. Use Renovate instead for monorepos, auto-merge rules, or native `pyproject.toml` (PEP 621) support.
+Configure `.github/dependabot.yml` with both `uv` (or `pip` for non-uv projects) and `github-actions` ecosystems. Use `groups` to combine minor/patch updates into single PRs instead of one-PR-per-dependency.
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-packages:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+```
+
+**Note:** Dependabot updates `pyproject.toml` but does not regenerate `uv.lock`. Add a CI step or post-update script to run `uv lock` after Dependabot PRs.
+
+Use Renovate instead for monorepos, auto-merge rules, or when you need more granular control over update strategies.
 
 ## Anti-Patterns
 
@@ -123,7 +148,7 @@ Configure `.github/dependabot.yml` with both `pip` and `github-actions` ecosyste
 | Long-lived API tokens | Token theft, supply chain attack | Trusted publishing (OIDC) |
 | `fail-fast: true` (default) | Missing version-specific failures | `fail-fast: false` |
 | Build + publish in same job | No artifact inspection, no separation | Separate jobs, artifact passing |
-| Full matrix on all OS | Wasted CI minutes (macOS is 10x cost) | Full Linux matrix, latest-only elsewhere |
+| Full matrix on all OS | Wasted CI minutes (macOS is 10x cost) | Full Linux matrix, oldest + newest elsewhere (only if needed) |
 | `ruff check --fix` in CI | Violations pass silently | `ruff check` without `--fix` |
 | No concurrency control | Stale runs waste minutes | `concurrency` + `cancel-in-progress` |
 | Missing `fetch-depth: 0` | Wrong version with VCS versioning | Full checkout for tag-based versions |
@@ -160,6 +185,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with: { enable-cache: true }
       - run: uv run mypy src
+      # For libraries, also run pyright (see code-quality skill)
+      # - run: uv run pyright src
 
   test:
     needs: [lint, type-check]
@@ -170,7 +197,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         os: [ubuntu-latest]
         include:
+          # Add these only if your package has platform-specific behavior
+          - { python-version: "3.10", os: macos-latest }
           - { python-version: "3.13", os: macos-latest }
+          - { python-version: "3.10", os: windows-latest }
           - { python-version: "3.13", os: windows-latest }
     steps:
       - uses: actions/checkout@v4
@@ -225,7 +255,7 @@ When reviewing CI/CD configuration:
 
 - [ ] Lint job runs `ruff check` and `ruff format --check` without `--fix`
 - [ ] Type-check job runs `mypy src` (or `pyright`) in parallel with lint
-- [ ] Test matrix covers Python 3.10-3.13 on Linux, latest Python on macOS and Windows
+- [ ] Test matrix covers Python 3.10-3.13 on Linux; oldest + newest on macOS/Windows only if platform-specific behavior exists
 - [ ] `fail-fast: false` is set on the test strategy
 - [ ] `concurrency` with `cancel-in-progress: true` prevents stale runs
 - [ ] uv caching enabled via `astral-sh/setup-uv` with `enable-cache: true`
@@ -235,5 +265,5 @@ When reviewing CI/CD configuration:
 - [ ] Sigstore attestations enabled with `attestations: true`
 - [ ] GitHub `release` environment configured with branch protection rules
 - [ ] `fetch-depth: 0` set in checkout if using VCS-based versioning
-- [ ] Dependabot or Renovate configured for both pip and github-actions ecosystems
+- [ ] Dependabot or Renovate configured for both uv (or pip) and github-actions ecosystems
 - [ ] Release triggered by `on: release: types: [published]`, not raw tag push

@@ -76,7 +76,7 @@ postgres = ["asyncpg>=0.29"]
 
 [dependency-groups]                      # NOT published -- developer-only
 test = ["pytest>=8.0", "pytest-cov>=6.0", "coverage[toml]>=7.6"]
-lint = ["ruff>=0.9", "mypy>=1.14"]
+lint = ["ruff>=0.9", "mypy>=1.14", "pyright>=1.1"]
 dev = [{ include-group = "test" }, { include-group = "lint" }, "pre-commit>=4.0"]
 ```
 
@@ -99,10 +99,9 @@ version-file = "src/my_library/_version.py"
 
 **Release workflow:** `git tag v1.2.3 && git push --tags` -- CI handles the rest.
 
-**Runtime access:**
+**Runtime access** -- import from the generated `_version.py` (see `project-structure` skill for rationale):
 ```python
-from importlib.metadata import version
-__version__ = version("my-library")
+from my_library._version import __version__, __version_tuple__
 ```
 
 For projects preferring explicit control, a static version in pyproject.toml (`version = "1.2.3"`) is valid for small or internal packages.
@@ -146,7 +145,11 @@ my-plugin = "my_plugin_package:PluginClass"
 
 ## Tool Configuration Consolidation
 
-Consolidate all tool settings into `[tool.*]` sections of `pyproject.toml`. Do not create `.flake8`, `mypy.ini`, `pytest.ini`, or `.coveragerc`. Ruff replaces flake8, isort, Black, and pyupgrade as a single tool. The Reference Configuration below shows all recommended `[tool.*]` sections.
+Consolidate all tool settings into `[tool.*]` sections of `pyproject.toml` where the tool supports it. Do not create `.flake8`, `mypy.ini`, `pytest.ini`, or `.coveragerc` -- Ruff, mypy, pytest, and coverage all read from `pyproject.toml` natively. Ruff replaces flake8, isort, Black, and pyupgrade as a single tool.
+
+**Exceptions:** Tools that do not support `pyproject.toml` configuration keep their own files. The most common exception is `.pre-commit-config.yaml` -- pre-commit is a polyglot tool managing hooks across languages and requires its own YAML format.
+
+The Reference Configuration below shows all recommended `[tool.*]` sections.
 
 ## Reference Configuration
 
@@ -181,8 +184,16 @@ my-cli = "my_library.cli:main"
 
 [dependency-groups]
 test = ["pytest>=8.0", "pytest-cov>=6.0", "coverage[toml]>=7.6"]
-lint = ["ruff>=0.9", "mypy>=1.14"]
-dev = [{ include-group = "test" }, { include-group = "lint" }, "pre-commit>=4.0"]
+lint = ["ruff>=0.9", "mypy>=1.14", "pyright>=1.1"]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.27",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "mkdocs-section-index>=0.3",
+    "mike>=2.1",
+]
+dev = [{ include-group = "test" }, { include-group = "lint" }, { include-group = "docs" }, "pre-commit>=4.0"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -198,15 +209,24 @@ testpaths = ["tests"]
 addopts = ["--strict-markers", "--strict-config", "-ra"]
 xfail_strict = true
 filterwarnings = ["error"]
+asyncio_mode = "auto"
 
 [tool.mypy]
 python_version = "3.10"
 strict = true
 warn_return_any = true
+warn_unused_configs = true
+enable_error_code = ["ignore-without-code", "redundant-cast", "truthy-bool"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "standard"
+reportUnnecessaryTypeIgnoreComment = true
+enableTypeIgnoreComments = false
 
 [tool.ruff]
 target-version = "py310"
@@ -214,20 +234,31 @@ line-length = 88
 src = ["src"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "C4", "RUF", "PERF"]
+select = ["F", "E", "W", "I", "N", "UP", "B", "SIM", "C4", "RUF", "PERF", "TCH", "C90"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004"]
+"__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["my_library"]
 
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+docstring-code-format = true
+
 [tool.coverage.run]
 source_pkgs = ["my_library"]
 branch = true
+parallel = true
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 80
-exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError"]
+fail_under = 85
+exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError", "\\.\\.\\."]
 ```
 
 ## Review Checklist

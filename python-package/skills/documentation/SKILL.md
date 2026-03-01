@@ -60,6 +60,23 @@ docs/
 
 **Navigation principles:** Progressive disclosure -- homepage answers "what is this?", quickstart shows basic usage in 30 seconds. No more than 2 levels of nesting. Separate "getting started" (tutorial for first-time users) from "guide" (how-to for returning users). Put API reference last in nav.
 
+### Versioned Documentation
+
+Use `mike` for versioned docs deployed to GitHub Pages. Each release gets its own version; `latest` always points to the current stable release. Add `mike` to your docs dependency group and deploy via CI:
+
+```bash
+mike deploy --push --update-aliases 1.0 latest
+```
+
+### Deployment
+
+| Platform | When | Setup |
+|----------|------|-------|
+| **GitHub Pages** | Open-source packages, free hosting | `mkdocs gh-deploy` or `mike` for versioning |
+| **ReadTheDocs** | Existing FOSS projects, PR previews, search analytics | `.readthedocs.yaml` + webhook |
+
+Default to GitHub Pages with `mike` for new packages. Use ReadTheDocs when you need PR preview builds or existing infrastructure.
+
 ## Docstring Conventions
 
 Use Google style -- the community standard used by FastAPI, Pydantic, httpx, and Rich. Configure mkdocstrings with `docstring_style: google`.
@@ -223,6 +240,7 @@ docs = [
     "mkdocs-gen-files>=0.5",
     "mkdocs-literate-nav>=0.6",
     "mkdocs-section-index>=0.3",
+    "mike>=2.1",
 ]
 ```
 
@@ -241,4 +259,6 @@ When reviewing documentation setup and content:
 - [ ] README answers what/install/quickstart in under 60 seconds
 - [ ] README includes badges for PyPI version, Python versions, CI status, and docs status
 - [ ] Every docs page is listed in `mkdocs.yml` nav -- no orphaned pages
-- [ ] `docs` dependency group declared in `pyproject.toml` with pinned minimum versions
+- [ ] Versioned docs configured with `mike` for multi-version hosting
+- [ ] Deployment target configured (GitHub Pages with `mike`, or ReadTheDocs with `.readthedocs.yaml`)
+- [ ] `docs` dependency group declared in `pyproject.toml` with pinned minimum versions (includes `mike`)

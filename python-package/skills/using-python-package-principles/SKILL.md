@@ -1,6 +1,6 @@
 ---
 name: using-python-package-principles
-description: This skill should be used when the user asks "which Python packaging skill should I use", "show me all Python package principles", "help me set up a Python project", or at the start of any Python package creation, review, or modernization task. Provides the index of all 11 principle skills.
+description: This skill should be used when the user asks "which Python packaging skill should I use", "show me all Python package principles", "help me set up a Python project", or at the start of any Python package creation, review, or modernization task. Provides the index of all 12 principle skills.
 version: 1.0.0
 ---
 
@@ -25,6 +25,7 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 | `python-package:ci-cd` | GitHub Actions workflows, test matrix, trusted publishing (OIDC), release automation, caching, Dependabot/Renovate, SLSA/Sigstore, reusable workflows |
 | `python-package:documentation` | MkDocs Material vs Sphinx, mkdocstrings/Griffe, Diataxis framework, Google-style docstrings, versioned docs, code examples in docs |
 | `python-package:versioning-releases` | SemVer vs CalVer, PEP 440, Keep a Changelog, Towncrier, Conventional Commits, release process, deprecation strategy |
+| `python-package:cli-architecture` | CLI framework selection (Click/Typer/argparse), cli.py vs cli/ directory, `__main__.py` delegation, exit codes, `[project.scripts]` entry points, subcommand organization |
 | `python-package:api-design` | Public API surface (`__all__`), progressive disclosure, exception hierarchy, async/sync dual API, plugin architecture (pluggy/entry points/protocols), dependency injection |
 | `python-package:packaging-distribution` | Pure Python vs compiled extensions, wheel format, platform tags, maturin/scikit-build-core, cibuildwheel, package size, namespace packages |
 | `python-package:security-supply-chain` | Trusted publishing (OIDC), Sigstore/PEP 740, SLSA framework, pip-audit, SECURITY.md, dependency scanning, OpenSSF Scorecard |

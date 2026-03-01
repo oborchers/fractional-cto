@@ -118,22 +118,7 @@ Enable GitHub Private Vulnerability Reporting under `Settings > Security > Code 
 
 ### Dependabot
 
-```yaml
-# .github/dependabot.yml
-version: 2
-updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      minor-and-patch:
-        update-types: ["minor", "patch"]
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-```
+See the `ci-cd` skill for the full Dependabot configuration with `uv` ecosystem support and groups. Ensure both `uv` (or `pip` for non-uv projects) and `github-actions` ecosystems are configured on a weekly schedule.
 
 ### License Compliance
 
@@ -147,15 +132,7 @@ pip-licenses \
 
 ## PEP 639 SPDX License Declaration
 
-Use an SPDX expression string, not the legacy table format:
-
-| Pattern | Good | Bad |
-|---------|------|-----|
-| Single license | `license = "MIT"` | `license = {text = "MIT License"}` |
-| Dual license | `license = "MIT OR Apache-2.0"` | `license = {file = "LICENSE"}` |
-| License files | `license-files = ["LICENSE", "NOTICE"]` | Omitting license files |
-
-Supported by hatchling (v1.22+), setuptools (v72+), flit-core (v3.10+).
+Use an SPDX expression string, not the legacy table format. See the `pyproject-toml` skill for the full PEP 639 configuration and examples. Enforce license compliance in CI with `pip-licenses`.
 
 ## CI Permissions Hardening
 
@@ -173,13 +150,13 @@ jobs:
       id-token: write  # Only for trusted publishing
 ```
 
-Pin GitHub Actions by full commit SHA for immutability:
+Pin GitHub Actions by full commit SHA for immutability. Version tags (e.g., `@v4`) are convenient and used in most CI configs (see `ci-cd` skill), but SHA pinning provides stronger supply chain guarantees since tags can be moved:
 
 ```yaml
-# Prefer this
+# Most secure (SHA pinning)
 - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.7
 
-# Over this
+# Acceptable (version tag pinning)
 - uses: actions/checkout@v4
 ```
 
@@ -227,7 +204,7 @@ When reviewing code for security and supply chain practices:
 - [ ] GitHub Environment with required reviewers gates the publish job
 - [ ] `pip-audit --strict` runs on every PR and on a weekly schedule
 - [ ] `SECURITY.md` exists with reporting instructions and response timeline
-- [ ] Dependabot or Renovate is configured for both pip and github-actions ecosystems
+- [ ] Dependabot or Renovate is configured for both uv (or pip) and github-actions ecosystems
 - [ ] Workflow-level `permissions: read-all` is set, with per-job overrides
 - [ ] GitHub Actions are pinned by full commit SHA
 - [ ] Secret scanning with push protection is enabled

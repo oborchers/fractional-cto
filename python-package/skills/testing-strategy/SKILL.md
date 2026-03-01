@@ -47,11 +47,13 @@ filterwarnings = [
 
 ## Test Organization
 
-Start flat. Refactor to directories only when test count exceeds 500 or different test layers need different infrastructure.
+**Mirror the source directory** -- the `tests/` directory must mirror `src/my_package/` exactly, with the same subdirectories and a `test_`-prefixed file for every source module. This makes it obvious where tests live and immediately reveals untested modules. See the `project-structure` skill for the full directory mapping.
+
+Start flat within that mirror. Refactor to additional directories (e.g., `tests/unit/`, `tests/integration/`) only when test count exceeds 500 or different test layers need different infrastructure.
 
 | Structure | When | Run Subsets |
 |-----------|------|-------------|
-| **Flat + markers** (`tests/test_*.py`) | < 500 tests, same fixtures | `pytest -m "not slow"` |
+| **Flat mirror** (`tests/test_*.py` matching `src/`) | < 500 tests, same fixtures | `pytest -m "not slow"` |
 | **Directories** (`tests/unit/`, `tests/integration/`) | > 500 tests, different infrastructure per layer | `pytest tests/unit/` |
 
 ### conftest.py rules
@@ -111,7 +113,14 @@ def test_export(fmt):
     elif fmt == "xml": assert "<name>" in result
 ```
 
-Stack decorators for cartesian products: `@parametrize("method", [...])` + `@parametrize("auth", [...])` = M x N tests.
+Stack decorators for cartesian products:
+
+```python
+@pytest.mark.parametrize("method", ["GET", "POST", "PUT"])
+@pytest.mark.parametrize("auth", ["token", "api_key"])
+def test_endpoint(method, auth):  # 3 x 2 = 6 tests
+    ...
+```
 
 ## Coverage
 
@@ -136,7 +145,7 @@ exclude_also = [
 | Decision | Recommendation |
 |----------|---------------|
 | **Branch coverage** | Always enable (`branch = true`). Line coverage misses untested else paths. |
-| **`fail_under`** | Start at 80, raise as coverage improves. Prevents silent regression. |
+| **`fail_under`** | Start at 80, raise as coverage improves. Never lower it. Prevents silent regression. |
 | **Target** | 80-85% for libraries, 85-90% for production APIs, never chase 100% |
 | **Exclusions** | `TYPE_CHECKING` blocks, `@overload`, abstract methods, sentinel `...` |
 
@@ -151,7 +160,9 @@ Enable pytest-asyncio auto mode to avoid decorating every async test:
 asyncio_mode = "auto"
 ```
 
-Any `async def test_*` is automatically detected. For FastAPI, use `httpx.AsyncClient` with `ASGITransport`:
+Any `async def test_*` is automatically detected. For trio or anyio backends, use `asyncio_mode = "auto"` with the `anyio` pytest plugin instead.
+
+For FastAPI, use `httpx.AsyncClient` with `ASGITransport`:
 
 ```python
 @pytest.fixture
@@ -180,6 +191,8 @@ settings.register_profile("dev", max_examples=50, deadline=400)
 settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "default"))
 ```
 
+Pin regression cases with `@example()` so they run on every invocation, not just when Hypothesis rediscovers them.
+
 Add `.hypothesis/` to `.gitignore`.
 
 ## Mocking Best Practices
@@ -194,7 +207,7 @@ Patch where the name is used, not where it is defined: `mocker.patch("myapp.emai
 
 ## CI Test Matrix
 
-Full Python matrix on Linux; oldest + newest only on macOS/Windows. Cuts CI costs ~60%.
+Full Python version matrix on Linux. Add macOS and Windows only if your package has platform-specific behavior — when needed, test oldest + newest Python versions only. See the `ci-cd` skill for the full GitHub Actions workflow and reusable workflow patterns.
 
 ```yaml
 strategy:
@@ -203,6 +216,7 @@ strategy:
     python-version: ["3.10", "3.11", "3.12", "3.13"]
     os: [ubuntu-latest]
     include:
+      # Add these only if your package has platform-specific behavior
       - { python-version: "3.10", os: macos-latest }
       - { python-version: "3.13", os: macos-latest }
       - { python-version: "3.10", os: windows-latest }
@@ -231,7 +245,7 @@ parallel = true
 [tool.coverage.report]
 show_missing = true
 fail_under = 85
-exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError", "\\.\\.\\.",]
+exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError", "assert_never", "\\.\\.\\.",]
 ```
 
 ## Review Checklist
@@ -249,6 +263,8 @@ When reviewing tests and test configuration:
 - [ ] `TYPE_CHECKING` blocks and `@overload` are excluded from coverage
 - [ ] Async tests use `asyncio_mode = "auto"` -- no manual decorators
 - [ ] Mocks target external services only -- own code tested directly via dependency injection
+- [ ] `fail_under` is treated as a ratchet -- raise it as coverage improves, never lower it
 - [ ] Hypothesis profiles exist for CI (`max_examples=1000`) and dev (`max_examples=50`)
-- [ ] CI matrix tests all Python versions on Linux, oldest + newest on macOS/Windows
+- [ ] Hypothesis regression cases are pinned with `@example()` decorators
+- [ ] CI matrix tests all Python versions on Linux; oldest + newest on macOS/Windows only if platform-specific behavior exists
 - [ ] Tests verify behavior and outcomes, not internal method call order
