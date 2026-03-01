@@ -1,6 +1,6 @@
 # Organization Structure -- Terraform Module
 
-A four-account organization with OUs, baseline policies, and account email conventions. This is the minimum viable multi-account setup.
+A six-account organization with OUs, baseline policies, and account email conventions. This is the minimum viable multi-account setup.
 
 ## Organization and OUs
 
@@ -72,6 +72,40 @@ resource "aws_organizations_account" "security" {
 
   tags = {
     environment = "security"
+    managed_by  = "terraform"
+    owner       = "platform"
+  }
+
+  lifecycle {
+    ignore_changes = [role_name]
+  }
+}
+
+resource "aws_organizations_account" "log_archive" {
+  name      = "log-archive"
+  email     = "cloud-log-archive@mycompany.com"
+  parent_id = aws_organizations_organizational_unit.security.id
+  role_name = "OrganizationAccountAccessRole"
+
+  tags = {
+    environment = "log-archive"
+    managed_by  = "terraform"
+    owner       = "platform"
+  }
+
+  lifecycle {
+    ignore_changes = [role_name]
+  }
+}
+
+resource "aws_organizations_account" "sandbox" {
+  name      = "sandbox"
+  email     = "cloud-sandbox@mycompany.com"
+  parent_id = aws_organizations_organizational_unit.sandbox.id
+  role_name = "OrganizationAccountAccessRole"
+
+  tags = {
+    environment = "sandbox"
     managed_by  = "terraform"
     owner       = "platform"
   }
@@ -168,7 +202,7 @@ resource "aws_organizations_policy" "required_tags" {
           "@@assign" = "environment"
         }
         tag_value = {
-          "@@assign" = ["dev", "staging", "prod", "security"]
+          "@@assign" = ["dev", "staging", "prod", "security", "sandbox", "log-archive"]
         }
         enforced_for = {
           "@@assign" = [
@@ -204,10 +238,11 @@ resource "aws_organizations_policy_attachment" "required_tags_workloads" {
 ```
 Root (management account -- cloud-management@mycompany.com)
 ├── Security OU
-│   └── security (cloud-security@mycompany.com)
+│   ├── security (cloud-security@mycompany.com)
+│   └── log-archive (cloud-log-archive@mycompany.com)
 │
 ├── Sandbox OU
-│   └── (accounts added later as team grows)
+│   └── sandbox (cloud-sandbox@mycompany.com)
 │
 └── Workloads OU
     ├── Production

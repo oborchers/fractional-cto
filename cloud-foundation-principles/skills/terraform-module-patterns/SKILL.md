@@ -12,7 +12,7 @@ These ten patterns come from production infrastructure managing multiple environ
 
 ## Pattern 1: Wrap, Don't Rebuild
 
-Never rewrite what the community has already built and battle-tested. Compose around established modules (`terraform-aws-modules`, `terraform-google-modules`, etc.) and add your domain-specific logic on top.
+Never rewrite what the community has already built and battle-tested. Before building any module, research what already exists -- `terraform-aws-modules`, `terraform-google-modules`, and cloud provider-maintained modules (especially from AWS) are production-hardened and cover most use cases. Use prebuilt modules wherever possible. Only build what is absolutely necessary: your domain-specific wrapper logic on top.
 
 ```hcl
 # Good: Wrap the community ECS module with domain logic
@@ -47,7 +47,7 @@ Create a labels module as your first Terraform module. Import it once per projec
 ```hcl
 # Import ONCE per project (interface defined in naming-and-labeling-as-code skill)
 module "labels" {
-  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.0.0"
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
   team        = "platform"
   env         = "dev"
   name        = "backend"
@@ -58,16 +58,16 @@ module "labels" {
 # Use EVERYWHERE
 locals {
   tags = module.labels.tags
-  prf  = module.labels.prefix
+  prefix = module.labels.prefix
 }
 
 resource "aws_s3_bucket" "data" {
-  bucket = "${local.prf}data"
+  bucket = "${local.prefix}data"
   tags   = local.tags
 }
 
 resource "aws_sqs_queue" "events" {
-  name = "${local.prf}events"
+  name = "${local.prefix}events"
   tags = local.tags
 }
 ```
@@ -221,28 +221,19 @@ resource "aws_lb_target_group" "this" {
 Catch errors at `terraform plan` time, not at apply time or runtime. Use `validation` blocks with `contains()` checks and clear error messages.
 
 ```hcl
-# Cost center validation -- the canonical list lives in the labels module
-# (see `naming-and-labeling-as-code` skill for the domain definition pattern)
-variable "cost_center" {
-  type        = string
-  description = "Cost allocation category. Validated against company-specific domain list."
-
-  validation {
-    condition     = contains(["engineering", "data", "infrastructure", "security", "operations"], var.cost_center)
-    error_message = "Invalid cost_center. Must be from the approved domain list."
-  }
-}
-
+# Environment validation -- catch invalid values at plan time
 variable "env" {
   type        = string
   description = "Deployment environment"
 
   validation {
-    condition     = contains(["dev", "staging", "prod", "sandbox"], var.env)
-    error_message = "env must be one of: dev, staging, prod, sandbox."
+    condition     = contains(["dev", "staging", "prod", "security", "log-archive", "sandbox"], var.env)
+    error_message = "env must be one of: dev, staging, prod, security, log-archive."
   }
 }
 ```
+
+For cost center validation (closed domain lists, enforcement at plan time), see the `naming-and-labeling-as-code` skill -- it owns the canonical pattern and list.
 
 **Why**: An invalid cost center caught during `plan` is a 10-second fix. The same error discovered in a billing report three months later is a multi-day forensic investigation.
 
@@ -313,7 +304,7 @@ Pin everything. No exceptions. No "latest." No unversioned references.
 ```hcl
 # Custom modules: exact git ref tags
 module "labels" {
-  source = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.3.0"
+  source = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
 }
 
 # Community modules: exact version
@@ -353,7 +344,7 @@ Every module repository should enforce formatting, linting, and security scannin
 |------|---------|---------|
 | `terraform_fmt` | Inconsistent formatting | Tabs vs spaces, trailing whitespace |
 | `terraform_tflint` | Deprecated syntax, invalid references, naming violations | Previous-generation instance types, undocumented variables |
-| `terraform_checkov` | Security misconfigurations, compliance violations | Unencrypted S3 buckets, security groups open to 0.0.0.0/0 |
+| `terraform_checkov` (optional) | Security misconfigurations, compliance violations | Unencrypted S3 buckets, security groups open to 0.0.0.0/0. Can produce false positives -- evaluate whether the signal-to-noise ratio justifies the gate for your codebase. |
 
 ## Cloud Provider Translation
 
@@ -389,5 +380,5 @@ When designing or reviewing Terraform modules:
 - [ ] Custom modules are pinned to exact git ref tags (`?ref=v1.3.0`)
 - [ ] Community modules are pinned to exact versions (`version = "5.19.0"`)
 - [ ] Provider versions use pessimistic constraints (`~> 5.0`)
-- [ ] Pre-commit hooks enforce `terraform_fmt`, `terraform_tflint`, and `terraform_checkov`
+- [ ] Pre-commit hooks enforce `terraform_fmt` and `terraform_tflint`; `terraform_checkov` is recommended but optional (evaluate false positive rate for your codebase)
 - [ ] Module README documents the public interface (inputs, outputs, examples)

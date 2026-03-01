@@ -1,18 +1,20 @@
 ---
 name: zero-static-credentials
-description: "This skill should be used when the user is configuring SSO, setting up CI/CD authentication, designing OIDC federation, eliminating SSH keys or VPN, managing human or machine identity, or discussing credential lifecycle. Covers three access patterns (human SSO, pipeline OIDC, operator session-based), federated identity, workload identity federation, and the elimination of static API keys, SSH keys, and VPN files."
+description: "This skill should be used when the user is configuring SSO, setting up CI/CD authentication, designing OIDC federation, eliminating SSH keys or VPN, managing human or machine identity, or discussing credential lifecycle. Covers core access patterns (human SSO, pipeline OIDC, operator session-based), federated identity, workload identity federation, and the elimination of static API keys, SSH keys, and VPN files."
 version: 1.0.0
 ---
 
 # No .pem Files, No .ovpn Files, No Long-Lived API Keys
 
-Static credentials are the number one cause of cloud security breaches. An API key stored in a CI/CD secret, an SSH key on a developer's laptop, a VPN configuration file shared via Slack -- each one is a ticking time bomb. Static credentials cannot be revoked instantly across all consumers. They accumulate silently over time. They are almost always over-permissioned. And when they leak (not if), the blast radius is unknowable because nobody tracks where they were copied.
+Static credentials are the number one cause of cloud security breaches. An SSH key on a developer's laptop, a VPN configuration file shared via Slack, cloud provider access keys stored in a CI/CD secret -- each one is a ticking time bomb. Static credentials cannot be revoked instantly across all consumers. They accumulate silently over time. They are almost always over-permissioned. And when they leak (not if), the blast radius is unknowable because nobody tracks where they were copied.
 
-Zero static credentials means exactly what it says: no long-lived API keys, no SSH key pairs, no VPN configuration files, no stored database passwords in developer environments. Every access path uses short-lived, automatically rotated, centrally revocable tokens. There are exactly three access patterns, and every interaction with your cloud infrastructure must fit one of them.
+Zero static credentials applies fully to **cloud provider credentials** -- no long-lived AWS access keys, no GCP service account key files, no SSH key pairs, no VPN configuration files. Every cloud access path uses short-lived, automatically rotated, centrally revocable tokens. Three core access patterns cover the vast majority of cloud interactions.
 
-## The Three Access Patterns
+**Third-party service credentials** (Supabase keys, Stripe API keys, NPM tokens, SendGrid keys) are a different category. Most third-party services do not support OIDC or workload identity federation, so these credentials must be stored somewhere. CI/CD secret stores and cloud secrets managers are the correct places -- they are encrypted, access-controlled, and auditable. For these credentials, the goal is not elimination but proper management: store in an encrypted secret store, scope to minimum permissions, and rotate on a schedule where the service supports it.
 
-Every interaction with your cloud infrastructure fits one of three patterns. If a proposed access method does not fit one of these, it is a security liability.
+## The Core Access Patterns
+
+These three patterns cover human access, automated pipelines, and operational debugging. If a proposed access method does not use short-lived, centrally revocable tokens, it is a security liability.
 
 | Pattern | Who | How | Token Lifetime |
 |---------|-----|-----|----------------|
@@ -57,10 +59,7 @@ Cloud Identity Service (IAM Identity Center, Cloud Identity, Entra ID)
 
 **External IdP as single source of truth**: Do not manage users in the cloud provider. Your identity provider (Google Workspace, Okta, Microsoft Entra ID) is the single source of truth. Onboarding means adding a user to the IdP. Offboarding means disabling the IdP account. No second step required.
 
-**Three permission tiers**:
-- **Admin**: Full access to all accounts. Limited to 2-3 people. Used for infrastructure changes and incident response.
-- **Developer**: Full access in development and sandbox. Read-only in production with targeted exceptions (viewing logs, pulling container images, reading object storage for debugging).
-- **ReadOnly**: View-only access for audit, compliance, and stakeholders.
+**Three permission tiers** (Admin, Developer, ReadOnly): See the `multi-account-from-day-one` skill for the full tier definitions and per-account access scoping.
 
 **MFA enforced at the IdP**: Multi-factor authentication is configured in the identity provider, not in the cloud. This ensures MFA covers all access paths, not just the cloud console.
 
@@ -132,7 +131,7 @@ resource "aws_iam_role" "github_actions" {
         Condition = {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:myorg/infra-global:*",
+              "repo:myorg/infrastructure:*",
               "repo:myorg/api-service:*"
             ]
           }
@@ -169,7 +168,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::role/GithubActionsDeployRole
-          aws-region: us-east-1
+          aws-region: eu-west-1
           # No access key, no secret key -- OIDC only
 
       - uses: hashicorp/setup-terraform@v3
@@ -191,12 +190,13 @@ BAD: Static credentials in CI/CD
 - Same keys used across 15 repositories
 - Cannot revoke without breaking all pipelines
 
-GOOD: OIDC federation
-- No secrets stored in CI/CD platform
-- Each job gets unique, short-lived credentials
+GOOD: OIDC federation for cloud credentials
+- No cloud credentials stored in CI/CD platform
+- Each job gets unique, short-lived cloud credentials
 - Role assumption restricted to specific repositories
 - Token expires when the job ends
 - Revoking access = update the trust policy (instant, no pipeline changes)
+- Third-party keys (Supabase, Stripe, etc.) still use CI/CD secrets -- that is expected
 ```
 
 ## Pattern 3: Operator Access via Session Manager
@@ -304,3 +304,4 @@ When designing or reviewing credential management:
 - [ ] All sessions are logged and auditable
 - [ ] Offboarding an employee requires only disabling their IdP account
 - [ ] Database access uses team-based roles, not individual credentials
+- [ ] Third-party service credentials that cannot use OIDC are stored in encrypted CI/CD secret stores or cloud secrets managers (not in code, not in .env files)

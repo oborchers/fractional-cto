@@ -9,7 +9,7 @@ Terraform configuration for a container registry with lifecycle policies for ima
 
 # --- ECR Repository ---
 resource "aws_ecr_repository" "this" {
-  name                 = "${module.labels.prf}api"
+  name                 = "${module.labels.prefix}api"
   image_tag_mutability = "IMMUTABLE"  # Prevent tag overwrites
 
   image_scanning_configuration {
@@ -28,27 +28,17 @@ resource "aws_ecr_repository" "this" {
 resource "aws_ecr_lifecycle_policy" "this" {
   repository = aws_ecr_repository.this.name
 
+  # Note: semver-tagged images are kept indefinitely -- no expiry rule needed.
   policy = jsonencode({
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 20 SHA-tagged images for rollback"
+        description  = "Keep last 20 SHA-tagged images (dev builds)"
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["sha-"]
+          tagStatus     = "any"
+          tagPrefixList = [""]
           countType     = "imageCountMoreThan"
           countNumber   = 20
-        }
-        action = { type = "expire" }
-      },
-      {
-        rulePriority = 2
-        description  = "Keep last 10 semver-tagged images"
-        selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["v"]
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
         }
         action = { type = "expire" }
       },
@@ -117,8 +107,9 @@ resource "google_artifact_registry_repository" "this" {
   description   = "Container images for myapp-api"
   format        = "DOCKER"
 
+  # Keep last 20 SHA-tagged dev builds; semver-tagged images kept indefinitely
   cleanup_policies {
-    id     = "keep-last-20-tagged"
+    id     = "keep-last-20-dev-builds"
     action = "KEEP"
     most_recent_versions {
       keep_count = 20
@@ -178,10 +169,10 @@ resource "azurerm_role_assignment" "acr_pull" {
 
 | Rule | Retention | Rationale |
 |------|-----------|-----------|
-| SHA-tagged images | Keep last 20 | Covers ~2-4 weeks of deployments; always have rollback targets |
-| Semver-tagged images | Keep last 10 | Release milestones for reference and long-term rollback |
+| SHA-tagged images (dev builds) | Keep last 20 | Covers ~2-4 weeks of dev deployments; enough for rollback |
+| Semver-tagged images (prod releases) | Keep all | Production releases are infrequent; needed for audits, compliance, and post-mortems |
 | Untagged images | Delete after 7 days | Intermediate build layers; no production value |
 
-### Why 20 Images?
+### Why 20 SHA-Tagged Images?
 
-If your team deploys once per day, 20 images covers nearly a month of rollback history. If you deploy 3 times per day, it covers about a week. Adjust the count to always maintain at least 1-2 weeks of rollback depth. The storage cost of 20 images is trivial compared to the cost of needing to roll back and discovering the image has been garbage collected.
+If your team deploys once per day, 20 images covers nearly a month of rollback history. If you deploy 3 times per day, it covers about a week. Adjust the count to always maintain at least 1-2 weeks of rollback depth. Production release images (semver-tagged) are kept indefinitely -- storage cost is negligible and you never want to explain in an audit why a production image was deleted.

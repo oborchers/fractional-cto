@@ -25,21 +25,25 @@ The longer you wait, the worse each problem gets. Resources accumulate. IAM poli
 
 ## The Minimum Viable Account Structure
 
-Start with four accounts or projects. This is the minimum that provides meaningful isolation:
+Start with six accounts or projects. This is the minimum that provides meaningful isolation:
 
 ```
 Organization Root
 ├── Management Account          -- SSO, billing, organization policies
 │
-├── Security OU
-│   └── security                -- Centralized security services
+├── Security OU                 -- (GCP: Folder, Azure: Management Group)
+│   ├── security                -- Centralized security services
+│   └── log-archive             -- Immutable, centralized audit logs
+│
+├── Sandbox OU
+│   └── sandbox                 -- Unrestricted experimentation, no prod access
 │
 └── Workloads OU
     ├── dev                     -- Development workloads
     └── prod                    -- Production workloads
 ```
 
-Four accounts. One afternoon. This gives you environment isolation, a dedicated security boundary, and clean billing separation from day one.
+Six accounts. One afternoon. This gives you environment isolation, a dedicated security boundary, centralized audit logging, a safe experimentation space, and clean billing separation from day one. All three major cloud providers (AWS Control Tower, GCP Cloud Foundation Toolkit, Azure Landing Zones) include a centralized logging account by default.
 
 ### When to Add More Accounts
 
@@ -47,9 +51,7 @@ As your team and workloads grow, expand the structure:
 
 | Account | Add When | Purpose |
 |---------|----------|---------|
-| `sandbox` | Team > 3 engineers | Unrestricted experimentation without affecting dev |
 | `cicd` | You adopt self-hosted runners | Isolate CI/CD compute from application workloads |
-| `log-archive` | Compliance requirements emerge | Centralized, immutable audit logs |
 | `staging` | You need a prod-like pre-release env | Full production mirror for release validation |
 | `data` or `ml-training` | GPU or large data workloads | Isolate expensive compute with separate quotas and billing |
 
@@ -117,7 +119,7 @@ Tags are metadata, not security boundaries. An IAM policy that grants `ec2:*` in
 
 ## Identity and Access Across Accounts
 
-Centralize identity in the management account. Federate from an external identity provider (Google Workspace, Okta, Azure AD) so that disabling a person in the IdP immediately revokes all cloud access.
+Centralize identity in the management account. Federate from an external identity provider (Google Workspace, Okta, Microsoft Entra ID) so that disabling a person in the IdP immediately revokes all cloud access.
 
 ### Three Permission Tiers
 
@@ -133,7 +135,7 @@ Developers should have full access in dev and sandbox but only read-only access 
 
 CI/CD pipelines authenticate to each account via workload identity federation (OIDC), not static API keys. Each account has its own CI/CD role with a trust policy restricting which repositories can assume it. This means zero stored secrets in your CI/CD system -- no API keys to rotate, no credentials to leak.
 
-The multi-account angle: every account needs its own OIDC role. The trust policy in the dev account allows broader repository access (any branch), while the production account restricts to tag refs only. For the complete OIDC setup (provider configuration, trust policies, subject claim restrictions, per-provider Terraform), see the `zero-static-credentials` skill.
+The multi-account angle: every account needs its own OIDC role. The trust policy in the dev account allows broader repository access (any branch), while the production account restricts to tag refs only (see the `tag-based-production-deploys` skill for the tag-driven deployment model). For the complete OIDC setup (provider configuration, trust policies, subject claim restrictions, per-provider Terraform), see the `zero-static-credentials` skill.
 
 ## Account Email Convention
 
@@ -142,6 +144,8 @@ Use distribution lists or group aliases for account root emails, never personal 
 ```
 cloud-management@mycompany.com     -- Management/root account
 cloud-security@mycompany.com       -- Security account
+cloud-log-archive@mycompany.com    -- Log archive account
+cloud-sandbox@mycompany.com        -- Sandbox account
 cloud-dev@mycompany.com            -- Development account
 cloud-prod@mycompany.com           -- Production account
 ```
@@ -156,7 +160,7 @@ Personal email addresses tied to accounts create single points of failure. When 
 | Landing zone automation | Control Tower | Cloud Foundation Toolkit | Azure Landing Zones (CAF) |
 | Account/project creation | AWS Account Factory | Project Factory | Subscription vending |
 | Guardrails / policies | Service Control Policies (SCPs) | Organization Policies | Azure Policy |
-| Centralized identity | IAM Identity Center (SSO) | Cloud Identity + Workforce IdF | Entra ID (Azure AD) |
+| Centralized identity | IAM Identity Center (SSO) | Cloud Identity + Workforce IdF | Microsoft Entra ID |
 | Cross-account roles | IAM Roles + trust policies | Service account impersonation | Managed Identity + RBAC |
 | Billing isolation | Per-account billing | Per-project billing | Per-subscription billing |
 | Security delegation | Delegated administrator | Organization-level security | Microsoft Defender for Cloud |
@@ -164,7 +168,7 @@ Personal email addresses tied to accounts create single points of failure. When 
 ## Examples
 
 Working implementations in `examples/`:
-- **`examples/organization-structure.md`** -- Terraform module that creates a four-account organization with OUs, account email conventions, and baseline policies
+- **`examples/organization-structure.md`** -- Terraform module that creates a six-account organization with OUs, account email conventions, and baseline policies
 - **`examples/cross-account-roles.md`** -- Terraform configuration for CI/CD OIDC federation and developer cross-account access with least-privilege permissions
 
 ## Review Checklist
@@ -173,6 +177,8 @@ When designing or reviewing cloud account structure:
 
 - [ ] Dev and prod workloads run in separate accounts or projects, never co-located
 - [ ] A dedicated security account exists for centralized security services
+- [ ] A dedicated log-archive account exists for immutable, centralized audit logs
+- [ ] A sandbox account exists for unrestricted experimentation, isolated from dev and prod
 - [ ] The management/root account contains no application workloads
 - [ ] Landing zone automation is used for account provisioning and guardrails
 - [ ] Account root emails use team distribution lists, not personal addresses

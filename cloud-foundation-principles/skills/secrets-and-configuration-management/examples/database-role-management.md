@@ -13,21 +13,10 @@
 # Variables
 # ---------------------------------------------------------------------------
 
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-}
-
 variable "service_name" {
   description = "Service identifier"
   type        = string
   default     = "myapp"
-}
-
-variable "team" {
-  description = "Team identifier"
-  type        = string
-  default     = "acme"
 }
 
 variable "db_instance_address" {
@@ -51,8 +40,7 @@ variable "database_name" {
 # ---------------------------------------------------------------------------
 
 locals {
-  name_prefix = "${var.team}-${var.environment}"
-  secret_path = "/${var.environment}/${var.service_name}"
+  secret_path = "/${var.service_name}"
 
   # Role definitions: {purpose}_{access}
   db_roles = {
@@ -98,9 +86,8 @@ resource "aws_kms_key" "db_credentials" {
   enable_key_rotation = true
 
   tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Purpose     = "db-credentials"
+    Service = var.service_name
+    Purpose = "db-credentials"
   }
 }
 
@@ -125,14 +112,13 @@ resource "aws_secretsmanager_secret" "db_role" {
   name       = "${local.secret_path}/db-${each.key}"
   kms_key_id = aws_kms_key.db_credentials.arn
 
-  description = "${each.value.description} for ${var.service_name} in ${var.environment}"
+  description = "${each.value.description} for ${var.service_name}"
 
   tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Role        = each.key
-    Type        = "db-credential"
-    Rotation    = each.value.rotation ? "automatic-${each.value.rotation_days}d" : "manual"
+    Service  = var.service_name
+    Role     = each.key
+    Type     = "db-credential"
+    Rotation = each.value.rotation ? "automatic-${each.value.rotation_days}d" : "manual"
   }
 }
 
@@ -159,8 +145,8 @@ resource "aws_secretsmanager_secret_version" "db_role" {
 # ---------------------------------------------------------------------------
 
 resource "aws_db_proxy" "main" {
-  name                   = "${local.name_prefix}-${var.service_name}-proxy"
-  debug_logging          = var.environment != "prod"
+  name                   = "${var.service_name}-db-proxy"
+  debug_logging          = false
   engine_family          = "POSTGRESQL"
   require_tls            = true
   role_arn               = aws_iam_role.rds_proxy.arn
@@ -173,8 +159,7 @@ resource "aws_db_proxy" "main" {
   }
 
   tags = {
-    Environment = var.environment
-    Service     = var.service_name
+    Service = var.service_name
   }
 }
 
@@ -243,7 +228,7 @@ resource "aws_iam_role_policy" "analytics_db_access" {
 # The proxy authenticates via IAM and connects as generic_readonly
 
 resource "aws_iam_policy" "developer_db_access" {
-  name = "${local.name_prefix}-${var.service_name}-developer-db"
+  name = "${var.service_name}-developer-db"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -305,7 +290,7 @@ resource "aws_iam_policy" "developer_db_access" {
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "rds_proxy" {
-  name = "${local.name_prefix}-${var.service_name}-rds-proxy"
+  name = "${var.service_name}-rds-proxy"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -359,9 +344,10 @@ variable "private_subnet_ids" {
 
 # 1. Five role-based users, zero person-specific users
 # 2. Role naming: {purpose}_{access} (app_readwrite, analytics_readonly, etc.)
-# 3. Each role has its own secret in Secrets Manager with auto-rotation
-# 4. IAM policies scope each service to ONLY its role's secret
-# 5. Developer access: SSO --> IAM auth --> RDS Proxy --> generic_readonly
-# 6. No developer knows any database password (IAM auth via proxy)
-# 7. Offboarding: disable SSO account, all database access revokes instantly
-# 8. migration_admin is for CI/CD schema migrations only, not human use
+# 3. Each role has its own secret at /{service}/db-{role} (no env prefix)
+# 4. Account = environment: same paths in dev and prod, different accounts
+# 5. IAM policies scope each service to ONLY its role's secret
+# 6. Developer access: SSO --> IAM auth --> RDS Proxy --> generic_readonly
+# 7. No developer knows any database password (IAM auth via proxy)
+# 8. Offboarding: disable SSO account, all database access revokes instantly
+# 9. migration_admin is for CI/CD schema migrations only, not human use

@@ -10,21 +10,10 @@
 # Variables
 # ---------------------------------------------------------------------------
 
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-}
-
 variable "service_name" {
   description = "Service identifier"
   type        = string
   default     = "myapp"
-}
-
-variable "team" {
-  description = "Team identifier"
-  type        = string
-  default     = "acme"
 }
 
 variable "vpc_id" {
@@ -46,9 +35,16 @@ variable "database_subnet_group_name" {
 # Locals
 # ---------------------------------------------------------------------------
 
+module "labels" {
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
+  team        = "product"
+  env         = "dev"  # Change per environment directory
+  name        = var.service_name
+  cost_center = "engineering"
+}
+
 locals {
-  name_prefix = "${var.team}-${var.environment}"
-  is_prod     = var.environment == "prod"
+  is_prod = module.labels.env == "prod"
 }
 
 # ---------------------------------------------------------------------------
@@ -75,7 +71,7 @@ locals {
 #   - Storage management and VACUUM tuning
 
 resource "aws_db_instance" "main" {
-  identifier = "${local.name_prefix}-${var.service_name}"
+  identifier = "${module.labels.prefix}${var.service_name}"
 
   # Engine
   engine               = "postgres"
@@ -120,17 +116,13 @@ resource "aws_db_instance" "main" {
   # Protection
   deletion_protection = local.is_prod
   skip_final_snapshot = !local.is_prod
-  final_snapshot_identifier = local.is_prod ? "${local.name_prefix}-${var.service_name}-final" : null
+  final_snapshot_identifier = local.is_prod ? "${module.labels.prefix}${var.service_name}-final" : null
 
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    ManagedBy   = "terraform"
-  }
+  tags = module.labels.tags
 }
 
 resource "aws_db_parameter_group" "main" {
-  name   = "${local.name_prefix}-${var.service_name}-pg15"
+  name   = "${module.labels.prefix}${var.service_name}-pg15"
   family = "postgres15"
 
   # Log slow queries for debugging (managed monitoring, no custom setup needed)
@@ -166,8 +158,8 @@ resource "aws_db_parameter_group" "main" {
 #   - Custom failover runbooks
 
 resource "aws_elasticache_replication_group" "main" {
-  replication_group_id = "${local.name_prefix}-${var.service_name}"
-  description          = "Redis cache for ${var.service_name} in ${var.environment}"
+  replication_group_id = "${module.labels.prefix}${var.service_name}"
+  description          = "Redis cache for ${var.service_name}"
 
   # Engine
   engine               = "redis"
@@ -196,15 +188,11 @@ resource "aws_elasticache_replication_group" "main" {
   subnet_group_name  = aws_elasticache_subnet_group.main.name
   security_group_ids = [aws_security_group.cache.id]
 
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    ManagedBy   = "terraform"
-  }
+  tags = module.labels.tags
 }
 
 resource "aws_elasticache_subnet_group" "main" {
-  name       = "${local.name_prefix}-${var.service_name}-cache"
+  name       = "${module.labels.prefix}${var.service_name}-cache"
   subnet_ids = var.private_subnet_ids
 }
 
@@ -214,7 +202,7 @@ resource "aws_elasticache_subnet_group" "main" {
 
 # Database alarms
 resource "aws_cloudwatch_metric_alarm" "db_cpu" {
-  alarm_name          = "${local.name_prefix}-${var.service_name}-db-cpu"
+  alarm_name          = "${module.labels.prefix}${var.service_name}-db-cpu"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
   metric_name         = "CPUUtilization"
@@ -231,7 +219,7 @@ resource "aws_cloudwatch_metric_alarm" "db_cpu" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "db_storage" {
-  alarm_name          = "${local.name_prefix}-${var.service_name}-db-storage"
+  alarm_name          = "${module.labels.prefix}${var.service_name}-db-storage"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = 1
   metric_name         = "FreeStorageSpace"
@@ -248,7 +236,7 @@ resource "aws_cloudwatch_metric_alarm" "db_storage" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "db_connections" {
-  alarm_name          = "${local.name_prefix}-${var.service_name}-db-connections"
+  alarm_name          = "${module.labels.prefix}${var.service_name}-db-connections"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
   metric_name         = "DatabaseConnections"
@@ -266,7 +254,7 @@ resource "aws_cloudwatch_metric_alarm" "db_connections" {
 
 # Cache alarms
 resource "aws_cloudwatch_metric_alarm" "cache_evictions" {
-  alarm_name          = "${local.name_prefix}-${var.service_name}-cache-evictions"
+  alarm_name          = "${module.labels.prefix}${var.service_name}-cache-evictions"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
   metric_name         = "Evictions"
@@ -283,7 +271,7 @@ resource "aws_cloudwatch_metric_alarm" "cache_evictions" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "cache_memory" {
-  alarm_name          = "${local.name_prefix}-${var.service_name}-cache-memory"
+  alarm_name          = "${module.labels.prefix}${var.service_name}-cache-memory"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
   metric_name         = "DatabaseMemoryUsagePercentage"
@@ -304,12 +292,12 @@ resource "aws_cloudwatch_metric_alarm" "cache_memory" {
 # ---------------------------------------------------------------------------
 
 resource "aws_kms_key" "database" {
-  description         = "Encryption key for ${var.service_name} database in ${var.environment}"
+  description         = "Encryption key for ${var.service_name} database"
   enable_key_rotation = true
 }
 
 resource "aws_kms_key" "cache" {
-  description         = "Encryption key for ${var.service_name} cache in ${var.environment}"
+  description         = "Encryption key for ${var.service_name} cache"
   enable_key_rotation = true
 }
 
@@ -318,7 +306,7 @@ resource "aws_kms_key" "cache" {
 # ---------------------------------------------------------------------------
 
 resource "aws_security_group" "database" {
-  name   = "${local.name_prefix}-${var.service_name}-db"
+  name   = "${module.labels.prefix}${var.service_name}-db"
   vpc_id = var.vpc_id
 
   ingress {
@@ -329,11 +317,11 @@ resource "aws_security_group" "database" {
     description = "PostgreSQL from VPC"
   }
 
-  tags = { Name = "${local.name_prefix}-${var.service_name}-db" }
+  tags = merge(module.labels.tags, { Name = "${module.labels.prefix}${var.service_name}-db" })
 }
 
 resource "aws_security_group" "cache" {
-  name   = "${local.name_prefix}-${var.service_name}-cache"
+  name   = "${module.labels.prefix}${var.service_name}-cache"
   vpc_id = var.vpc_id
 
   ingress {
@@ -344,7 +332,7 @@ resource "aws_security_group" "cache" {
     description = "Redis from VPC"
   }
 
-  tags = { Name = "${local.name_prefix}-${var.service_name}-cache" }
+  tags = merge(module.labels.tags, { Name = "${module.labels.prefix}${var.service_name}-cache" })
 }
 
 # ---------------------------------------------------------------------------
@@ -358,7 +346,7 @@ resource "random_password" "db_root" {
 
 resource "aws_iam_role" "rds_monitoring" {
   count = local.is_prod ? 1 : 0
-  name  = "${local.name_prefix}-${var.service_name}-rds-monitoring"
+  name  = "${module.labels.prefix}${var.service_name}-rds-monitoring"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

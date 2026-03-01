@@ -1,61 +1,59 @@
 ---
 name: secrets-and-configuration-management
-description: "This skill should be used when the user is storing credentials, managing API keys, setting up secret rotation, choosing between secrets managers and parameter stores, designing configuration hierarchies, naming secrets or parameters, creating database users, managing environment-specific configuration, or deciding how applications should access secrets at runtime. Covers strict separation of secrets vs configuration, secrets manager with auto-rotation, parameter/config stores for plain values, role-based database users, and hierarchical naming conventions."
+description: "This skill should be used when the user is storing credentials, managing API keys, setting up secret rotation, designing secret naming conventions, creating database users, managing environment-specific configuration, or deciding how applications should access secrets at runtime. Covers the one-secret-per-service pattern, account-based environment isolation, KMS encryption, role-based database users, and the infrastructure wiring exception for parameter stores."
 version: 1.0.0
 ---
 
-# Secrets Are Not Configuration, and Configuration Is Not Secrets
+# One Secret Per Service, One Path Everywhere
 
-The most common infrastructure mistake with credentials is treating everything the same -- stuffing database passwords, feature flags, service endpoints, and API keys into the same store with the same access patterns. This creates two problems: secrets that should rotate automatically sit in a plain-text config file, and configuration values that change frequently get locked behind the slow, expensive secrets management API.
+The most common infrastructure mistake with credentials is over-engineering the separation. Splitting database passwords into a secrets manager, endpoints into a parameter store, and feature flags into environment variables creates three access patterns, three IAM policies, and a Terraform apply every time you change a connection string.
 
-Separate them cleanly from day one. Secrets are credentials that grant access and need rotation -- database passwords, API keys, TLS certificates, OAuth client secrets. Configuration is everything else -- service endpoints, feature flags, resource IDs, environment names, connection pool sizes. Different stores, different access patterns, different cost profiles.
+Put everything in one secret per service. One JSON blob containing every environment variable the service needs -- credentials, endpoints, flags, all of it. Store it in a secrets manager with customer-managed encryption. The application reads and parses the secret at startup. Done.
 
-## The Separation Matrix
+## Core Principles
 
-| Property | Secrets | Configuration |
-|----------|---------|---------------|
-| **Contains** | Credentials that grant access | Values that configure behavior |
-| **Examples** | DB passwords, API keys, OAuth secrets, TLS private keys | Endpoints, IDs, feature flags, pool sizes, region names |
-| **Rotation** | Automatic, on a schedule (30-90 days) | Manual, when values change |
-| **Encryption** | Mandatory, customer-managed keys | Optional (often plaintext is fine) |
-| **Access audit** | Every read logged and auditable | Standard logging sufficient |
-| **Cost** | Per-secret, per-API-call pricing | Free tier or minimal cost |
-| **Store** | Secrets manager service | Parameter/config store service |
-| **Terraform managed** | Yes -- created and stored via IaC | Yes -- created and stored via IaC |
+1. **One secret per service.** Each service has exactly one secret: `/{service}/env`. It contains a JSON object with every env var the service needs -- database passwords next to database hosts, API keys next to feature flags. No separation between "secrets" and "configuration."
 
-**The test is simple:** if leaking this value would grant unauthorized access to a system, it is a secret. If leaking it would be embarrassing but not exploitable, it is configuration.
+2. **Account = environment.** The secret path is `/{service}/env` in every account. Dev account, prod account, staging account -- same path. The AWS account provides the isolation (see `multi-account-from-day-one` skill). Application code never needs to know which environment it runs in. This mirrors the internal DNS pattern (see `network-architecture` skill) where `db.internal` resolves to the right database per VPC -- same hostname everywhere, different values per environment.
 
-## Secrets Manager: For Credentials Only
+3. **Change without Terraform.** Update the secret value in the console or CLI, force a container redeploy. No plan/apply cycle for config changes. Terraform creates the secret resource and sets the initial value; the team manages the value thereafter.
 
-Use a dedicated secrets manager service for every credential. No exceptions. No environment variables with hardcoded passwords. No `.env` files committed to version control. No Terraform outputs containing raw secrets.
+4. **Customer-managed encryption.** Every secret is encrypted with a KMS key you control, not the provider default. This enables key rotation, cross-account access policies, and decryption audit trails.
 
-### Principles
+5. **Rotation is a spectrum.** Database credentials can auto-rotate if you invest in the rotation Lambda. Third-party API keys (Stripe, SendGrid) rarely rotate in practice. Don't let perfect rotation block shipping. Start with KMS encryption and proper access scoping; add rotation when it matters.
 
-1. **Secrets as code.** Every secret is created and stored via Terraform. The Terraform state contains the secret ARN/ID, never the plaintext value. The secret value is set at creation time and rotated automatically thereafter.
+### The Secret Blob
 
-2. **No hardcoded secrets.** Application containers receive secret references (ARNs, resource paths), not plaintext values. The application or runtime resolves the reference at startup.
+```json
+{
+  "DB_HOST": "mydb.cluster-xxx.eu-west-1.rds.amazonaws.com",
+  "DB_PORT": "5432",
+  "DB_PASSWORD": "auto-rotated-or-manual",
+  "REDIS_URL": "redis://cache.internal:6379",
+  "SENDGRID_API_KEY": "SG.xxx",
+  "FEATURE_V2_API": "true"
+}
+```
 
-3. **Auto-rotation enabled.** Database credentials rotate on a 30-90 day schedule using the cloud provider's native rotation mechanism. If a secret cannot auto-rotate (third-party API keys), document it and set a calendar reminder.
-
-4. **Customer-managed encryption keys.** Every secret is encrypted with a KMS key you control, not the provider default. This enables key rotation, cross-account access policies, and audit trails on decryption.
+One JSON object. One secret ARN. One IAM policy statement. The application reads `/{service}/env` at startup, parses the JSON, and populates its environment.
 
 ### Good Pattern vs Bad Pattern
 
 ```hcl
-# Good: secret reference passed to container, resolved at runtime
+# Good: one secret, app reads and parses at startup
 
-resource "aws_secretsmanager_secret" "db_password" {
-  name       = "/prod/myapp/db-password"
+resource "aws_secretsmanager_secret" "env" {
+  name       = "/${var.service_name}/env"
   kms_key_id = aws_kms_key.secrets.arn
 }
 
 resource "aws_ecs_task_definition" "myapp" {
   # ...
   container_definitions = jsonencode([{
-    name = "myapp"
-    secrets = [{
-      name      = "DB_PASSWORD"
-      valueFrom = aws_secretsmanager_secret.db_password.arn
+    name = var.service_name
+    environment = [{
+      name  = "SECRET_NAME"
+      value = "/${var.service_name}/env"
     }]
   }])
 }
@@ -75,112 +73,88 @@ resource "aws_ecs_task_definition" "myapp" {
 }
 ```
 
-## Configuration Store: For Everything Else
-
-Configuration values that do not grant access belong in a parameter or configuration store. These services are cheaper (often free tier), support hierarchical organization, and do not need the rotation machinery of a secrets manager.
-
-### What Goes in the Config Store
-
-- VPC IDs, subnet IDs, security group IDs
-- Service endpoints and DNS names
-- Resource ARNs that are not secrets (SNS topic ARN, SQS queue URL)
-- Feature flags and toggles
-- Connection pool sizes, timeout values, retry counts
-- Environment identifiers (dev, staging, prod)
-- Bastion instance IDs, cluster ARNs
-
-### What Does Not Go in the Config Store
-
-- Database passwords (secrets manager)
-- API keys for third-party services (secrets manager)
-- TLS private keys (secrets manager or certificate manager)
-- OAuth client secrets (secrets manager)
-- Anything where exposure grants unauthorized access
-
-## Naming Hierarchy: /{environment}/{service}/{key}
-
-A consistent naming hierarchy makes secrets and configuration discoverable, auditable, and automatable. Use the same hierarchy for both stores.
-
 ```
-/{environment}/{service}/{key}
+# Bad: separate stores for secrets and configuration
 
-Examples:
-  /prod/myapp/db-password          (secret)
-  /prod/myapp/db-host              (config)
-  /prod/myapp/db-port              (config)
-  /prod/myapp/redis-url            (config)
-  /prod/myapp/stripe-api-key       (secret)
-  /dev/myapp/feature-new-checkout  (config)
-  /prod/shared/vpc-id              (config)
-  /prod/shared/private-subnet-ids  (config)
+/prod/myapp/db-password      --> Secrets Manager
+/prod/myapp/db-host          --> SSM Parameter Store
+/prod/myapp/redis-url        --> SSM Parameter Store
+/prod/myapp/sendgrid-api-key --> Secrets Manager
+
+# Two stores, two access patterns, two IAM policies,
+# and a Terraform apply to change a connection string.
 ```
 
-**Why this hierarchy works:**
+## Naming Convention: /{service}/env
 
-- **Environment-first** enables IAM policies that grant access to all of `/dev/*` but nothing in `/prod/*`. Developers can read dev secrets but not production credentials.
-- **Service-scoped** ensures each application only accesses its own secrets. The `myapp` service has no reason to read `/prod/payments/stripe-api-key`.
-- **Shared namespace** (`/prod/shared/`) holds cross-service values like VPC IDs and subnet lists, readable by all services in that environment.
+```
+Dev account (123456789012):
+  /myapp/env                 (all env vars for myapp)
+  /myapp/db-app_rw           (database role credential)
+  /myapp/db-analytics_ro     (database role credential)
+
+Prod account (987654321098):
+  /myapp/env                 (all env vars for myapp)
+  /myapp/db-app_rw           (database role credential)
+  /myapp/db-analytics_ro     (database role credential)
+```
+
+Same paths. Same code. Different accounts. Application code reads `/{service}/env` -- it never needs to know whether it runs in dev or prod.
+
+**Database role credentials** are the exception to the one-blob rule. They are stored as individual secrets at `/{service}/db-{role}` because they are shared across consumers (app service, analytics service, RDS proxy) and auto-rotation targets individual secrets, not keys inside a blob.
+
+## When to Use Parameter Store
+
+The one-secret-per-service pattern covers everything an application needs at runtime. But cross-service infrastructure dependencies -- where one Terraform module's output feeds another module's input -- need a different mechanism.
+
+**Use SSM Parameter Store (or Terraform remote state) for infrastructure wiring:**
+
+- A database endpoint that changes when the RDS instance is replaced
+- A VPC ID or subnet ID consumed by multiple modules
+- A load balancer DNS name that other services route to
+
+These values change when infrastructure changes. They must flow through Terraform or a parameter store so dependent modules pick up the new value automatically. They are not application config -- they are infrastructure bindings.
 
 ```hcl
-# Good: hierarchical naming with environment-scoped IAM policy
-
-resource "aws_ssm_parameter" "db_host" {
-  name  = "/prod/myapp/db-host"
+# Infrastructure wiring: consumed by Terraform modules, not application code
+resource "aws_ssm_parameter" "db_endpoint" {
+  name  = "/${var.service_name}/infra/db-endpoint"
   type  = "String"
-  value = aws_db_instance.myapp.address
+  value = aws_db_instance.main.address
+
+  tags = local.tags
 }
-
-resource "aws_iam_policy" "myapp_config_read" {
-  policy = jsonencode({
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParametersByPath"]
-      Resource = "arn:aws:ssm:*:*:parameter/prod/myapp/*"
-    }]
-  })
-}
-```
-
-```
-# Bad: flat naming with no hierarchy
-
-db_password_prod
-myapp-db-host
-MYAPP_REDIS
-prod.myapp.feature_flag
-MyApp-Stripe-Key
-
-# Inconsistent separators (-, _, .), no path hierarchy,
-# impossible to scope IAM policies, no environment isolation
 ```
 
 ## Database Users: Role-Based, Never Person-Specific
 
-Database users follow the same separation principle. Never create person-specific database accounts (`john_doe`, `jane_smith`). Create role-based users that describe purpose and access level.
+Database users follow the same principle. Never create person-specific database accounts (`john_doe`, `jane_smith`). Create role-based users that describe purpose and access level.
 
 ### Role Naming Convention: {purpose}_{access}
 
+Use abbreviated access suffixes for brevity (see `naming-and-labeling-as-code` skill for the canonical naming conventions):
+
 ```
-app_readwrite     -- Application service (read + write)
-app_readonly      -- Application service (read only, e.g., replica queries)
-analytics_readonly -- Analytics/BI tools (read only, all tables)
-migration_admin    -- Schema migration runner (DDL permissions, time-boxed)
-generic_readonly   -- All team members (read only, for debugging)
+api_rw            -- API service (read + write)
+api_ro            -- API service (read only, e.g., replica queries)
+dashboard_ro      -- Analytics/BI tools (read only, all tables)
+migration_admin   -- Schema migration runner (DDL permissions, time-boxed)
+generic_ro        -- All team members (read only, for debugging)
 ```
 
 ### Access Model
 
 ```
 Individual developer access:
-  Developer --> SSO --> Cloud console --> Database proxy --> generic_readonly role
+  Developer --> SSO --> Cloud console --> Database proxy --> generic_ro role
   (No personal credentials. Access revoked by disabling SSO account.)
 
 Application access:
-  Container --> Secret reference --> Secrets manager --> app_readwrite password
-  (Auto-rotated. No human knows the password.)
+  Container --> Reads /{service}/env --> Gets DB_PASSWORD --> Connects directly
+  (Password from secrets manager. No human knows the password.)
 
 Analytics access:
-  BI tool --> Secret reference --> Secrets manager --> analytics_readonly password
+  BI tool --> Reads /{service}/db-analytics_ro --> Connects via proxy
   (Scoped to SELECT on reporting tables only.)
 
 Emergency admin access:
@@ -198,33 +172,33 @@ Emergency admin access:
 
 | Concept | AWS | GCP | Azure |
 |---------|-----|-----|-------|
-| Secrets storage | Secrets Manager | Secret Manager | Key Vault (secrets) |
-| Configuration storage | SSM Parameter Store | Secret Manager (non-secret) or Firestore | App Configuration |
-| Auto-rotation | Secrets Manager rotation lambdas | Secret Manager rotation (Cloud Functions) | Key Vault rotation policies |
+| Secrets storage | Secrets Manager | Secret Manager | Key Vault |
 | Encryption keys | KMS (customer-managed CMK) | Cloud KMS | Key Vault (keys) |
-| Hierarchical naming | SSM path hierarchy (`/env/svc/key`) | Secret labels + naming convention | App Configuration labels + key prefixes |
-| IAM path-scoped access | IAM policy on `parameter/prod/*` | IAM condition on `secret.name` | RBAC on Key Vault + label filters |
-| Database proxy | RDS Proxy / IAM DB auth | Cloud SQL Auth Proxy | Azure AD DB auth |
+| Auto-rotation | Rotation Lambdas | Rotation via Cloud Functions | Key Vault rotation policies |
+| Infrastructure config (cross-service wiring) | SSM Parameter Store | Secret Manager labels or Firestore | App Configuration |
+| Database proxy | RDS Proxy / IAM DB auth | Cloud SQL Auth Proxy | Microsoft Entra ID DB auth |
+| Credential-free CLI | `aws sso login` | `gcloud auth login` | `az login` |
 
 ## Examples
 
 Working implementations in `examples/`:
-- **`examples/secrets-and-config-separation.md`** -- Complete Terraform configuration showing secrets in a secrets manager with KMS encryption and auto-rotation alongside configuration values in a parameter store, both following the `/{env}/{service}/{key}` hierarchy
-- **`examples/database-role-management.md`** -- Role-based database user creation with purpose-named roles, secrets manager storage for each credential, and IAM-based developer access through a database proxy
+- **`examples/secrets-and-config-separation.md`** -- Complete single-secret-per-service setup with KMS encryption, one JSON blob, ECS task definition, and scoped IAM policies
+- **`examples/database-role-management.md`** -- Role-based database user creation with purpose-named roles, individual secrets per role, and IAM-based developer access through a database proxy
 
 ## Review Checklist
 
 When designing or reviewing secrets and configuration management:
 
-- [ ] Credentials (passwords, API keys, TLS keys) are in a secrets manager, not environment variables or config files
-- [ ] Configuration values (IDs, endpoints, flags) are in a parameter/config store, not the secrets manager
-- [ ] All secrets are encrypted with customer-managed KMS keys, not provider defaults
-- [ ] Auto-rotation is enabled for database credentials on a 30-90 day schedule
-- [ ] Third-party API keys that cannot auto-rotate are documented with manual rotation reminders
-- [ ] Naming follows `/{environment}/{service}/{key}` hierarchy consistently
-- [ ] IAM policies scope access by environment and service path (no wildcard access to all secrets)
-- [ ] Applications receive secret references (ARNs/paths), not plaintext values
-- [ ] No secrets exist in Terraform outputs, environment variable literals, or committed `.env` files
-- [ ] Database users are role-based (`app_readwrite`, `analytics_readonly`), not person-specific
+- [ ] Every service has one secret: `/{service}/env` containing a JSON blob with all env vars
+- [ ] Secret paths have no environment prefix (account = environment isolation)
+- [ ] Same secret path works identically in dev and prod accounts
+- [ ] All secrets encrypted with customer-managed KMS keys, not provider defaults
+- [ ] Application reads and parses the secret at startup (no ECS secrets block injection)
+- [ ] IAM policies scope secret access to the task role, not the execution role
+- [ ] Database credentials are individual secrets at `/{service}/db-{role}` (exception to one-blob rule)
+- [ ] Database users are role-based (`{purpose}_{access}`), not person-specific
 - [ ] Developer database access uses SSO + database proxy with a shared read-only role
-- [ ] Emergency admin database access is time-boxed, audited, and requires approval
+- [ ] Cross-service infrastructure dependencies flow through Terraform outputs or SSM Parameter Store
+- [ ] No secrets exist in Terraform outputs, environment variable literals, or committed `.env` files
+- [ ] Third-party API keys that cannot auto-rotate are documented with rotation schedule
+- [ ] Config changes are deployable without Terraform apply (update secret + force redeploy)

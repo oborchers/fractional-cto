@@ -27,7 +27,8 @@ repos:
         args:
           - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
 
-      # Security and compliance scanning
+      # Security and compliance scanning (optional -- can produce false positives;
+      # evaluate signal-to-noise ratio before enabling as a blocking gate)
       - id: terraform_checkov
         args:
           - --args=--quiet
@@ -275,7 +276,7 @@ pre-commit run --all-files
 ## Key Points
 
 - Pre-commit hooks run automatically on every `git commit` -- developers cannot skip quality checks
-- Three complementary gates: formatting (consistency), linting (correctness), security scanning (compliance)
+- Two required gates (formatting, linting) plus one optional gate (security scanning) -- Checkov is valuable but can produce false positives depending on your codebase
 - The same checks run locally and in CI, preventing "works on my machine" discrepancies
 - TFLint plugins are cloud-specific -- swap the AWS plugin for GCP or Azure as needed
 - Checkov catches security misconfigurations that TFLint does not (encryption, public access, logging)

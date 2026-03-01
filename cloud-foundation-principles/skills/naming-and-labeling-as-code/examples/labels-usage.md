@@ -12,13 +12,13 @@ module "labels" {
   team        = "eng"
   env         = var.environment   # "dev" or "prod" from tfvars
   name        = "backend"
-  cost_center = "business_logic"
+  cost_center = "engineering"
   scope       = "g"
 }
 
 locals {
   tags = module.labels.tags
-  prf  = module.labels.prefix   # "eng-dev-g-backend-" or "eng-prod-g-backend-"
+  prefix = module.labels.prefix   # "eng-dev-g-backend-" or "eng-prod-g-backend-"
 }
 ```
 
@@ -26,17 +26,17 @@ locals {
 
 ```hcl
 resource "aws_s3_bucket" "data" {
-  bucket = "${local.prf}data"       # eng-dev-g-backend-data
+  bucket = "${local.prefix}data"       # eng-dev-g-backend-data
   tags   = local.tags
 }
 
 resource "aws_s3_bucket" "logs" {
-  bucket = "${local.prf}logs"       # eng-dev-g-backend-logs
+  bucket = "${local.prefix}logs"       # eng-dev-g-backend-logs
   tags   = local.tags
 }
 
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "${local.prf}artifacts"  # eng-dev-g-backend-artifacts
+  bucket = "${local.prefix}artifacts"  # eng-dev-g-backend-artifacts
   tags   = local.tags
 }
 ```
@@ -45,7 +45,7 @@ resource "aws_s3_bucket" "artifacts" {
 
 ```hcl
 resource "aws_db_instance" "main" {
-  identifier = "${local.prf}db"     # eng-dev-g-backend-db
+  identifier = "${local.prefix}db"     # eng-dev-g-backend-db
   tags       = local.tags
 
   engine               = "postgres"
@@ -58,7 +58,7 @@ resource "aws_db_instance" "main" {
 }
 
 resource "aws_elasticache_replication_group" "cache" {
-  replication_group_id = "${local.prf}cache"  # eng-dev-g-backend-cache
+  replication_group_id = "${local.prefix}cache"  # eng-dev-g-backend-cache
   description          = "Redis cache for ${module.labels.name}"
   tags                 = local.tags
 
@@ -72,7 +72,7 @@ resource "aws_elasticache_replication_group" "cache" {
 
 ```hcl
 resource "aws_ecs_cluster" "main" {
-  name = "${local.prf}cluster"      # eng-dev-g-backend-cluster
+  name = "${local.prefix}cluster"      # eng-dev-g-backend-cluster
   tags = local.tags
 
   setting {
@@ -82,7 +82,7 @@ resource "aws_ecs_cluster" "main" {
 }
 
 resource "aws_ecs_service" "api" {
-  name            = "${local.prf}api"  # eng-dev-g-backend-api
+  name            = "${local.prefix}api"  # eng-dev-g-backend-api
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.api.arn
   desired_count   = 2
@@ -94,7 +94,7 @@ resource "aws_ecs_service" "api" {
 
 ```hcl
 resource "aws_iam_role" "task_execution" {
-  name = "${local.prf}task-exec"    # eng-dev-g-backend-task-exec
+  name = "${local.prefix}task-exec"    # eng-dev-g-backend-task-exec
   tags = local.tags
 
   assume_role_policy = jsonencode({
@@ -108,7 +108,7 @@ resource "aws_iam_role" "task_execution" {
 }
 
 resource "aws_iam_role" "task" {
-  name = "${local.prf}task"         # eng-dev-g-backend-task
+  name = "${local.prefix}task"         # eng-dev-g-backend-task
   tags = local.tags
 
   assume_role_policy = jsonencode({
@@ -126,14 +126,14 @@ resource "aws_iam_role" "task" {
 
 ```hcl
 resource "aws_security_group" "app" {
-  name        = "${local.prf}app-sg"         # eng-dev-g-backend-app-sg
+  name        = "${local.prefix}app-sg"         # eng-dev-g-backend-app-sg
   description = "Application traffic for ${module.labels.name}"
   vpc_id      = var.vpc_id
   tags        = local.tags
 }
 
 resource "aws_security_group" "db" {
-  name        = "${local.prf}db-sg"          # eng-dev-g-backend-db-sg
+  name        = "${local.prefix}db-sg"          # eng-dev-g-backend-db-sg
   description = "Database access for ${module.labels.name}"
   vpc_id      = var.vpc_id
   tags        = local.tags
@@ -161,20 +161,7 @@ resource "aws_s3_bucket" "tfstate" {
   bucket = "${module.labels.team}-${module.labels.env}-g-tfstate"
   tags   = local.tags
   # Result: eng-dev-g-tfstate
-}
-
-resource "aws_dynamodb_table" "tfstate_lock" {
-  name     = "${module.labels.team}-${module.labels.env}-g-tfstate-lock"
-  tags     = local.tags
-  # Result: eng-dev-g-tfstate-lock
-
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
-
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
+  # Locking: use_lockfile = true in backend config (S3 native locking, no DynamoDB needed)
 }
 ```
 
@@ -188,7 +175,7 @@ module "labels" {
   team        = "eng"
   env         = var.environment
   name        = "api"
-  cost_center = "compute"
+  cost_center = "engineering"
   scope       = "g"
 }
 

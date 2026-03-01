@@ -13,7 +13,7 @@ Create a complete inventory of every pipeline across all providers. Use this tem
 | 1 | api-build | CircleCI | myorg/api | App CI | Push to main | AWS_KEY, NPM_TOKEN | 40 | Backend team | |
 | 2 | infra-plan | GitLab CI | myorg/infra | Infra CI | MR opened | AWS_KEY, GH_TOKEN | 15 | Platform team | |
 | 3 | infra-apply | GitLab CI | myorg/infra | Infra CD | Tag push | AWS_KEY, GH_TOKEN | 3 | Platform team | Manual gate |
-| 4 | ml-train | CircleCI | myorg/ml | ML pipeline | Schedule (nightly) | AWS_KEY, GPU creds | 7 | ML team | GPU runners |
+| 4 | etl-nightly | Jenkins | myorg/data | Data pipeline | Schedule (nightly) | AWS_KEY, DB_URL | 7 | Data team | Legacy |
 | 5 | deploy-prod | GitHub Actions | myorg/api | App CD | Tag push | AWS_KEY | 5 | Backend team | |
 | 6 | cert-check | Jenkins | - | Scheduled | Cron (weekly) | Slack webhook | 1 | Nobody | Legacy |
 

@@ -27,11 +27,11 @@ variable "team" {
 
 variable "env" {
   type        = string
-  description = "Environment identifier. Must be one of: dev, staging, prod, root, security."
+  description = "Environment identifier. Must be one of: dev, staging, prod, security, log-archive, sandbox."
 
   validation {
-    condition     = contains(["dev", "staging", "prod", "root", "security"], var.env)
-    error_message = "Environment must be one of: dev, staging, prod, root, security. Got: '${var.env}'."
+    condition     = contains(["dev", "staging", "prod", "security", "log-archive", "sandbox"], var.env)
+    error_message = "Environment must be one of: dev, staging, prod, security, log-archive, sandbox. Got: '${var.env}'."
   }
 }
 
@@ -51,18 +51,13 @@ variable "cost_center" {
 
   validation {
     condition = contains([
-      "compute",
-      "data_pipeline",
-      "observability",
-      "networking",
+      "engineering",
+      "data",
+      "infrastructure",
       "security",
-      "cicd",
-      "ml_training",
-      "ml_inference",
-      "business_logic",
-      "shared_services",
+      "operations",
     ], var.cost_center)
-    error_message = "Invalid cost_center '${var.cost_center}'. Must be one of: compute, data_pipeline, observability, networking, security, cicd, ml_training, ml_inference, business_logic, shared_services."
+    error_message = "Invalid cost_center '${var.cost_center}'. Must be one of: engineering, data, infrastructure, security, operations."
   }
 }
 
@@ -106,16 +101,11 @@ locals {
 
   # Approved cost centers (single source of truth)
   cost_center_list = [
-    "compute",
-    "data_pipeline",
-    "observability",
-    "networking",
+    "engineering",
+    "data",
+    "infrastructure",
     "security",
-    "cicd",
-    "ml_training",
-    "ml_inference",
-    "business_logic",
-    "shared_services",
+    "operations",
   ]
 }
 ```
@@ -172,9 +162,8 @@ Error: Invalid value for variable
   on main.tf line 5, in module "labels":
    5:   cost_center = "web_team"
 
-Invalid cost_center 'web_team'. Must be one of: compute, data_pipeline,
-observability, networking, security, cicd, ml_training, ml_inference,
-business_logic, shared_services.
+Invalid cost_center 'web_team'. Must be one of: engineering, data,
+infrastructure, security, operations.
 ```
 
 The engineer sees the error, picks from the list, and the plan succeeds. No invalid cost centers ever reach a cloud resource.
@@ -188,7 +177,7 @@ module "labels" {
   team        = "eng"
   env         = "prod"
   name        = "api"
-  cost_center = "compute"
+  cost_center = "engineering"
   scope       = "g"
 }
 ```
@@ -201,7 +190,7 @@ tags = {
   owner       = "eng"
   environment = "prod"
   project     = "api"
-  cost_center = "compute"
+  cost_center = "engineering"
   managed_by  = "terraform"
 }
 ```

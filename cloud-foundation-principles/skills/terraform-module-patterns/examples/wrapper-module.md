@@ -35,8 +35,8 @@ variable "env" {
   description = "Deployment environment"
 
   validation {
-    condition     = contains(["dev", "staging", "prod"], var.env)
-    error_message = "env must be one of: dev, staging, prod."
+    condition     = contains(["dev", "staging", "prod", "security", "log-archive", "sandbox"], var.env)
+    error_message = "env must be one of: dev, staging, prod, security, log-archive."
   }
 }
 
@@ -263,7 +263,7 @@ terraform {
 module "api_service" {
   source = "git::https://github.com/myorg/tf-module-container-service.git?ref=v2.0.0"
 
-  name               = "${module.labels.prf}api"
+  name               = "${module.labels.prefix}api"
   env                = "dev"
   cluster_arn        = data.terraform_remote_state.compute.outputs.ecs_cluster_arn
   vpc_id             = data.terraform_remote_state.network.outputs.vpc_id
@@ -297,7 +297,7 @@ resource "aws_lb_listener_rule" "api" {
 
   condition {
     host_header {
-      values = ["api.dev.acme.com"]
+      values = ["api.dev.myorg.com"]
     }
   }
 }

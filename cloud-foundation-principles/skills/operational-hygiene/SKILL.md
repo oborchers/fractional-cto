@@ -108,7 +108,7 @@ module "alerts" {
   source = "git::https://github.com/myorg/tf-module-alerts.git?ref=v1.3.0"
 
   service_name = "myapp-api"
-  alarm_email  = "myapp-team@acme.com"
+  alarm_email  = "myapp-team@myorg.com"
 
   # Use defaults for most thresholds
   cpu_utilization_threshold = 80    # default
@@ -202,11 +202,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 ```hcl
 # Log group with explicit retention
 resource "aws_cloudwatch_log_group" "service" {
-  name              = "/acme/prod/myapp-api"
-  retention_in_days = 30    # Production logs: 30 days
+  name              = "/ecs/${module.labels.prefix}myapp-api"
+  retention_in_days = 90    # Production logs: 90 days
 
-  # Dev logs: 7 days is sufficient
-  # retention_in_days = 7
+  # Dev logs: 14 days is sufficient
+  # retention_in_days = 14
 }
 ```
 

@@ -139,7 +139,7 @@ Single-account risks:
 - Compliance audit scope includes all environments
 
 Multi-account costs:
-- One afternoon of setup (organization, OUs, 4 accounts)
+- One afternoon of setup (organization, OUs, 6 accounts)
 - Slightly more complex CI/CD (per-account roles)
 - Cross-account access requires explicit configuration
 
@@ -148,17 +148,20 @@ from single-account to multi-account grows every day as resources accumulate.
 
 ## Decision
 
-Use a multi-account strategy with a minimum of four accounts:
+Use a multi-account strategy with a minimum of six accounts:
 
 1. Management account -- Organization management, SSO, billing
 2. Security account -- Centralized security services (delegated admin)
-3. Dev account -- Development workloads
-4. Prod account -- Production workloads
+3. Log-archive account -- Immutable, centralized audit logs
+4. Sandbox account -- Unrestricted experimentation, isolated from dev and prod
+5. Dev account -- Development workloads
+6. Prod account -- Production workloads
 
-Additional accounts (sandbox, cicd, log-archive) will be added as needs arise.
+Additional accounts (cicd, staging) will be added as needs arise.
 
 Accounts are organized into OUs:
-- Security OU: security account
+- Security OU: security and log-archive accounts
+- Sandbox OU: sandbox account
 - Workloads OU: dev and prod accounts (in sub-OUs)
 
 Identity is federated from an external IdP. CI/CD uses OIDC federation with
@@ -180,7 +183,7 @@ per-account roles. No static credentials exist anywhere.
 
 ### Follow-Up Actions
 - [ ] Set up cloud organization with landing zone automation
-- [ ] Create the four initial accounts with team email aliases
+- [ ] Create the six initial accounts with team email aliases
 - [ ] Configure SSO with external identity provider
 - [ ] Set up OIDC federation for CI/CD in each account
 - [ ] Document the account structure in the infrastructure README

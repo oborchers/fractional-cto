@@ -74,7 +74,7 @@ module "labels" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -84,7 +84,7 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "security" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
     region = "eu-west-1"
   }
@@ -94,7 +94,7 @@ data "terraform_remote_state" "security" {
 data "terraform_remote_state" "compute" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "compute"
     region = "eu-west-1"
   }
@@ -138,7 +138,7 @@ resource "aws_ecs_service" "this" {
 # Every service uses the same module, overriding only what differs
 module "service" {
   source  = "git::https://github.com/myorg/tf-module-container-service.git?ref=v2.1.0"
-  name    = module.labels.prf
+  name    = module.labels.prefix
   cluster = data.terraform_remote_state.compute.outputs.cluster_arn
   image   = "${local.registry}/${local.image_name}:${var.image_tag}"
   cpu     = 1024
@@ -190,9 +190,10 @@ Each service has its own state file in the shared state bucket. This limits the 
 # infrastructure/dev/backend.tf
 terraform {
   backend "s3" {
-    bucket = "acme-dev-tfstate"
-    key    = "myapp-api"        # One key per service
-    region = "eu-west-1"
+    bucket = "myorg-dev-tfstate"
+    key          = "myapp-api"        # One key per service
+    region       = "eu-west-1"
+    use_lockfile = true
   }
 }
 ```
@@ -207,7 +208,7 @@ State key naming convention: use the service name. The shared infrastructure lay
 | Task/service definition (service-owned) | ECS Task Definition + Service | Cloud Run Service / GKE Deployment | AKS Deployment / Container App |
 | Container registry (shared) | ECR (the registry) | Artifact Registry (the registry) | ACR (the registry) |
 | Container repository (service-owned) | ECR Repository (per-image) | Artifact Registry Repository | ACR Repository |
-| State backend | S3 + DynamoDB | GCS | Azure Blob Storage |
+| State backend | S3 (`use_lockfile`) | GCS | Azure Blob Storage |
 | Remote state reference | `terraform_remote_state` (S3) | `terraform_remote_state` (GCS) | `terraform_remote_state` (azurerm) |
 | Secrets storage | Secrets Manager | Secret Manager | Key Vault |
 | Load balancer rules (service-owned) | ALB Target Group + Listener Rule | URL Map Backend Service | App Gateway Backend Pool |

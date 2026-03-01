@@ -23,10 +23,16 @@ variable "enable_workload_protections" {
   default     = false
 }
 
-variable "team" {
-  description = "Team identifier for resource naming"
-  type        = string
-  default     = "acme"
+# ---------------------------------------------------------------------------
+# Labels
+# ---------------------------------------------------------------------------
+
+module "labels" {
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
+  team        = "platform"
+  env         = var.environment
+  name        = "security-baseline"
+  cost_center = "engineering"
 }
 
 # ---------------------------------------------------------------------------
@@ -34,8 +40,7 @@ variable "team" {
 # ---------------------------------------------------------------------------
 
 locals {
-  is_prod   = var.environment == "prod"
-  name_prefix = "${var.team}-${var.environment}"
+  is_prod = var.environment == "prod"
 
   # Core detective rules: enabled in ALL environments
   core_detective_rules = {
@@ -102,7 +107,7 @@ locals {
 # ---------------------------------------------------------------------------
 
 resource "aws_config_configuration_recorder" "main" {
-  name     = "${local.name_prefix}-recorder"
+  name     = "${module.labels.prefix}-recorder"
   role_arn = aws_iam_role.config.arn
 
   recording_group {
@@ -111,7 +116,7 @@ resource "aws_config_configuration_recorder" "main" {
 }
 
 resource "aws_config_delivery_channel" "main" {
-  name           = "${local.name_prefix}-delivery"
+  name           = "${module.labels.prefix}-delivery"
   s3_bucket_name = aws_s3_bucket.config.id
 
   depends_on = [aws_config_configuration_recorder.main]
@@ -131,7 +136,7 @@ resource "aws_config_configuration_recorder_status" "main" {
 resource "aws_config_config_rule" "detective" {
   for_each = local.active_rules
 
-  name        = "${local.name_prefix}-${each.key}"
+  name        = "${module.labels.prefix}-${each.key}"
   description = each.value.description
 
   source {
@@ -192,7 +197,7 @@ resource "aws_guardduty_detector_feature" "ecs_runtime" {
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "config" {
-  bucket = "${local.name_prefix}-config-recordings"
+  bucket = "${module.labels.prefix}-config-recordings"
 }
 
 resource "aws_s3_bucket_versioning" "config" {
@@ -225,7 +230,7 @@ resource "aws_s3_bucket_public_access_block" "config" {
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "config" {
-  name = "${local.name_prefix}-config-role"
+  name = "${module.labels.prefix}-config-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -245,7 +250,7 @@ resource "aws_iam_role_policy_attachment" "config" {
 }
 
 resource "aws_iam_role_policy" "config_s3" {
-  name = "${local.name_prefix}-config-s3"
+  name = "${module.labels.prefix}-config-s3"
   role = aws_iam_role.config.id
 
   policy = jsonencode({
@@ -284,4 +289,4 @@ data "aws_guardduty_detector" "current" {}
 # 5. Pre-commit scanning in CI/CD complements runtime Config rules
 # 6. Config rule findings flow to Security Hub for central aggregation
 # 7. To promote a detective control to preventive: create an SCP or Config
-#    remediation action, test in dev for 1+ week, then enable in prod
+#    remediation action, test in dev for 2+ weeks, then enable in prod

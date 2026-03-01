@@ -43,7 +43,7 @@ REPOSITORIES
 
 ## Numbered Layer Architecture
 
-Within the global infrastructure repository, directories are numbered to encode dependency order. Lower numbers are prerequisites for higher numbers. The gap numbering (00, 10, 20 ... not 01, 02, 03) reserves space for future layers without renumbering.
+Within the global infrastructure repository, directories are numbered to encode dependency order. Lower numbers are prerequisites for higher numbers. Numbering in steps of ten (00, 10, 20 ... not 1, 2, 3) reserves space to insert or split layers without renumbering -- if databases grow complex, split `30_databases` into `30_relational` and `35_caches` without touching anything else.
 
 ```
 tf-global-infrastructure/
@@ -64,6 +64,9 @@ tf-global-infrastructure/
 |   +-- prod/
 +-- 50_edge/                 <-- CDN, load balancers, API gateways
 |   +-- prod/
++-- 60_messaging/            <-- Message brokers, event buses, queues
+|   +-- dev/
+|   +-- prod/
 +-- 70_monitoring/           <-- Metrics, dashboards, log aggregation
 |   +-- dev/
 |   +-- prod/
@@ -73,6 +76,8 @@ tf-global-infrastructure/
     +-- prod/
 ```
 
+Not every layer needs per-environment subdirectories. Layers like `80_ci_cd` (e.g., self-hosted GitHub runners) are shared infrastructure — there is no reason to duplicate build runners per environment in a startup. Similarly, `50_edge` may only exist in production if there is no dev CDN or load balancer. Only create environment subdirectories where the resources are actually environment-specific.
+
 ### Why This Works
 
 | Property | Benefit |
@@ -81,7 +86,7 @@ tf-global-infrastructure/
 | **Independent state** | Each layer has its own state file. A bad apply in monitoring cannot destroy your network. |
 | **Independent CI/CD** | Each layer can have its own pipeline. Network changes do not block compute deployments. |
 | **Clear mental model** | New engineers understand the dependency graph in seconds, not hours. |
-| **Gap numbering** | Need a `60_messaging` layer later? Insert it without renumbering anything. |
+| **Insert and split** | Need to split databases into relational and caches? Insert `35_caches` between 30 and 40 without renumbering anything. |
 
 ### Deployment Order
 
@@ -109,6 +114,9 @@ tf-root (organization setup, SSO, security delegation)
 50_edge (CDN distributions, load balancers)
   |
   v
+60_messaging (message brokers, event buses, queues)
+  |
+  v
 70_monitoring (metrics collection, dashboards, alerting)
   |
   v
@@ -118,6 +126,8 @@ tf-root (organization setup, SSO, security delegation)
 90_shared_services (bastion hosts, service discovery)
 ```
 
+Dependencies are strictly forward: a layer may reference any lower-numbered layer via remote state, but never a higher-numbered one. Layer 50 can read from layers 00, 10, or 40 -- but layer 50 cannot depend on layer 60. This ensures the deployment chain is always acyclic and any layer can be planned or applied without waiting for higher layers to exist.
+
 ## State Management: One State File Per Layer Per Environment
 
 The cardinal rule of Terraform state management: **every layer in every environment gets its own state file**. No exceptions. No "we will split it later." Split it now.
@@ -125,22 +135,25 @@ The cardinal rule of Terraform state management: **every layer in every environm
 ### State Bucket Strategy
 
 ```
-One state bucket per cloud account:
-  acme-root-tfstate         <-- Root/management account
-  acme-dev-tfstate          <-- Development account
-  acme-prod-tfstate         <-- Production account
-  acme-security-tfstate     <-- Security account
+One state bucket per cloud account (state buckets use <org>-<env>-tfstate as an exception
+to the labels module naming -- they are account-global and need globally unique names):
+  myorg-root-tfstate         <-- Root/management account
+  myorg-security-tfstate     <-- Security account
+  myorg-log-archive-tfstate  <-- Log archive account
+  myorg-dev-tfstate          <-- Development account
+  myorg-prod-tfstate         <-- Production account
 ```
 
 Within each bucket, one key per layer or service:
 
 ```
-acme-dev-tfstate/
+myorg-dev-tfstate/
   network              <-- 00_network/dev state
   security             <-- 10_security/dev state
   storage              <-- 20_storage/dev state
   databases            <-- 30_databases/dev state
   compute              <-- 40_compute/dev state
+  messaging            <-- 60_messaging/dev state
   monitoring           <-- 70_monitoring/dev state
   shared_services      <-- 90_shared_services/dev state
   myapp-api            <-- Service-owned state (separate repo)
@@ -168,7 +181,7 @@ Higher layers read outputs from lower layers using remote state data sources. Th
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -177,7 +190,7 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "security" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
     region = "eu-west-1"
   }
@@ -201,14 +214,14 @@ locals {
 
 **Bad: Monolithic state file**
 ```
-acme-dev-tfstate/
+myorg-dev-tfstate/
   everything          <-- One state file for ALL infrastructure
 ```
 Problems: blast radius is everything. One bad apply can destroy networking, databases, and compute simultaneously. Plans take minutes as Terraform refreshes hundreds of resources. Two engineers cannot work on different layers in parallel.
 
 **Good: State per layer per environment**
 ```
-acme-dev-tfstate/
+myorg-dev-tfstate/
   network             <-- 42 resources, 15-second plan
   security            <-- 28 resources, 10-second plan
   databases           <-- 15 resources, 8-second plan
@@ -227,17 +240,17 @@ Problems: a mistake in dev configuration can destroy prod resources. No way to r
 **Good: Separate directories, separate state, separate permissions**
 ```
 00_network/
-  dev/   -> acme-dev-tfstate/network
-  prod/  -> acme-prod-tfstate/network
+  dev/   -> myorg-dev-tfstate/network
+  prod/  -> myorg-prod-tfstate/network
 ```
 
 ## Cloud Provider Translation
 
 | Concept | AWS | GCP | Azure |
 |---------|-----|-----|-------|
-| State backend | S3 bucket + DynamoDB lock table | GCS bucket (native locking) | Azure Blob Storage + lease locking |
+| State backend | S3 bucket (`use_lockfile`) | GCS bucket (native locking) | Azure Blob Storage + lease locking |
 | State encryption | AES-256 SSE-S3 or SSE-KMS | Default encryption (Google-managed or CMEK) | Storage Service Encryption (Microsoft-managed or CMK) |
-| State locking | DynamoDB table or S3 native locking | GCS native locking | Blob lease locking |
+| State locking | S3 native locking (`use_lockfile = true`) | GCS native locking | Blob lease locking |
 | Remote state reference | `terraform_remote_state` with S3 backend | `terraform_remote_state` with GCS backend | `terraform_remote_state` with azurerm backend |
 | Account isolation | AWS accounts via Organizations | GCP projects via folders | Azure subscriptions via Management Groups |
 | State bucket per account | One S3 bucket per AWS account | One GCS bucket per GCP project | One Storage Account per Azure subscription |

@@ -4,7 +4,7 @@
 
 This example configures SSO with an external identity provider, three permission tiers, and per-account access scoping. When an employee joins, they are added to the IdP and assigned to a group. When they leave, disabling the IdP account revokes all cloud access instantly.
 
-## SSO Configuration (infra-root/root/sso.tf)
+## SSO Configuration (terraform-org/root/sso.tf)
 
 ### Identity Store Groups
 

@@ -45,6 +45,9 @@ tf-global-infrastructure/
 |   +-- prod/
 +-- 50_edge/
 |   +-- prod/
++-- 60_messaging/
+|   +-- dev/
+|   +-- prod/
 +-- 70_monitoring/
 |   +-- dev/
 |   +-- prod/
@@ -66,9 +69,10 @@ terraform {
   required_version = ">= 1.8.0"
 
   backend "s3" {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
-    region = "eu-west-1"
+    region       = "eu-west-1"
+    use_lockfile = true
   }
 
   required_providers {
@@ -95,9 +99,10 @@ terraform {
   required_version = ">= 1.8.0"
 
   backend "s3" {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
-    region = "eu-west-1"
+    region       = "eu-west-1"
+    use_lockfile = true
   }
 
   required_providers {
@@ -124,9 +129,10 @@ terraform {
   required_version = ">= 1.8.0"
 
   backend "s3" {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "compute"
-    region = "eu-west-1"
+    region       = "eu-west-1"
+    use_lockfile = true
   }
 
   required_providers {
@@ -156,12 +162,12 @@ module "labels" {
   env         = "dev"
   name        = "network"
   cost_center = "infrastructure"
-  global      = true
+  scope       = "g"
 }
 
 locals {
   tags = module.labels.tags
-  prf  = module.labels.prf
+  prefix = module.labels.prefix
 }
 ```
 
@@ -223,22 +229,24 @@ output "kms_key_arn" {
 ## State File Map
 
 ```
-acme-dev-tfstate bucket:
+myorg-dev-tfstate bucket:
   network           <-- 00_network/dev   (VPC, subnets, DNS)
   security          <-- 10_security/dev  (SGs, KMS, certs)
   storage           <-- 20_storage/dev   (S3, EFS)
   databases         <-- 30_databases/dev (RDS, caches)
   compute           <-- 40_compute/dev   (ECS, ASGs)
+  messaging         <-- 60_messaging/dev (SQS, SNS, EventBridge)
   monitoring        <-- 70_monitoring/dev (dashboards, alerts)
   shared_services   <-- 90_shared_services/dev
 
-acme-prod-tfstate bucket:
+myorg-prod-tfstate bucket:
   network           <-- 00_network/prod
   security          <-- 10_security/prod
   storage           <-- 20_storage/prod
   databases         <-- 30_databases/prod
   compute           <-- 40_compute/prod
   edge              <-- 50_edge/prod
+  messaging         <-- 60_messaging/prod
   monitoring        <-- 70_monitoring/prod
   shared_services   <-- 90_shared_services/prod
 ```

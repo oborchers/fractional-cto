@@ -47,7 +47,7 @@ jobs:
           echo "build_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
 
           # If this is a tag push, also set semver
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          if [[ "${GITHUB_REF}" == refs/tags/[0-9]* ]]; then
             SEMVER="${GITHUB_REF#refs/tags/}"
             echo "semver_tag=${REGISTRY}/${IMAGE_NAME}:${SEMVER}" >> $GITHUB_OUTPUT
           fi

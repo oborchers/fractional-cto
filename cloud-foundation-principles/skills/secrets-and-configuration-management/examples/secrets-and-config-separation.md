@@ -1,253 +1,104 @@
 # Secrets and Configuration Separation
 #
-# Demonstrates the strict separation between:
-#   - Secrets (credentials) --> Secrets Manager with KMS + auto-rotation
-#   - Configuration (plain values) --> SSM Parameter Store with hierarchy
+# Everything the service needs at runtime goes into ONE Secrets Manager secret
+# as a JSON blob. No SSM Parameter Store for app config. No individual secrets
+# per key. One path: /{service}/env -- same in every account.
 #
-# Both follow the /{environment}/{service}/{key} naming convention.
-# IAM policies scope access by environment and service path.
+# Account = environment (multi-account strategy). The secret path is identical
+# in dev and prod. Application code never knows which environment it runs in.
+#
+# Infrastructure-to-infrastructure wiring (VPC IDs, subnet IDs, database
+# endpoints that change when infra changes) flows through Terraform outputs
+# or SSM Parameter Store -- not the service secret.
 
 # ---------------------------------------------------------------------------
 # Variables
 # ---------------------------------------------------------------------------
 
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-}
-
 variable "service_name" {
-  description = "Service identifier for naming hierarchy"
+  description = "Service identifier for naming"
   type        = string
   default     = "myapp"
 }
 
-variable "team" {
-  description = "Team identifier for resource naming"
+variable "image_tag" {
+  description = "Container image tag (git SHA or semantic version, never 'latest')"
   type        = string
-  default     = "acme"
-}
-
-variable "vpc_id" {
-  description = "VPC ID (passed from network layer via remote state)"
-  type        = string
-}
-
-variable "private_subnet_ids" {
-  description = "Private subnet IDs (passed from network layer)"
-  type        = list(string)
 }
 
 variable "db_instance_address" {
-  description = "Database endpoint address (passed from database layer)"
+  description = "Database endpoint (from network/database layer via remote state)"
   type        = string
 }
 
 variable "db_instance_port" {
-  description = "Database port (passed from database layer)"
+  description = "Database port"
   type        = number
   default     = 5432
 }
 
 variable "redis_endpoint" {
-  description = "Redis endpoint (passed from cache layer)"
+  description = "Redis endpoint (from cache layer via remote state)"
   type        = string
 }
 
 # ---------------------------------------------------------------------------
-# Locals
+# KMS Key -- Customer-Managed Encryption
 # ---------------------------------------------------------------------------
-
-locals {
-  name_prefix = "${var.team}-${var.environment}"
-  secret_path = "/${var.environment}/${var.service_name}"
-  config_path = "/${var.environment}/${var.service_name}"
-  shared_path = "/${var.environment}/shared"
-}
-
-# ---------------------------------------------------------------------------
-# KMS Key for Secrets Encryption
-# ---------------------------------------------------------------------------
-
-# Customer-managed key -- not the provider default.
-# Enables key rotation, cross-account policies, and decryption audit trails.
 
 resource "aws_kms_key" "secrets" {
-  description         = "Encryption key for ${var.service_name} secrets in ${var.environment}"
+  description         = "Encryption key for ${var.service_name} secrets"
   enable_key_rotation = true
 
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Purpose     = "secrets-encryption"
-  }
+  tags = local.tags
 }
 
 resource "aws_kms_alias" "secrets" {
-  name          = "alias/${local.name_prefix}-${var.service_name}-secrets"
+  name          = "alias/${var.service_name}-secrets"
   target_key_id = aws_kms_key.secrets.key_id
 }
 
 # ---------------------------------------------------------------------------
-# Secrets Manager -- Credentials Only
+# The One Secret -- /{service}/env
 # ---------------------------------------------------------------------------
 
-# Database password: auto-rotated, KMS-encrypted, never exposed in plaintext
+# Single JSON blob containing EVERY env var the service needs.
+# Credentials and configuration together. One path. One IAM policy.
 
-resource "aws_secretsmanager_secret" "db_password" {
-  name       = "${local.secret_path}/db-password"
+resource "aws_secretsmanager_secret" "env" {
+  name       = "/${var.service_name}/env"
   kms_key_id = aws_kms_key.secrets.arn
 
-  description = "Database password for ${var.service_name} in ${var.environment}"
+  description = "All environment variables for ${var.service_name}"
 
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "credential"
-    Rotation    = "automatic"
-  }
+  tags = local.tags
 }
 
-resource "aws_secretsmanager_secret_version" "db_password" {
-  secret_id = aws_secretsmanager_secret.db_password.id
+# Initial secret value -- Terraform creates it, team manages it afterward.
+# Update the value in console/CLI + force redeploy. No Terraform apply needed.
+resource "aws_secretsmanager_secret_version" "env" {
+  secret_id = aws_secretsmanager_secret.env.id
+
   secret_string = jsonencode({
-    username = "${var.service_name}_readwrite"
-    password = random_password.db.result
-    host     = var.db_instance_address
-    port     = var.db_instance_port
-    dbname   = var.service_name
+    DB_HOST          = var.db_instance_address
+    DB_PORT          = tostring(var.db_instance_port)
+    DB_PASSWORD      = random_password.db.result
+    REDIS_URL        = "redis://${var.redis_endpoint}:6379"
+    SENDGRID_API_KEY = "REPLACE_ME"
+    FEATURE_V2_API   = "false"
   })
 
   lifecycle {
-    ignore_changes = [secret_string] # After initial creation, rotation manages the value
-  }
-}
-
-# Auto-rotation: rotates the password every 30 days
-resource "aws_secretsmanager_secret_rotation" "db_password" {
-  secret_id           = aws_secretsmanager_secret.db_password.id
-  rotation_lambda_arn = var.rotation_lambda_arn # Provided by the security/rotation layer
-
-  rotation_rules {
-    automatically_after_days = 30
-  }
-}
-
-# Third-party API key: cannot auto-rotate, documented with manual process
-resource "aws_secretsmanager_secret" "stripe_api_key" {
-  name       = "${local.secret_path}/stripe-api-key"
-  kms_key_id = aws_kms_key.secrets.arn
-
-  description = "Stripe API key for ${var.service_name}. MANUAL ROTATION: quarterly, see runbook."
-
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "credential"
-    Rotation    = "manual-quarterly"
+    ignore_changes = [secret_string] # After creation, team manages the value
   }
 }
 
 # ---------------------------------------------------------------------------
-# SSM Parameter Store -- Configuration Only
+# ECS Task Definition -- App Reads Secret at Startup
 # ---------------------------------------------------------------------------
 
-# Database host: plain configuration value, not a credential
-
-resource "aws_ssm_parameter" "db_host" {
-  name  = "${local.config_path}/db-host"
-  type  = "String"
-  value = var.db_instance_address
-
-  description = "Database endpoint for ${var.service_name}"
-
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "configuration"
-  }
-}
-
-resource "aws_ssm_parameter" "db_port" {
-  name  = "${local.config_path}/db-port"
-  type  = "String"
-  value = tostring(var.db_instance_port)
-
-  description = "Database port for ${var.service_name}"
-
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "configuration"
-  }
-}
-
-resource "aws_ssm_parameter" "redis_url" {
-  name  = "${local.config_path}/redis-url"
-  type  = "String"
-  value = "redis://${var.redis_endpoint}:6379"
-
-  description = "Redis connection URL for ${var.service_name}"
-
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "configuration"
-  }
-}
-
-resource "aws_ssm_parameter" "feature_new_checkout" {
-  name  = "${local.config_path}/feature-new-checkout"
-  type  = "String"
-  value = var.environment == "prod" ? "false" : "true"
-
-  description = "Feature flag: new checkout flow"
-
-  tags = {
-    Environment = var.environment
-    Service     = var.service_name
-    Type        = "feature-flag"
-  }
-}
-
-# Shared configuration: cross-service values readable by all services
-resource "aws_ssm_parameter" "vpc_id" {
-  name  = "${local.shared_path}/vpc-id"
-  type  = "String"
-  value = var.vpc_id
-
-  description = "VPC ID for ${var.environment} environment"
-
-  tags = {
-    Environment = var.environment
-    Service     = "shared"
-    Type        = "configuration"
-  }
-}
-
-resource "aws_ssm_parameter" "private_subnet_ids" {
-  name  = "${local.shared_path}/private-subnet-ids"
-  type  = "StringList"
-  value = join(",", var.private_subnet_ids)
-
-  description = "Private subnet IDs for ${var.environment} environment"
-
-  tags = {
-    Environment = var.environment
-    Service     = "shared"
-    Type        = "configuration"
-  }
-}
-
-# ---------------------------------------------------------------------------
-# ECS Task Definition -- Consuming Secrets and Configuration
-# ---------------------------------------------------------------------------
-
-# Secrets: passed as secret references, resolved at runtime by ECS
-# Configuration: passed as environment variables (plain values are safe here)
-
-resource "aws_ecs_task_definition" "myapp" {
-  family                   = "${local.name_prefix}-${var.service_name}"
+resource "aws_ecs_task_definition" "main" {
+  family                   = var.service_name
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 512
@@ -257,44 +108,20 @@ resource "aws_ecs_task_definition" "myapp" {
 
   container_definitions = jsonencode([{
     name  = var.service_name
-    image = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/${var.service_name}:latest"
+    image = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.service_name}:${var.image_tag}"
 
-    # Secrets: ECS resolves these from Secrets Manager at container start
-    secrets = [
-      {
-        name      = "DB_PASSWORD"
-        valueFrom = aws_secretsmanager_secret.db_password.arn
-      },
-      {
-        name      = "STRIPE_API_KEY"
-        valueFrom = aws_secretsmanager_secret.stripe_api_key.arn
-      }
-    ]
-
-    # Configuration: plain values, safe as environment variables
+    # One env var: the secret name. App reads and parses the JSON at startup.
     environment = [
       {
-        name  = "DB_HOST"
-        value = var.db_instance_address
-      },
-      {
-        name  = "DB_PORT"
-        value = tostring(var.db_instance_port)
-      },
-      {
-        name  = "REDIS_URL"
-        value = "redis://${var.redis_endpoint}:6379"
-      },
-      {
-        name  = "ENVIRONMENT"
-        value = var.environment
+        name  = "SECRET_NAME"
+        value = "/${var.service_name}/env"
       }
     ]
 
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group"         = "/ecs/${local.name_prefix}/${var.service_name}"
+        "awslogs-group"         = "/ecs/${var.service_name}"
         "awslogs-region"        = data.aws_region.current.name
         "awslogs-stream-prefix" = var.service_name
       }
@@ -303,84 +130,78 @@ resource "aws_ecs_task_definition" "myapp" {
 }
 
 # ---------------------------------------------------------------------------
-# IAM -- Scoped Access by Environment and Service
+# IAM -- Task Role Reads the Secret
 # ---------------------------------------------------------------------------
 
-# Task execution role: can read secrets and pull images
+# Execution role: only needs ECR pull permissions
 resource "aws_iam_role" "task_execution" {
-  name = "${local.name_prefix}-${var.service_name}-exec"
+  name = "${var.service_name}-task-exec"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
 }
 
-# Scoped to THIS service's secrets only -- not all secrets in the account
-resource "aws_iam_role_policy" "task_execution_secrets" {
+resource "aws_iam_role_policy_attachment" "task_execution_ecr" {
+  role       = aws_iam_role.task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Task role: reads the secret at runtime (app reads it, not ECS)
+resource "aws_iam_role" "task" {
+  name = "${var.service_name}-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "task_secrets" {
   name = "secrets-access"
-  role = aws_iam_role.task_execution.id
+  role = aws_iam_role.task.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue"
-        ]
-        Resource = [
-          "arn:aws:secretsmanager:*:*:secret:${local.secret_path}/*"
-        ]
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = [aws_secretsmanager_secret.env.arn]
       },
       {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt"
-        ]
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
         Resource = [aws_kms_key.secrets.arn]
       }
     ]
   })
 }
 
-# Task role: can read configuration parameters
-resource "aws_iam_role" "task" {
-  name = "${local.name_prefix}-${var.service_name}-task"
+# ---------------------------------------------------------------------------
+# Infrastructure Wiring (Exception: SSM Parameter Store)
+# ---------------------------------------------------------------------------
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-    }]
-  })
-}
+# Cross-service infrastructure dependencies that change when infra changes
+# go in SSM Parameter Store or Terraform remote state -- not the service secret.
+# These are consumed by Terraform modules, not by application code directly.
 
-# Scoped to THIS service's config AND shared config -- not all parameters
-resource "aws_iam_role_policy" "task_config" {
-  name = "config-access"
-  role = aws_iam_role.task.id
+resource "aws_ssm_parameter" "db_endpoint" {
+  name  = "/${var.service_name}/infra/db-endpoint"
+  type  = "String"
+  value = var.db_instance_address
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "ssm:GetParameter",
-        "ssm:GetParametersByPath"
-      ]
-      Resource = [
-        "arn:aws:ssm:*:*:parameter${local.config_path}/*",
-        "arn:aws:ssm:*:*:parameter${local.shared_path}/*"
-      ]
-    }]
-  })
+  description = "Database endpoint for ${var.service_name} (infra wiring)"
+  tags        = local.tags
 }
 
 # ---------------------------------------------------------------------------
@@ -392,23 +213,26 @@ resource "random_password" "db" {
   special = false # Avoids connection string escaping issues
 }
 
-variable "rotation_lambda_arn" {
-  description = "ARN of the secret rotation Lambda (from security layer)"
-  type        = string
-  default     = "" # Optional: rotation requires a Lambda function
-}
-
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
+locals {
+  tags = {
+    Service   = var.service_name
+    ManagedBy = "terraform"
+  }
+}
 
 # ---------------------------------------------------------------------------
 # Key Points
 # ---------------------------------------------------------------------------
 
-# 1. Secrets (db-password, stripe-api-key) are in Secrets Manager with KMS
-# 2. Configuration (db-host, redis-url, feature flags) are in SSM Parameter Store
-# 3. Both follow /{environment}/{service}/{key} naming hierarchy
-# 4. IAM policies scope access to specific environment + service paths
-# 5. ECS resolves secrets at runtime via valueFrom (never plaintext in config)
-# 6. Database password auto-rotates every 30 days
-# 7. Third-party keys that can't auto-rotate are tagged with rotation schedule
-# 8. Shared config (/prod/shared/*) is readable by all services in that env
+# 1. ONE secret per service: /{service}/env -- a JSON blob with all env vars
+# 2. Account = environment: same path in dev and prod, no env prefix
+# 3. Credentials + config together: DB_PASSWORD next to DB_HOST, no separation
+# 4. Change without Terraform: update secret value, force redeploy, done
+# 5. App reads the secret at startup (task role, not execution role)
+# 6. KMS-encrypted with customer-managed key (not provider default)
+# 7. IAM scoped to exactly one secret ARN (not a wildcard path)
+# 8. Infrastructure wiring (cross-service deps) uses SSM or Terraform remote state
+# 9. Image tag is a variable (never :latest)

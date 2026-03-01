@@ -1,4 +1,4 @@
-# Example: Five-Tier VPC with Private Connectivity
+# Example: VPC with Subnet Tiers and Private Connectivity
 
 ## Complete VPC Configuration (00_network/prod/main.tf)
 
@@ -21,21 +21,22 @@ provider "aws" {
 }
 
 module "labels" {
-  source      = "github.com/myorg/tf-module-labels.git?ref=v1.3.0"
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
   team        = "platform"
   env         = "prod"
   name        = "network"
-  cost_center = "platform"
+  cost_center = "infrastructure"
 }
 
 locals {
   tags   = module.labels.tags
-  prefix = module.labels.prf
+  prefix = module.labels.prefix
   azs    = ["${var.region}a", "${var.region}b", "${var.region}c"]
 }
 
 # ---------------------------------------------------------------------------
-# VPC with five subnet tiers across three availability zones
+# VPC with subnet tiers across three availability zones
+# This example shows all five tiers; omit cache/warehouse if not needed
 # ---------------------------------------------------------------------------
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -60,11 +61,11 @@ module "vpc" {
   create_database_subnet_group       = true
   create_database_subnet_route_table = true
 
-  # Tier 4: Cache (Redis, Memcached)
+  # Tier 4 (optional): Cache (Redis, Memcached) -- add when using managed caches
   elasticache_subnets = ["10.10.31.0/24", "10.10.32.0/24", "10.10.33.0/24"]
   create_elasticache_subnet_group = true
 
-  # Tier 5: Warehouse (analytical databases)
+  # Tier 5 (optional): Warehouse (analytical databases) -- add when running data warehouses
   redshift_subnets = ["10.10.41.0/24", "10.10.42.0/24", "10.10.43.0/24"]
   create_redshift_subnet_group = true
 
@@ -263,9 +264,9 @@ terraform {
   backend "s3" {
     bucket         = "myorg-prod-tfstate"
     key            = "network"
-    region         = "us-east-1"
+    region         = "eu-west-1"
     encrypt        = true
-    dynamodb_table = "myorg-prod-tflock"
+    use_lockfile   = true
   }
 }
 ```

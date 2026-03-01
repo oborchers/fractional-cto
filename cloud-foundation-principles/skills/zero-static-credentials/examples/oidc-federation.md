@@ -9,7 +9,7 @@ This example shows how to configure OIDC federation so CI/CD pipelines authentic
 ### Root Account: Create the OIDC Provider
 
 ```hcl
-# infra-root/prod/oidc.tf
+# terraform-org/prod/oidc.tf
 # Create the OIDC provider once in each account that needs CI/CD access
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -24,7 +24,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 ### Per-Account Deployment Role
 
 ```hcl
-# infra-root/prod/iam.tf
+# terraform-org/prod/iam.tf
 # Role for infrastructure deployment -- restricted to specific repos
 
 resource "aws_iam_role" "github_actions_deploy" {
@@ -43,8 +43,8 @@ resource "aws_iam_role" "github_actions_deploy" {
           # CRITICAL: restrict to specific repositories
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:myorg/infra-global:*",
-              "repo:myorg/infra-root:*"
+              "repo:myorg/infrastructure:*",
+              "repo:myorg/terraform-org:*"
             ]
           }
           StringEquals = {
@@ -68,7 +68,7 @@ resource "aws_iam_role_policy_attachment" "deploy_admin" {
 ### Per-Account Application Deploy Role (More Restricted)
 
 ```hcl
-# infra-root/prod/iam_app.tf
+# terraform-org/prod/iam_app.tf
 # Role for application deployment -- restricted to app repos and scoped permissions
 
 resource "aws_iam_role" "github_actions_app" {
@@ -167,7 +167,7 @@ permissions:
   contents: read     # Required for actions/checkout
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: eu-west-1
   TF_VERSION: "1.8.0"
 
 jobs:
@@ -255,7 +255,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::123456789012:role/GithubActionsAppDeployRole
-          aws-region: us-east-1
+          aws-region: eu-west-1
 
       # Login to container registry (no stored credentials)
       - uses: aws-actions/amazon-ecr-login@v2
@@ -304,7 +304,7 @@ resource "google_service_account_iam_binding" "github_deploy" {
   service_account_id = google_service_account.deploy.name
   role               = "roles/iam.workloadIdentityUser"
   members = [
-    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/myorg/infra-global",
+    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/myorg/infrastructure",
     "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/myorg/api-service",
   ]
 }
@@ -313,7 +313,7 @@ resource "google_service_account_iam_binding" "github_deploy" {
 ## Azure Equivalent: Federated Credentials
 
 ```hcl
-# Azure AD application with federated credential for GitHub Actions
+# Microsoft Entra ID application with federated credential for GitHub Actions
 resource "azuread_application" "github_deploy" {
   display_name = "github-actions-deploy"
 }
@@ -321,9 +321,9 @@ resource "azuread_application" "github_deploy" {
 resource "azuread_application_federated_identity_credential" "github" {
   application_id = azuread_application.github_deploy.id
   display_name   = "github-actions-infra"
-  description    = "GitHub Actions OIDC for infra-global repo"
+  description    = "GitHub Actions OIDC for infrastructure repo"
   audiences      = ["api://AzureADTokenExchange"]
   issuer         = "https://token.actions.githubusercontent.com"
-  subject        = "repo:myorg/infra-global:ref:refs/heads/main"
+  subject        = "repo:myorg/infrastructure:ref:refs/heads/main"
 }
 ```

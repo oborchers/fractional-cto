@@ -39,7 +39,7 @@ repos:
         # Why: Catches provider-specific errors (invalid instance types,
         #       deprecated resources, naming convention violations)
 
-      - id: terraform_checkov
+      - id: terraform_checkov  # Optional but recommended
         args:
           - --args=--quiet
           - --args=--compact

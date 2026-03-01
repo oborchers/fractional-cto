@@ -1,6 +1,6 @@
 ---
 name: network-architecture
-description: "This skill should be used when the user is designing VPC or virtual network topology, planning subnet tiers, configuring NAT gateways, setting up DNS zones, creating private connectivity endpoints, designing API gateway routing, or planning CIDR ranges. Covers five subnet tiers, availability zone distribution, cost-optimized NAT, private service endpoints, DNS strategy, and API gateway patterns."
+description: "This skill should be used when the user is designing VPC or virtual network topology, planning subnet tiers, configuring NAT gateways, setting up DNS zones, creating private connectivity endpoints, designing API gateway routing, or planning CIDR ranges. Covers subnet tiers (baseline and optional), availability zone distribution, cost-optimized NAT, private service endpoints, DNS strategy, and API gateway patterns."
 version: 1.0.0
 ---
 
@@ -10,9 +10,11 @@ Your network is the one thing you cannot change without rebuilding everything on
 
 Design the network first. Get the CIDR planning, subnet tiers, DNS zones, and private connectivity endpoints right on day one. Everything else -- compute, databases, monitoring -- builds on this foundation.
 
-## Five Subnet Tiers
+## Subnet Tiers
 
-Every VPC should have five subnet tiers, each serving a distinct security and routing purpose. Each tier spans multiple availability zones for resilience.
+Every VPC needs at least three subnet tiers as a baseline. Each tier has its own route table and security posture. Each tier spans multiple availability zones for resilience.
+
+### Baseline: Three Tiers (Every Project)
 
 ```
 VPC (10.0.0.0/16)
@@ -27,21 +29,23 @@ VPC (10.0.0.0/16)
 │   Contains: Containers, compute instances, application services
 │   Route: 0.0.0.0/0 -> NAT Gateway (outbound only)
 │
-├── Database Subnets (/24 x 3 AZs)
-│   Purpose: Managed database engines
-│   Contains: PostgreSQL, MySQL instances
-│   Route: No internet access (VPC CIDR only)
-│
-├── Cache Subnets (/24 x 3 AZs)
-│   Purpose: In-memory data stores
-│   Contains: Redis, Memcached clusters
-│   Route: No internet access (VPC CIDR only)
-│
-└── Warehouse Subnets (/24 x 3 AZs)
-    Purpose: Analytical data stores
-    Contains: Data warehouse clusters
+└── Database Subnets (/24 x 3 AZs)
+    Purpose: Managed database engines
+    Contains: PostgreSQL, MySQL instances
     Route: No internet access (VPC CIDR only)
 ```
+
+### Additional Tiers (Add When Needed)
+
+Add dedicated subnet tiers when your architecture requires them. Common additions:
+
+| Tier | Add When | Purpose |
+|------|----------|---------|
+| Cache | You run managed in-memory stores (Redis, Memcached) | Isolate cache traffic from database traffic; dedicated subnet groups |
+| Warehouse | You run analytical databases (data warehouses, columnar stores) | Separate analytical workloads from operational databases |
+| Messaging | You run managed message brokers | Isolate broker traffic with dedicated routing |
+
+Reserve CIDR space for future tiers even if you only start with three (see CIDR Planning below).
 
 ### Why Separate Subnets?
 
@@ -50,8 +54,8 @@ VPC (10.0.0.0/16)
 | Public | Full (inbound + outbound) | Only resources that MUST face the internet: load balancers, NAT |
 | Private | Outbound only (via NAT) | Application workloads can pull dependencies, but nothing reaches in directly |
 | Database | None | Database engines have no reason to touch the internet; reduces attack surface |
-| Cache | None | In-memory stores should only be reachable from within the VPC |
-| Warehouse | None | Analytical workloads access data internally; enhanced VPC routing for security |
+
+Additional tiers (cache, warehouse, messaging) also have no internet access -- they are reachable only from within the VPC.
 
 ### Bad vs Good: Subnet Design
 
@@ -64,7 +68,7 @@ BAD: Everything in one subnet tier
 GOOD: Purpose-specific tiers
 - Databases physically cannot reach the internet
 - Security groups layer on top of subnet-level isolation
-- Managed services (RDS, ElastiCache) get dedicated subnet groups
+- Managed services get dedicated subnet groups as needed
 ```
 
 ## CIDR Planning
@@ -82,9 +86,10 @@ Plan your CIDR ranges to allow future growth, VPC peering, and multi-environment
 
 **Rules**:
 - No CIDR overlap between environments (enables future VPC peering)
+- No CIDR overlap across regions either -- if you ever need cross-region peering (e.g., eu-west-1 to eu-central-1), colliding CIDRs make it impossible. Plan unique ranges per region from the start.
 - /16 gives 65,536 addresses per VPC -- plenty for most startups
 - Secondary CIDRs reserved for expansion without re-architecting
-- /24 subnets give 251 usable addresses per subnet per AZ
+- /24 subnets give 251 usable addresses per subnet per AZ -- sufficient for Fargate/ECS workloads. Container-heavy workloads using EKS with VPC CNI (one IP per pod) can exhaust /24 subnets quickly; size up to /22 or /21 for private subnets if running Kubernetes.
 
 ### Subnet Addressing Scheme
 
@@ -181,7 +186,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
 
 ### Zone Strategy
 
-Every environment needs three DNS zones:
+The exact domain structure is up to each company, but a proven starting point is three DNS zones per environment:
 
 | Zone Type | Example | Purpose |
 |-----------|---------|---------|
@@ -207,6 +212,8 @@ Internal (VPC only):
   db.internal                <- Database endpoint (CNAME to managed DB)
 ```
 
+**Why internal DNS matters**: `db.internal` resolves to the dev database in the dev VPC and to the prod database in the prod VPC. Application code uses the same connection string everywhere -- no environment-specific configuration, no risk of accidentally pointing dev code at a prod database.
+
 ### Certificate Strategy
 
 - One wildcard certificate per environment (`*.myapp.com`, `*.dev.myapp.com`)
@@ -227,12 +234,12 @@ Public routes (internet-accessible):
   /webhooks/v1/stripe        <- Third-party webhooks
 
 Internal routes (VPC CIDR restricted):
-  /i/billing/v2/invoices     <- Internal billing service
-  /i/analytics/v1/events     <- Internal event ingestion
-  /i/admin/v1/config         <- Internal admin endpoints
+  /internal/billing/v2/invoices     <- Internal billing service
+  /internal/analytics/v1/events     <- Internal event ingestion
+  /internal/admin/v1/config         <- Internal admin endpoints
 ```
 
-**Convention**: The `/i/` prefix marks internal-only routes. The API gateway enforces VPC CIDR restriction on all `/i/` routes, meaning only traffic originating from within the VPC can reach them.
+**Convention**: The `/internal/` prefix is needed when a single public API gateway serves both external and internal traffic -- the gateway enforces VPC CIDR restriction on all `/internal/` routes, meaning only traffic originating from within the VPC can reach them. For teams that can maintain it, a dedicated internal subdomain (`internal.api.company.com`) on a strictly private load balancer provides stronger separation -- internal routes never share a hostname with public traffic, and the `/internal/` path prefix becomes unnecessary since the entire gateway is private.
 
 ### Traffic Flow
 
@@ -245,7 +252,7 @@ API Gateway (private subnets)
   |
   +-- Public routes --> Backend services (private subnets)
   |
-  +-- /i/ routes --> IP restriction (VPC CIDR only)
+  +-- /internal/ routes --> IP restriction (VPC CIDR only)
         |
         Backend services (private subnets)
 
@@ -288,7 +295,7 @@ sg_private_warehouse     <- Port 5439 from VPC CIDR (data warehouse)
 ## Examples
 
 Working implementations in `examples/`:
-- **`examples/vpc-with-tiers.md`** -- Complete five-tier VPC with CIDR planning, NAT gateway, and private connectivity endpoints
+- **`examples/vpc-with-tiers.md`** -- Complete VPC with baseline subnet tiers, CIDR planning, NAT gateway, and private connectivity endpoints
 - **`examples/dns-and-certificates.md`** -- DNS zone setup with public, per-environment, and private zones plus wildcard certificates
 
 ## Review Checklist
@@ -296,15 +303,17 @@ Working implementations in `examples/`:
 When designing or reviewing network architecture:
 
 - [ ] CIDR ranges are planned to avoid overlap between environments (enables future peering)
-- [ ] Five subnet tiers exist: public, private, database, cache, warehouse
+- [ ] At least three subnet tiers exist: public, private, database (add cache, warehouse, messaging as needed)
 - [ ] Subnets span at least 3 availability zones
-- [ ] Database, cache, and warehouse subnets have no internet route
+- [ ] Database subnets (and any additional data tiers) have no internet route
 - [ ] NAT gateway strategy is documented (single for cost, multi-AZ for resilience)
 - [ ] Private connectivity endpoints exist for high-traffic cloud APIs (storage, registry, secrets)
 - [ ] Public DNS zone, per-environment DNS zone, and private VPC-bound DNS zone are configured
 - [ ] Wildcard certificates cover each environment
-- [ ] API gateway clearly separates public and internal routes (`/i/` prefix or equivalent)
+- [ ] API gateway clearly separates public and internal routes (`/internal/` prefix or dedicated internal subdomain)
 - [ ] Internal routes enforce VPC CIDR restriction
 - [ ] Security groups follow the `sg_private_*` / `sg_public_*` naming convention
 - [ ] Only load balancers are in public subnets; everything else is in private or data subnets
 - [ ] Secondary CIDRs are reserved for future expansion
+- [ ] CIDR ranges do not overlap across regions (enables future cross-region peering)
+- [ ] Private subnet sizing accounts for container IP consumption (EKS with VPC CNI may need /22 or /21)

@@ -17,9 +17,9 @@ The labels module is a single module that every Terraform project imports once. 
 | Variable | Required | Description | Examples |
 |----------|----------|-------------|----------|
 | `team` | Yes | Team abbreviation (2-4 chars) | `eng`, `data`, `plat` |
-| `env` | Yes | Environment identifier | `dev`, `prod`, `staging` |
+| `env` | Yes | Environment identifier | `dev`, `staging`, `prod`, `security`, `log-archive`, `sandbox` |
 | `name` | Yes | Service or project name | `backend`, `warehouse`, `api` |
-| `cost_center` | Yes | Validated cost allocation category | `compute`, `data_pipeline`, `observability` |
+| `cost_center` | Yes | Validated cost allocation category | `engineering`, `data`, `infrastructure` |
 | `scope` | No | Scope qualifier (e.g., global) | `g`, `regional` |
 
 ### Outputs
@@ -28,7 +28,7 @@ The labels module is a single module that every Terraform project imports once. 
 |--------|------|-------------|---------|
 | `prefix` | `string` | Name prefix for all resources | `eng-prod-g-backend-` |
 | `tags` | `map(string)` | Standard tag map applied to all resources | `{ owner = "eng", environment = "prod", ... }` |
-| `cost_center_list` | `list(string)` | Valid cost centers for reference | `["compute", "data_pipeline", ...]` |
+| `cost_center_list` | `list(string)` | Valid cost centers for reference | `["engineering", "data", ...]` |
 
 ### Usage
 
@@ -38,23 +38,23 @@ module "labels" {
   team        = "eng"
   env         = "prod"
   name        = "api"
-  cost_center = "compute"
+  cost_center = "engineering"
   scope       = "g"
 }
 
 locals {
   tags = module.labels.tags
-  prf  = module.labels.prefix   # "eng-prod-g-api-"
+  prefix = module.labels.prefix   # "eng-prod-g-api-"
 }
 
 # Every resource uses the prefix and tags
 resource "aws_s3_bucket" "data" {
-  bucket = "${local.prf}data"    # "eng-prod-g-api-data"
+  bucket = "${local.prefix}data"    # "eng-prod-g-api-data"
   tags   = local.tags
 }
 
 resource "aws_db_instance" "main" {
-  identifier = "${local.prf}db"  # "eng-prod-g-api-db"
+  identifier = "${local.prefix}db"  # "eng-prod-g-api-db"
   tags       = local.tags
   # ...
 }
@@ -63,6 +63,10 @@ resource "aws_db_instance" "main" {
 The labels module is the single source of truth for naming. No resource constructs its own name. No resource defines its own tags. Everything flows from one module invocation.
 
 ## The Naming Pattern
+
+### Why Environment Belongs in the Name, Not Just Tags
+
+The environment identifier (`dev`, `prod`) must be part of the resource name, not relegated to metadata. When you run `terraform plan`, the output shows resource names -- not tags. If the environment only exists in a tag, you cannot tell at a glance whether a plan is about to modify a dev resource or a production resource. The environment in the name is an immediate safety signal: `eng-prod-api-db` in a plan output tells you to slow down; `eng-dev-api-db` tells you it is safe to iterate. This distinction saves production outages.
 
 Every resource follows a predictable pattern:
 
@@ -90,6 +94,10 @@ data-dev-g-pipeline-queue     -- Dev data pipeline queue
 ```
 
 When you see any resource name, you immediately know: which team owns it, which environment it belongs to, what service it supports, and what function it serves. No lookup required.
+
+### Name Length Limits
+
+Some cloud resources impose strict name length limits (e.g., IAM roles, Lambda functions, S3 buckets). When the full pattern exceeds the allowed length, drop the optional components (`function`, `suffix`) from the name and move them into tags instead. The required components (`team`, `env`, `name`) stay in the resource name -- they are the minimum for identification. The tags map from the labels module already carries the full context, so nothing is lost.
 
 ## Cost Center Validation
 
@@ -148,7 +156,7 @@ Every resource must carry these tags, applied automatically by the labels module
 | `environment` | `var.env` | Environment identification -- dev, staging, prod |
 | `project` | `var.name` | Service grouping -- which project owns this resource |
 | `cost_center` | `var.cost_center` | Financial allocation -- where the bill goes |
-| `iac_managed` | Hard-coded `"terraform"` | Identifies IaC-managed resources vs. manual |
+| `managed_by` | Hard-coded `"terraform"` | Identifies IaC-managed resources vs. manual |
 
 Additional tags can be merged, but these five are non-negotiable. The labels module produces them automatically. Engineers never type them manually.
 
@@ -210,7 +218,7 @@ All naming components are converted to lowercase by the labels module. Mixed cas
 | Tag enforcement | AWS Config rules, SCPs | Organization Policy constraints | Azure Policy |
 | Cost allocation | Cost Explorer + Cost Allocation Tags | Billing Labels | Cost Management + Tags |
 | Naming restrictions | Varies by service (S3: 63 chars, lowercase) | Labels: 63 chars, lowercase | Tags: 512 chars key, 256 chars value |
-| Tag propagation | Auto-tagging via CloudFormation/Terraform | Auto-labeling via Terraform | Tag inheritance from resource groups |
+| Tag propagation | Auto-tagging via Terraform `default_tags` | Auto-labeling via Terraform | Tag inheritance from resource groups |
 | Compliance scanning | AWS Config (required-tags rule) | Policy Analyzer | Azure Policy (require tag) |
 
 ## Examples
@@ -230,6 +238,7 @@ When designing or reviewing naming and tagging:
 - [ ] No freeform tag values exist for owner, environment, or cost_center
 - [ ] All naming components are lowercase with no mixed-case values
 - [ ] The naming pattern is documented and follows `<team>-<env>[-<scope>]-<name>[-<function>][-<suffix>]`
+- [ ] Resource names that exceed provider length limits drop optional components (function, suffix) to tags
 - [ ] Log groups use slash-separated hierarchy, not dashes
 - [ ] Database users follow the `<purpose>_<access_level>` convention with no personal usernames
 - [ ] Domain naming separates environments (`service.dev.company.com` vs. `service.company.com`)

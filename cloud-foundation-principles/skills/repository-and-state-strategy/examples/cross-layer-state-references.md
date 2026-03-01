@@ -11,7 +11,7 @@ Demonstrates how higher-numbered infrastructure layers consume outputs from lowe
     +------------------+------------->  40_compute
                        |                    |
                        v                    v
-                   50_edge            70_monitoring
+                   50_edge       60_messaging --> 70_monitoring
 ```
 
 Arrows indicate "reads from." Layer 40 (compute) reads outputs from both layer 00 (network) and layer 10 (security).
@@ -25,7 +25,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.19.0"
 
-  name = "${local.prf}vpc"
+  name = "${local.prefix}vpc"
   cidr = "10.0.0.0/16"
 
   azs              = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
@@ -83,14 +83,14 @@ module "labels" {
   env         = "dev"
   name        = "security"
   cost_center = "infrastructure"
-  global      = true
+  scope       = "g"
 }
 
 # Read network layer outputs
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -98,7 +98,7 @@ data "terraform_remote_state" "network" {
 
 locals {
   tags   = module.labels.tags
-  prf    = module.labels.prf
+  prefix = module.labels.prefix
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
 }
 ```
@@ -107,7 +107,7 @@ locals {
 
 ```hcl
 resource "aws_security_group" "private_base" {
-  name_prefix = "${local.prf}private-base-"
+  name_prefix = "${local.prefix}private-base-"
   vpc_id      = local.vpc_id
   description = "Base security group for all private resources"
 
@@ -131,7 +131,7 @@ resource "aws_security_group" "private_base" {
 }
 
 resource "aws_security_group" "postgres" {
-  name_prefix = "${local.prf}postgres-"
+  name_prefix = "${local.prefix}postgres-"
   vpc_id      = local.vpc_id
   description = "Allow PostgreSQL traffic"
 
@@ -147,7 +147,7 @@ resource "aws_security_group" "postgres" {
 }
 
 resource "aws_security_group" "redis" {
-  name_prefix = "${local.prf}redis-"
+  name_prefix = "${local.prefix}redis-"
   vpc_id      = local.vpc_id
   description = "Allow Redis traffic"
 
@@ -198,14 +198,14 @@ module "labels" {
   env         = "dev"
   name        = "compute"
   cost_center = "infrastructure"
-  global      = true
+  scope       = "g"
 }
 
 # Read from network layer
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -215,7 +215,7 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "security" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
     region = "eu-west-1"
   }
@@ -223,7 +223,7 @@ data "terraform_remote_state" "security" {
 
 locals {
   tags            = module.labels.tags
-  prf             = module.labels.prf
+  prefix          = module.labels.prefix
   vpc_id          = data.terraform_remote_state.network.outputs.vpc_id
   private_subnets = data.terraform_remote_state.network.outputs.private_subnets
   base_sg_ids     = data.terraform_remote_state.security.outputs.base_security_group_ids
@@ -237,7 +237,7 @@ module "ecs_cluster" {
   source  = "terraform-aws-modules/ecs/aws//modules/cluster"
   version = "~> 5.0"
 
-  cluster_name = "${local.prf}cluster"
+  cluster_name = "${local.prefix}cluster"
 
   fargate_capacity_providers = {
     FARGATE = {
@@ -281,14 +281,14 @@ module "labels" {
   team        = "platform"
   env         = "dev"
   name        = "databases"
-  cost_center = "data_platform"
-  global      = true
+  cost_center = "data"
+  scope       = "g"
 }
 
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -297,7 +297,7 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "security" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
     region = "eu-west-1"
   }
@@ -305,7 +305,7 @@ data "terraform_remote_state" "security" {
 
 locals {
   tags               = module.labels.tags
-  prf                = module.labels.prf
+  prefix             = module.labels.prefix
   db_subnet_group    = data.terraform_remote_state.network.outputs.database_subnet_group_name
   postgres_sg_id     = data.terraform_remote_state.security.outputs.postgres_security_group_id
   redis_sg_id        = data.terraform_remote_state.security.outputs.redis_security_group_id

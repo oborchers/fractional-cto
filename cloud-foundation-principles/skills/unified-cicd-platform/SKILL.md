@@ -27,7 +27,7 @@ This is not a theoretical concern. Teams that have lived through multi-platform 
 
 ### The Pattern That Creates This Mess
 
-It usually starts innocently. The team uses GitHub for code, so someone sets up GitHub Actions for linting. An infrastructure engineer prefers GitLab CI's Terraform integration, so infrastructure pipelines go there. A machine learning team adopts CircleCI because of GPU runner support. Each decision is locally rational. The global result is chaos.
+It usually starts innocently. The team uses GitHub for code, so someone sets up GitHub Actions for linting. An infrastructure engineer prefers GitLab CI's Terraform integration, so infrastructure pipelines go there. A data team keeps Jenkins around because their scheduled ETL jobs already work. Each decision is locally rational. The global result is chaos.
 
 ## Platform Selection: Follow Your Code Host
 
@@ -41,6 +41,8 @@ The simplest rule: **use the CI/CD platform native to your code hosting platform
 | Self-hosted Git | Choose one: GitHub Actions (with self-hosted runners), GitLab CI, or Buildkite | Evaluate runner management, OIDC support, and team familiarity |
 
 **If your code is on GitHub but your CI/CD is on CircleCI or Jenkins**, you are paying an integration tax for every webhook, every status check, and every deployment notification. Migrate to GitHub Actions. The effort is finite. The operational benefit is permanent.
+
+**Self-hosted runners for specialized workloads**: If you need GPU runners, ARM builds, or other exotic compute, use self-hosted GitHub Actions runners rather than switching to a different CI/CD platform. The [terraform-aws-github-runner](https://github.com/github-aws-runners/terraform-aws-github-runner) module provides auto-scaling, ephemeral runners on AWS with full Terraform management.
 
 ## What "Everything" Means
 
@@ -187,7 +189,8 @@ GOOD: OIDC federation for pipeline auth
 
 Working implementations in `examples/`:
 - **`examples/platform-consolidation-plan.md`** -- Step-by-step migration plan for consolidating from multiple CI/CD providers to a single platform, including inventory template, parallel run strategy, and cutover checklist
-- For OIDC trust policy examples, see `zero-static-credentials` skill (`examples/oidc-federation.md`)
+- **`examples/oidc-trust-policies.md`** -- Role-per-pipeline-type pattern (plan, build, deploy) with subject claim restrictions scoping which branches and events can assume each role
+- For OIDC provider setup and federation configuration, see `zero-static-credentials` skill (`examples/oidc-federation.md`)
 
 ## Review Checklist
 

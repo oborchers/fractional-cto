@@ -10,6 +10,8 @@ Security monitoring is not a feature you add when the compliance audit arrives. 
 
 Start with managed security services. Do not build a custom SIEM. Do not cobble together open-source tools. Use the cloud provider's native threat detection, compliance scanning, and vulnerability assessment. These services integrate with each other, aggregate findings centrally, and require no infrastructure to operate. You can always add third-party tools later -- but you cannot retroactively detect last month's intrusion.
 
+**Week 2 means enabling the managed services with default settings -- not tuning every rule.** Turn on threat detection and basic configuration auditing. The full compliance framework and workload-specific scanning comes later as you understand your baseline. The landing zone tooling (see `multi-account-from-day-one` skill) handles the account structure and guardrails; this skill covers the security services you enable on top of that foundation.
+
 ## The Four Security Pillars
 
 Every cloud foundation needs four categories of security monitoring deployed from the start. Each pillar answers a different question.
@@ -60,8 +62,10 @@ This ordering is critical and frequently violated by teams that rush to "lock th
 
 1. **Week 2:** Enable all detective controls in all environments. Let them run. Review findings.
 2. **Weeks 3-4:** Triage findings. Separate real issues from noise. Tune thresholds.
-3. **Week 5+:** Promote validated detective controls to preventive -- in dev first. Run for at least one week.
+3. **Week 5+:** Promote validated detective controls to preventive -- in dev first. Run for at least two weeks.
 4. **After validation:** Enable preventive controls in production, one at a time.
+
+**With only dev and prod environments** (the recommended starting point -- see `tag-based-production-deploys` skill), the validation window matters more. Run preventive controls in dev for at least two weeks before production. If a control blocks a legitimate pattern in dev, it will block it in prod. Pay close attention to any suppressions or exceptions needed during the dev validation period.
 
 ```
 # Good: detective controls everywhere, preventive controls tested in dev first
@@ -71,7 +75,7 @@ Detective (all environments, immediate):
   - "Security group allows 0.0.0.0/0 on port 22" --> finding, notification
   - "RDS instance is not encrypted" --> finding, notification
 
-Preventive (dev first, then prod after 1+ week):
+Preventive (dev first, then prod after 2+ weeks):
   - "Block creation of unencrypted S3 buckets" --> deployment rejected
   - "Block security groups with 0.0.0.0/0 on port 22" --> deployment rejected
 ```
@@ -140,7 +144,7 @@ When designing or reviewing security monitoring:
 - [ ] Compliance scanning runs against at least CIS benchmarks in all production accounts
 - [ ] Vulnerability scanning covers container images in both CI/CD pipelines and runtime
 - [ ] Configuration audit rules are deployed as detective controls first, not preventive
-- [ ] Preventive controls are validated in dev for at least one week before production
+- [ ] Preventive controls are validated in dev for at least two weeks before production
 - [ ] All findings aggregate to a central dashboard in the security account
 - [ ] Workload-specific protections (database, container runtime, storage) are enabled in production
 - [ ] A quarterly review process exists for finding triage, threshold tuning, and coverage gaps

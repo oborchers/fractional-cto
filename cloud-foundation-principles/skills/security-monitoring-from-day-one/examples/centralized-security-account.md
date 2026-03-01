@@ -192,7 +192,7 @@ resource "aws_kms_key" "security_alerts" {
 }
 
 resource "aws_sns_topic" "security_alerts" {
-  name              = "acme-security-alerts"
+  name              = "${module.labels.prefix}security-alerts"
   kms_master_key_id = aws_kms_key.security_alerts.arn
 }
 
@@ -222,6 +222,14 @@ resource "aws_cloudwatch_event_target" "guardduty_to_sns" {
 
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
+
+module "labels" {
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
+  team        = "platform"
+  env         = "security"
+  name        = "security-monitoring"
+  cost_center = "engineering"
+}
 
 # ---------------------------------------------------------------------------
 # Key Points

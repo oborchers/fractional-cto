@@ -15,21 +15,10 @@
 # Variables
 # ---------------------------------------------------------------------------
 
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-}
-
 variable "service_name" {
   description = "Service identifier"
   type        = string
   default     = "myapp"
-}
-
-variable "team" {
-  description = "Team identifier"
-  type        = string
-  default     = "acme"
 }
 
 variable "container_image" {
@@ -71,9 +60,16 @@ variable "health_check_path" {
 # Locals
 # ---------------------------------------------------------------------------
 
+module "labels" {
+  source      = "git::https://github.com/myorg/tf-module-labels.git?ref=v1.2.0"
+  team        = "product"
+  env         = "dev"  # Change per environment directory
+  name        = var.service_name
+  cost_center = "engineering"
+}
+
 locals {
-  name_prefix = "${var.team}-${var.environment}"
-  is_prod     = var.environment == "prod"
+  is_prod = module.labels.env == "prod"
 }
 
 # ---------------------------------------------------------------------------
@@ -81,13 +77,14 @@ locals {
 # ---------------------------------------------------------------------------
 
 resource "aws_ecs_service" "main" {
-  name            = "${local.name_prefix}-${var.service_name}"
+  name            = "${module.labels.prefix}${var.service_name}"
   cluster         = data.terraform_remote_state.compute.outputs.cluster_arn
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = var.desired_count
 
   # Managed capacity: Fargate (no EC2 instances to patch or scale)
   # Split between on-demand and spot for cost optimization
+  # Adjust weights based on your availability requirements and budget
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
     weight            = local.is_prod ? 70 : 30 # Prod favors on-demand for stability
@@ -136,7 +133,7 @@ resource "aws_ecs_service" "main" {
 # ---------------------------------------------------------------------------
 
 resource "aws_ecs_task_definition" "main" {
-  family                   = "${local.name_prefix}-${var.service_name}"
+  family                   = "${module.labels.prefix}${var.service_name}"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.cpu
@@ -165,7 +162,7 @@ resource "aws_ecs_task_definition" "main" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group"         = "/ecs/${local.name_prefix}/${var.service_name}"
+        "awslogs-group"         = "/ecs/${module.labels.prefix}${var.service_name}"
         "awslogs-region"        = data.aws_region.current.name
         "awslogs-stream-prefix" = var.service_name
       }
@@ -187,7 +184,7 @@ resource "aws_appautoscaling_target" "main" {
 
 # Scale on CPU utilization
 resource "aws_appautoscaling_policy" "cpu" {
-  name               = "${local.name_prefix}-${var.service_name}-cpu"
+  name               = "${module.labels.prefix}${var.service_name}-cpu"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.main.resource_id
   scalable_dimension = aws_appautoscaling_target.main.scalable_dimension
@@ -203,9 +200,10 @@ resource "aws_appautoscaling_policy" "cpu" {
   }
 }
 
-# Scale on request count per target
+# Scale on request count per target -- tune target_value based on your service's
+# throughput capacity (start high, lower if latency degrades under load)
 resource "aws_appautoscaling_policy" "requests" {
-  name               = "${local.name_prefix}-${var.service_name}-requests"
+  name               = "${module.labels.prefix}${var.service_name}-requests"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.main.resource_id
   scalable_dimension = aws_appautoscaling_target.main.scalable_dimension
@@ -227,7 +225,7 @@ resource "aws_appautoscaling_policy" "requests" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lb_target_group" "main" {
-  name        = "${local.name_prefix}-${var.service_name}"
+  name        = "${module.labels.prefix}${var.service_name}"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
@@ -249,7 +247,7 @@ resource "aws_lb_target_group" "main" {
 # ---------------------------------------------------------------------------
 
 resource "aws_security_group" "service" {
-  name   = "${local.name_prefix}-${var.service_name}"
+  name   = "${module.labels.prefix}${var.service_name}"
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
 
   ingress {
@@ -272,7 +270,7 @@ resource "aws_security_group" "service" {
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "execution" {
-  name = "${local.name_prefix}-${var.service_name}-exec"
+  name = "${module.labels.prefix}${var.service_name}-exec"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -289,7 +287,7 @@ resource "aws_iam_role_policy_attachment" "execution" {
 }
 
 resource "aws_iam_role" "task" {
-  name = "${local.name_prefix}-${var.service_name}-task"
+  name = "${module.labels.prefix}${var.service_name}-task"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -305,7 +303,7 @@ resource "aws_iam_role" "task" {
 # ---------------------------------------------------------------------------
 
 resource "aws_cloudwatch_log_group" "main" {
-  name              = "/ecs/${local.name_prefix}/${var.service_name}"
+  name              = "/ecs/${module.labels.prefix}${var.service_name}"
   retention_in_days = local.is_prod ? 90 : 14
 }
 
@@ -318,7 +316,7 @@ data "aws_region" "current" {}
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "${local.name_prefix}-tfstate"
+    bucket = "myorg-dev-tfstate"  # Convention: <org>-<env>-tfstate
     key    = "network"
   }
 }
@@ -326,14 +324,14 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "compute" {
   backend = "s3"
   config = {
-    bucket = "${local.name_prefix}-tfstate"
+    bucket = "myorg-dev-tfstate"  # Convention: <org>-<env>-tfstate
     key    = "compute"
   }
 }
 
 # Placeholder: referenced by auto-scaling request count policy
 data "aws_lb" "main" {
-  name = "${local.name_prefix}-alb"
+  name = "${module.labels.prefix}-alb"
 }
 
 resource "aws_lb" "main" {

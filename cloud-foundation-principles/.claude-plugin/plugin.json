@@ -1,6 +1,6 @@
 {
   "name": "cloud-foundation-principles",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Research-backed, opinionated guidance for building cloud infrastructure that doesn't rot — multi-account governance, naming conventions, IaC organization, security, deployment pipelines, and operational hygiene, distilled from production experience across multiple cloud migrations",
   "author": {
     "name": "Dr. Oliver Borchers"

@@ -33,22 +33,25 @@ docker push registry.example.com/myorg/myapp:${IMAGE_TAG}
 | Date-based | `myapp:2025-03-15` | **Broken** | Multiple builds per day, no code traceability, timezone confusion |
 | Build number | `myapp:build-142` | **Fragile** | CI-system-specific, lost if CI rebuilt, no direct link to code |
 | Environment | `myapp:production` | **Dangerous** | Mutable like `latest`, silently changes, impossible to diff |
-| Semver only | `myapp:v1.2.3` | **Incomplete** | Acceptable as additional tag, but insufficient alone -- does not identify the exact commit |
+| Semver only | `myapp:1.2.3` | **Incomplete** | Required for production deploys, but insufficient alone -- must always accompany the SHA tag for traceability |
 
-### Additional Tags
+### Additional Tags and Deployment References
 
-Semver tags are useful for human communication and release tracking, but they must always be applied **in addition to** the SHA tag, never instead of it. The SHA is the source of truth; the semver tag is a convenience alias.
+Every image is SHA-tagged at build time. For production deployments, a semver release tag is required -- it signals an explicit promotion decision, not just "the latest build."
+
+- **Dev environments** deploy using the SHA tag directly (every merge to main triggers a deploy)
+- **Production** deploys using a semver tag (`1.2.3`) that points to a previously built, SHA-tagged image
+
+The image is built once and tagged with the SHA. When promoting to production, CI adds the semver tag to the existing image -- no rebuild. Both tags point to the same image digest.
 
 ```bash
-# Tag with SHA (mandatory)
+# At build time: tag with SHA (mandatory, every build)
 docker tag myorg/myapp:${GIT_SHA} registry.example.com/myorg/myapp:${GIT_SHA}
-
-# Tag with semver (optional, for release tracking)
-docker tag myorg/myapp:${GIT_SHA} registry.example.com/myorg/myapp:v1.2.3
-
-# Push both
 docker push registry.example.com/myorg/myapp:${GIT_SHA}
-docker push registry.example.com/myorg/myapp:v1.2.3
+
+# At release time: add semver tag to the existing image (required for prod)
+docker tag myorg/myapp:${GIT_SHA} registry.example.com/myorg/myapp:1.2.3
+docker push registry.example.com/myorg/myapp:1.2.3
 ```
 
 ## The Traceability Chain
@@ -118,12 +121,13 @@ Container registries accumulate images quickly. Without lifecycle policies, stor
 
 | Rule | Retention | Rationale |
 |------|-----------|-----------|
-| Tagged images (SHA-tagged) | Keep last 20 | Covers ~20 deployments, enough for rollback history |
-| Semver-tagged images | Keep last 10 | Major/minor releases for reference |
+| SHA-tagged images (dev builds) | Keep last 20 | Covers ~2-4 weeks of dev deployments, enough for rollback |
+| Semver-tagged images (prod releases) | Keep all | Production releases are infrequent; needed for audits, compliance, and post-mortems |
 | Untagged images (build layers) | Delete after 7 days | Build cache artifacts, no production value |
 
 ```hcl
 # Terraform: Container registry lifecycle policy
+# Note: semver-tagged images are kept indefinitely -- no expiry rule needed.
 resource "aws_ecr_lifecycle_policy" "this" {
   repository = aws_ecr_repository.myapp.name
 
@@ -131,17 +135,17 @@ resource "aws_ecr_lifecycle_policy" "this" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 20 SHA-tagged images"
+        description  = "Keep last 20 SHA-tagged images (dev builds)"
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["sha-"]
+          tagStatus     = "any"
+          tagPrefixList = [""]
           countType     = "imageCountMoreThan"
           countNumber   = 20
         }
         action = { type = "expire" }
       },
       {
-        rulePriority = 2
+        rulePriority = 10
         description  = "Remove untagged images after 7 days"
         selection = {
           tagStatus   = "untagged"
@@ -156,9 +160,9 @@ resource "aws_ecr_lifecycle_policy" "this" {
 }
 ```
 
-### Why 20 Tagged Images?
+### Why 20 SHA-Tagged Images?
 
-Twenty images covers approximately 2-4 weeks of active development. This provides enough rollback depth for any reasonable incident while preventing unbounded growth. If a team deploys more frequently, increase the count proportionally -- the goal is to always have a known-good previous version available for instant rollback.
+Twenty SHA-tagged images covers approximately 2-4 weeks of active development builds. This provides enough rollback depth for dev environments while preventing unbounded growth. If a team deploys more frequently, increase the count proportionally. Production release images (semver-tagged) are kept indefinitely -- they are infrequent, storage cost is negligible, and you never want to explain in an audit why a production image was deleted.
 
 ## Why Other Tagging Schemes Fail
 
@@ -198,11 +202,11 @@ When designing or reviewing container image tagging:
 - [ ] Every image is tagged with the full 40-character git commit SHA
 - [ ] The `latest` tag is never used in deployment configurations or service definitions
 - [ ] Environment tags (`staging`, `production`) are never used as deployment references
-- [ ] Semver tags, if used, are applied in addition to the SHA tag, never instead of it
+- [ ] Semver tags are required for production deploys and applied in addition to the SHA tag, never instead of it
 - [ ] OCI labels embed build metadata (revision, source URL, build timestamp) in the image
 - [ ] The Dockerfile accepts build arguments for metadata injection
 - [ ] Registry lifecycle policies are defined in Terraform (not configured manually)
-- [ ] Tagged images retain at least the last 20 versions for rollback capability
+- [ ] SHA-tagged dev builds retain at least the last 20 versions; semver-tagged production images are kept indefinitely
 - [ ] Untagged images are automatically cleaned up within 7 days
 - [ ] Image tag immutability is enabled to prevent tag overwrites
 - [ ] The traceability chain works end-to-end: running container to image tag to git SHA to source code

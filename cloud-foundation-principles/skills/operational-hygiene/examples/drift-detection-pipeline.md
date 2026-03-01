@@ -43,6 +43,10 @@ jobs:
             env: "prod"
             state_key: "compute"
             schedule: "daily"
+          - layer: "60_messaging"
+            env: "prod"
+            state_key: "messaging"
+            schedule: "daily"
           - layer: "70_monitoring"
             env: "prod"
             state_key: "monitoring"
@@ -89,7 +93,7 @@ jobs:
         if: steps.filter.outputs.skip != 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets[format('AWS_ACCOUNT_ID_{0}', matrix.env)] }}:role/acme-${{ matrix.env }}-cicd-readonly
+          role-to-assume: arn:aws:iam::${{ secrets[format('AWS_ACCOUNT_ID_{0}', matrix.env)] }}:role/${{ matrix.env }}-cicd-readonly
           aws-region: eu-west-1
 
       - name: Terraform Init

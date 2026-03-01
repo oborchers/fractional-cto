@@ -314,11 +314,11 @@ resource "aws_cloudwatch_metric_alarm" "http_5xx" {
 module "alerts" {
   source = "git::https://github.com/myorg/tf-module-alerts.git?ref=v1.3.0"
 
-  service_name = module.labels.prf
-  alarm_emails = ["myapp-team@acme.com", "oncall@acme.com"]
+  service_name = module.labels.prefix
+  alarm_emails = ["myapp-team@myorg.com", "oncall@myorg.com"]
 
   # ECS monitoring
-  ecs_cluster_name = "acme-prod-cluster"
+  ecs_cluster_name = "${module.labels.prefix}cluster"
   ecs_service_name = aws_ecs_service.myapp.name
 
   # Database monitoring
@@ -341,10 +341,10 @@ module "alerts" {
 module "alerts_stateless" {
   source = "git::https://github.com/myorg/tf-module-alerts.git?ref=v1.3.0"
 
-  service_name = module.labels.prf
-  alarm_emails = ["frontend-team@acme.com"]
+  service_name = module.labels.prefix
+  alarm_emails = ["frontend-team@myorg.com"]
 
-  ecs_cluster_name = "acme-prod-cluster"
+  ecs_cluster_name = "${module.labels.prefix}cluster"
   ecs_service_name = aws_ecs_service.frontend.name
 
   alb_arn_suffix          = aws_lb.frontend.arn_suffix

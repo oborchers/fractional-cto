@@ -101,19 +101,10 @@ variable "wait_for_steady_state" {
 
 # --- Optional features ---
 
-variable "secrets" {
-  type = list(object({
-    name      = string
-    value_arn = string
-  }))
-  default     = []
-  description = "Secrets to inject as environment variables"
-}
-
 variable "environment_variables" {
   type        = map(string)
   default     = {}
-  description = "Non-secret environment variables"
+  description = "Environment variables passed to the container (include SECRET_NAME for secrets)"
 }
 
 variable "log_retention_days" {
@@ -155,7 +146,7 @@ variable "autoscaling_cpu_target" {
 # --- Log group (always created with retention) ---
 
 resource "aws_cloudwatch_log_group" "service" {
-  name              = "/acme/${terraform.workspace}/${var.name}"
+  name              = "/ecs/${var.name}"
   retention_in_days = var.log_retention_days
 }
 
@@ -192,16 +183,12 @@ resource "aws_ecs_task_definition" "service" {
         "awslogs-stream-prefix" = var.name
       }
     }
+    # App reads secrets at startup via SECRET_NAME env var
+    # (see secrets-and-configuration-management skill)
     environment = [
       for k, v in var.environment_variables : {
         name  = k
         value = v
-      }
-    ]
-    secrets = [
-      for s in var.secrets : {
-        name      = s.name
-        valueFrom = s.value_arn
       }
     ]
   }])
@@ -275,7 +262,7 @@ data "aws_region" "current" {}
 module "myapp_service" {
   source = "git::https://github.com/myorg/tf-module-container-service.git?ref=v2.1.0"
 
-  name        = module.labels.prf
+  name        = module.labels.prefix
   cluster_arn = local.cluster_arn
   image       = "${local.registry_url}/myapp-api:${var.image_tag}"
   cpu         = 1024
@@ -287,13 +274,9 @@ module "myapp_service" {
   health_check_path = "/health"
   desired_count     = 2
 
-  secrets = [
-    { name = "DATABASE_URL", value_arn = aws_secretsmanager_secret.db_url.arn }
-  ]
-
   environment_variables = {
-    NODE_ENV = "development"
-    PORT     = "3000"
+    SECRET_NAME = "/myapp-api/env"
+    PORT        = "3000"
   }
 
   # All deployment defaults (circuit breaker, rolling update, wait for steady
@@ -307,6 +290,6 @@ module "myapp_service" {
 - Service teams write 15-20 lines of module invocation instead of 100+ lines of raw resource definitions
 - Defaults are production-safe: `enable_circuit_breaker = true`, `wait_for_steady_state = true`, `deployment_minimum_healthy_percent = 100`
 - Input validation prevents misconfiguration: CPU must be a valid Fargate value, rejected at plan time
-- Optional features (autoscaling, secrets) are disabled by default and enabled per-service
+- Optional features (autoscaling) are disabled by default and enabled per-service
 - The module is pinned with `?ref=v2.1.0` so upgrades are explicit, not accidental
 - Log groups always have explicit retention (no "retain forever" default)

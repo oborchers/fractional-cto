@@ -36,9 +36,10 @@ terraform {
   required_version = ">= 1.8.0"
 
   backend "s3" {
-    bucket = "acme-dev-tfstate"
-    key    = "myapp-api"
-    region = "eu-west-1"
+    bucket       = "myorg-dev-tfstate"
+    key          = "myapp-api"
+    region       = "eu-west-1"
+    use_lockfile = true
   }
 
   required_providers {
@@ -75,7 +76,7 @@ module "labels" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "network"
     region = "eu-west-1"
   }
@@ -84,7 +85,7 @@ data "terraform_remote_state" "network" {
 data "terraform_remote_state" "security" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "security"
     region = "eu-west-1"
   }
@@ -93,7 +94,7 @@ data "terraform_remote_state" "security" {
 data "terraform_remote_state" "compute" {
   backend = "s3"
   config = {
-    bucket = "acme-dev-tfstate"
+    bucket = "myorg-dev-tfstate"
     key    = "compute"
     region = "eu-west-1"
   }
@@ -120,7 +121,7 @@ locals {
 ```hcl
 # Container image repository (service-owned)
 resource "aws_ecr_repository" "myapp" {
-  name                 = "${module.labels.prf}myapp-api"
+  name                 = "${module.labels.prefix}myapp-api"
   image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
@@ -148,7 +149,7 @@ resource "aws_ecr_lifecycle_policy" "myapp" {
 
 # ECS task definition (service-owned)
 resource "aws_ecs_task_definition" "myapp" {
-  family                   = "${module.labels.prf}myapp-api"
+  family                   = "${module.labels.prefix}myapp-api"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 1024
@@ -178,10 +179,11 @@ resource "aws_ecs_task_definition" "myapp" {
         "awslogs-stream-prefix" = "myapp-api"
       }
     }
-    secrets = [
+    # App reads the secret at startup (see secrets-and-configuration-management skill)
+    environment = [
       {
-        name      = "DATABASE_URL"
-        valueFrom = aws_secretsmanager_secret.database_url.arn
+        name  = "SECRET_NAME"
+        value = "/myapp-api/env"
       }
     ]
   }])
@@ -189,7 +191,7 @@ resource "aws_ecs_task_definition" "myapp" {
 
 # ECS service (service-owned)
 resource "aws_ecs_service" "myapp" {
-  name            = "${module.labels.prf}myapp-api"
+  name            = "${module.labels.prefix}myapp-api"
   cluster         = local.cluster_arn
   task_definition = aws_ecs_task_definition.myapp.arn
   desired_count   = 2
@@ -218,7 +220,7 @@ resource "aws_ecs_service" "myapp" {
 
 # Log group with explicit retention
 resource "aws_cloudwatch_log_group" "myapp" {
-  name              = "/acme/dev/ecs/myapp-api"
+  name              = "/ecs/${module.labels.prefix}myapp-api"
   retention_in_days = 14
 }
 ```
@@ -229,9 +231,9 @@ resource "aws_cloudwatch_log_group" "myapp" {
 module "alerts" {
   source = "git::https://github.com/myorg/tf-module-alerts.git?ref=v1.3.0"
 
-  service_name            = "${module.labels.prf}myapp-api"
-  alarm_emails            = ["myapp-team@acme.com"]
-  ecs_cluster_name        = "acme-dev-cluster"
+  service_name            = "${module.labels.prefix}myapp-api"
+  alarm_emails            = ["myapp-team@myorg.com"]
+  ecs_cluster_name        = "${module.labels.prefix}cluster"
   ecs_service_name        = aws_ecs_service.myapp.name
   cpu_utilization_threshold = 80
   memory_utilization_threshold = 85

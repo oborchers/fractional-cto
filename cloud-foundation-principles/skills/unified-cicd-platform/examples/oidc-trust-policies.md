@@ -1,26 +1,10 @@
-# OIDC Trust Policies for CI/CD
+# CI/CD Pipeline Roles: Plan, Build, Deploy
 
-Complete OIDC federation setup for authenticating CI/CD pipelines to cloud providers without stored credentials. Covers provider configuration, role trust policies with subject claim restrictions, and workflow usage.
+Demonstrates the role-per-pipeline-type pattern for CI/CD OIDC authentication. Each pipeline type gets its own IAM role with subject claim restrictions that limit which branches and events can assume it.
 
-## AWS: GitHub Actions OIDC Federation
+For the OIDC provider setup (trust policies, provider configuration, GCP Workload Identity Federation), see the `zero-static-credentials` skill (`examples/oidc-federation.md`).
 
-### Step 1: Create the OIDC Provider (Once Per AWS Account)
-
-```hcl
-# oidc.tf -- Created in each AWS account that pipelines need to access
-
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-
-  tags = merge(module.labels.tags, {
-    description = "GitHub Actions OIDC provider for CI/CD authentication"
-  })
-}
-```
-
-### Step 2: Create Roles with Subject Claim Restrictions
+## Three Roles, Three Scopes
 
 ```hcl
 # iam-cicd-roles.tf
@@ -28,7 +12,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 # --- Plan-Only Role (used during PRs) ---
 # Can only read state and generate plans, never apply
 resource "aws_iam_role" "github_actions_plan" {
-  name = "${module.labels.prf}github-actions-plan"
+  name = "${module.labels.prefix}github-actions-plan"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -36,14 +20,14 @@ resource "aws_iam_role" "github_actions_plan" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = var.github_oidc_provider_arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
             # Any branch or PR from these repos can plan
             "token.actions.githubusercontent.com:sub" = [
-              "repo:myorg/infra-global:*",
+              "repo:myorg/infrastructure:*",
               "repo:myorg/myapp-api:*",
               "repo:myorg/billing-service:*"
             ]
@@ -83,15 +67,6 @@ resource "aws_iam_role_policy" "plan_state_access" {
           "arn:aws:s3:::${var.state_bucket_name}",
           "arn:aws:s3:::${var.state_bucket_name}/*"
         ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem"
-        ]
-        Resource = "arn:aws:dynamodb:*:*:table/${var.state_lock_table_name}"
       }
     ]
   })
@@ -100,7 +75,7 @@ resource "aws_iam_role_policy" "plan_state_access" {
 # --- Deploy Role (used for terraform apply and app deployments) ---
 # Restricted to tag pushes only
 resource "aws_iam_role" "github_actions_deploy" {
-  name = "${module.labels.prf}github-actions-deploy"
+  name = "${module.labels.prefix}github-actions-deploy"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -108,16 +83,16 @@ resource "aws_iam_role" "github_actions_deploy" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = var.github_oidc_provider_arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
             # ONLY tag pushes can assume this role
             "token.actions.githubusercontent.com:sub" = [
-              "repo:myorg/infra-global:ref:refs/tags/v*",
-              "repo:myorg/myapp-api:ref:refs/tags/v*",
-              "repo:myorg/billing-service:ref:refs/tags/v*"
+              "repo:myorg/infrastructure:ref:refs/tags/*",
+              "repo:myorg/myapp-api:ref:refs/tags/*",
+              "repo:myorg/billing-service:ref:refs/tags/*"
             ]
           }
           StringEquals = {
@@ -140,7 +115,7 @@ resource "aws_iam_role_policy_attachment" "deploy_permissions" {
 # --- Build Role (used for container image builds) ---
 # Can push to ECR, nothing else
 resource "aws_iam_role" "github_actions_build" {
-  name = "${module.labels.prf}github-actions-build"
+  name = "${module.labels.prefix}github-actions-build"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -148,7 +123,7 @@ resource "aws_iam_role" "github_actions_build" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = var.github_oidc_provider_arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -156,7 +131,7 @@ resource "aws_iam_role" "github_actions_build" {
             # Any branch push can build (dev deploys from branches)
             "token.actions.githubusercontent.com:sub" = [
               "repo:myorg/myapp-api:ref:refs/heads/*",
-              "repo:myorg/myapp-api:ref:refs/tags/v*"
+              "repo:myorg/myapp-api:ref:refs/tags/*"
             ]
           }
           StringEquals = {
@@ -202,72 +177,27 @@ resource "aws_iam_role_policy" "build_ecr_push" {
 }
 ```
 
-### Step 3: Use in Workflows
+## Using the Roles in Workflows
 
 ```yaml
 # CI workflow (PRs): uses plan-only role
 - uses: aws-actions/configure-aws-credentials@v4
   with:
-    role-to-assume: arn:aws:iam::role/acme-dev-github-actions-plan
+    role-to-assume: arn:aws:iam::role/github-actions-plan
     aws-region: eu-west-1
     # No access key, no secret key -- OIDC only
 
 # Build workflow (pushes): uses build role
 - uses: aws-actions/configure-aws-credentials@v4
   with:
-    role-to-assume: arn:aws:iam::role/acme-dev-github-actions-build
+    role-to-assume: arn:aws:iam::role/github-actions-build
     aws-region: eu-west-1
 
 # CD workflow (tags): uses deploy role
 - uses: aws-actions/configure-aws-credentials@v4
   with:
-    role-to-assume: arn:aws:iam::role/acme-prod-github-actions-deploy
+    role-to-assume: arn:aws:iam::role/github-actions-deploy
     aws-region: eu-west-1
-```
-
-## GCP: GitHub Actions Workload Identity Federation
-
-```hcl
-# Workload Identity Pool
-resource "google_iam_workload_identity_pool" "github" {
-  workload_identity_pool_id = "github-actions"
-  display_name              = "GitHub Actions"
-  description               = "OIDC federation for GitHub Actions CI/CD"
-}
-
-# Workload Identity Provider
-resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-provider"
-  display_name                       = "GitHub"
-
-  attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.actor"      = "assertion.actor"
-    "attribute.repository" = "assertion.repository"
-    "attribute.ref"        = "assertion.ref"
-  }
-
-  # Restrict to your GitHub organization
-  attribute_condition = "assertion.repository_owner == 'myorg'"
-
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
-  }
-}
-
-# Service account for deployments
-resource "google_service_account" "github_actions_deploy" {
-  account_id   = "github-actions-deploy"
-  display_name = "GitHub Actions Deploy"
-}
-
-# Bind WIF to service account with repository restriction
-resource "google_service_account_iam_member" "github_actions_wif" {
-  service_account_id = google_service_account.github_actions_deploy.name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/myorg/infra-global"
-}
 ```
 
 ## Role Summary
@@ -276,7 +206,7 @@ resource "google_service_account_iam_member" "github_actions_wif" {
 |------|----------------|-------------|----------|
 | Plan | Any branch/PR from listed repos | ReadOnly + state access | `terraform plan` in PR CI |
 | Build | Any branch or tag from listed repos | ECR push only | Docker build and push |
-| Deploy | Only tag pushes (`v*`) from listed repos | Terraform deploy permissions | `terraform apply` in production |
+| Deploy | Only tag pushes from listed repos | Terraform deploy permissions | `terraform apply` in production |
 
 ### Security Boundaries
 

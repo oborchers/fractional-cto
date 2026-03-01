@@ -156,7 +156,7 @@ jobs:
 name: Terraform CD (Production)
 on:
   push:
-    tags: ["v*"]
+    tags: ["[0-9]*"]  # Matches semver tags (1.2.3); adjust to "v*" if using v-prefix
 
 permissions:
   id-token: write
@@ -281,13 +281,13 @@ git checkout main
 git pull origin main
 
 # 2. Review what will be released
-git log --oneline v1.2.2..HEAD
+git log --oneline 1.2.2..HEAD
 
 # 3. Create annotated tag
-git tag -a v1.2.3 -m "Release v1.2.3: Add payment retry logic, fix timeout handling"
+git tag -a 1.2.3 -m "Release 1.2.3: Add payment retry logic, fix timeout handling"
 
 # 4. Push tag to trigger production pipeline
-git push origin v1.2.3
+git push origin 1.2.3
 
 # 5. Monitor the pipeline
 # - Plan job runs automatically
@@ -297,7 +297,7 @@ git push origin v1.2.3
 
 # Rollback if needed:
 # Simply deploy the previous known-good tag
-git tag -a v1.2.4 -m "Rollback: revert to v1.2.2 codebase"
+git tag -a 1.2.4 -m "Rollback: revert to 1.2.2 codebase"
 # Or re-trigger the previous tag's workflow
 ```
 
@@ -312,4 +312,4 @@ Configure these settings in GitHub repository Settings > Environments:
 **`production` environment:**
 - Required reviewers: 2 (infrastructure team members)
 - Wait timer: 0 (or set to deployment window if needed)
-- Deployment branches: Tags only (`v*`)
+- Deployment branches: Tags only (semver pattern)

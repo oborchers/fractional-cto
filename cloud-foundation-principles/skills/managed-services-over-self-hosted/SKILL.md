@@ -57,11 +57,11 @@ resource "aws_ecs_service" "myapp" {
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
-    weight            = 50
+    weight            = 50  # Increase to 100 for production-critical services
   }
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
-    weight            = 50
+    weight            = 50  # Spot can be interrupted; suitable for dev, use cautiously in prod
   }
 
   deployment_circuit_breaker {
@@ -119,6 +119,8 @@ Self-hosted workflow engines (Airflow on EC2/K8s, Temporal self-hosted, Prefect 
 
 **The breaking point:** self-hosted Airflow is three services (scheduler, webserver, workers), a metadata database, a message broker, and a log storage backend. That is six components to keep alive for a workflow engine that is supposed to keep your other workflows alive.
 
+**Do your research first:** managed workflow services vary significantly in quality. Sometimes your cloud provider's offering (e.g., MWAA) is the right choice; sometimes a specialized third-party provider (e.g., Astronomer for Airflow) offers a materially better experience. Evaluate both before committing.
+
 ## Databases and Caches: Always Managed
 
 There is almost no scenario where a startup or small team should run a self-hosted database or cache in production. The managed service gives you automated backups, point-in-time recovery, failover, patching, and monitoring for a modest premium over the raw compute cost.
@@ -127,7 +129,7 @@ There is almost no scenario where a startup or small team should run a self-host
 # Good: managed database with automated operations
 
 resource "aws_db_instance" "myapp" {
-  identifier     = "acme-prod-myapp"
+  identifier     = "${module.labels.prefix}myapp-db"
   engine         = "postgres"
   engine_version = "15.4"
   instance_class = "db.t4g.medium"
@@ -200,7 +202,7 @@ Self-hosting is justified when -- and only when -- the managed service genuinely
 
 ## The Decision Rule
 
-**If you would not hire a dedicated person to maintain it, do not self-host it.** A self-hosted Kubernetes cluster needs a platform engineer. A self-hosted database needs a DBA. A self-hosted monitoring stack needs an observability engineer. If your team cannot justify that hire, the managed service is the correct choice.
+**If your platform team would not accept the operational burden of maintaining it, do not self-host it.** Use the managed service -- that is the paved road. Self-hosted Kubernetes needs a dedicated platform engineer. Self-hosted monitoring needs an observability engineer. If those roles do not exist on your team, the managed equivalent is the correct choice.
 
 ## Cloud Provider Translation
 
@@ -235,4 +237,4 @@ When designing or reviewing service hosting decisions:
 - [ ] No self-hosted service exists solely because "it's cheaper" without accounting for engineering time
 - [ ] Self-hosted exceptions include an operations plan (patching, backup, incident response) and exit criteria
 - [ ] GPU workloads use managed control planes with self-managed node pools, not fully self-managed clusters
-- [ ] The team would hire a dedicated person to maintain each self-hosted service -- if not, it should be managed
+- [ ] The platform team accepts the operational burden for each self-hosted service -- if not, it should be managed

@@ -8,6 +8,8 @@ version: 1.0.0
 
 Every infrastructure team makes dozens of significant decisions in the first months of a project: which cloud provider, which account structure, which naming convention, which container orchestrator, which CI/CD pipeline design. When those decisions live only in Slack threads and the memories of people who were in the room, they get relitigated every time someone new joins, every time someone forgets, and every time a stakeholder asks "why did we do it this way?" An Architecture Decision Record (ADR) takes 15 minutes to write and saves weeks of repeated debates. The format is deliberately simple: context, decision, consequences. No templates longer than a page. No approval workflows. Just a numbered, immutable document stored alongside the code it governs.
 
+This skill follows the lightweight ADR format introduced by Michael Nygard in "Documenting Architecture Decisions" (2011) and later adopted by Thoughtworks in the "Adopt" category of their Technology Radar.
+
 ## The ADR Format
 
 An ADR captures exactly four things: what number it is, what context motivated the decision, what was decided, and what the consequences are. Nothing more.
@@ -15,7 +17,7 @@ An ADR captures exactly four things: what number it is, what context motivated t
 ```markdown
 # ADR-0001: [Title of the Decision]
 
-**Status:** Accepted | Superseded by ADR-XXXX | Deprecated
+**Status:** Proposed | Accepted | Superseded by ADR-XXXX | Deprecated
 **Date:** 2026-02-15
 **Deciders:** Platform Team
 
@@ -131,7 +133,7 @@ ADR-0002: Naming Convention and Labels Module
   A labels module is the first Terraform module. Invalid names rejected at plan time.
 
 ADR-0003: Multi-Account Strategy
-  Decision: Minimum four accounts -- management, security, dev, prod.
+  Decision: Minimum six accounts -- management, security, log-archive, sandbox, dev, prod.
   Landing zone automation for governance. No application workloads in root account.
 ```
 
@@ -196,7 +198,7 @@ architecture-decisions/
 └── README.md   (index of all ADRs with status)
 ```
 
-Pattern 1 is preferred for small teams. Pattern 2 is better when ADRs span multiple repositories (e.g., infrastructure decisions that affect application code).
+Pattern 1 is preferred for small teams with a single repository. Pattern 2 is better when ADRs span multiple repositories (e.g., infrastructure decisions that affect application code). In practice, a mature project accumulates 50-150 ADRs -- these should be stored centrally in one location, not scattered across service repositories. A dedicated `architecture-decisions` repo or a top-level `adrs/` directory in the root infrastructure repo keeps the full decision history searchable and browsable.
 
 Regardless of where they live, ADRs must be:
 - **Version-controlled** -- every change is tracked in git history
@@ -225,7 +227,7 @@ Maintain a simple index file that lists every ADR with its number, title, and st
 
 | Concept | AWS | GCP | Azure |
 |---------|-----|-----|-------|
-| Where ADRs reference | Control Tower, SCPs, IAM Identity Center | Organization Policies, Cloud Identity | Management Groups, Entra ID, Azure Policy |
+| Where ADRs reference | Control Tower, SCPs, IAM Identity Center | Organization Policies, Cloud Identity | Management Groups, Microsoft Entra ID, Azure Policy |
 | Console exemptions to document | Control Tower setup, some Security Hub standards | Organization setup, some Security Command Center configs | Landing Zone accelerator, some Defender configs |
 | IaC provider maturity gaps | CT accounts, Inspector, some Config rules | Some Organization Policy types | Some Azure Policy definitions |
 | Typical first ADR subjects | AWS vs. GCP vs. Azure, region, account structure | Project structure, region, VPC design | Subscription structure, region, landing zone |
@@ -248,6 +250,7 @@ When reviewing infrastructure decisions and documentation:
 - [ ] Superseded ADRs link to their replacement; original content is not edited
 - [ ] An ADR index exists listing all ADRs with their current status
 - [ ] ADRs are stored in version control and go through pull request review
+- [ ] All ADRs are stored in a single central location, not scattered across service repos
 - [ ] Console-managed resources have an exemption ADR documenting why they are not in code
 - [ ] The first three ADRs (adopt ADRs, naming, account structure) exist before any resources
 - [ ] New team members are directed to the ADR index as part of onboarding

@@ -14,9 +14,8 @@ Development environments should deploy continuously from branch pushes -- fast f
 
 | Environment | Trigger | Branch/Tag | Approval Required | Purpose |
 |-------------|---------|------------|-------------------|---------|
-| Dev | Push to `develop` or `main` | Branch | None | Fast feedback, continuous integration |
-| Staging | Push to `main` or pre-release tag | Branch or `v*-rc*` | None | Integration testing, QA validation |
-| Production | Git tag creation | `v*` (e.g., `v1.2.3`) | Manual approval gate | Deliberate release with audit trail |
+| Dev | Push to `main` | Branch | None | Fast feedback, continuous integration |
+| Production | Git tag creation | Semver (e.g., `1.2.3`) | Manual approval gate | Deliberate release with audit trail |
 
 ### Why This Matrix Works
 
@@ -26,14 +25,15 @@ Development environments should deploy continuously from branch pushes -- fast f
 
 ## Tag Naming Convention
 
-Use semantic versioning with a `v` prefix. This is the most widely understood convention and integrates cleanly with every major CI/CD platform's tag-based triggers.
+Use semantic versioning. The `v` prefix is optional -- both `v1.2.3` and `1.2.3` work with every major CI/CD platform's tag-based triggers. Pick one convention and stick with it.
 
 ```
-Format:  v<major>.<minor>.<patch>
-Example: v1.2.3
+Format:  <major>.<minor>.<patch>  or  v<major>.<minor>.<patch>
+Example: 1.2.3
 
-Pre-release:  v1.2.3-rc.1
-Hotfix:       v1.2.4 (increment patch)
+Hotfix:       1.2.4 (increment patch)
+
+# Pre-release tags (1.2.3-rc.1) can be added when a staging environment is introduced.
 ```
 
 ### Creating a Release
@@ -43,10 +43,10 @@ Hotfix:       v1.2.4 (increment patch)
 git log --oneline -5
 
 # Create an annotated tag (includes author and message)
-git tag -a v1.2.3 -m "Release v1.2.3: Add payment retry logic, fix timeout handling"
+git tag -a 1.2.3 -m "Release 1.2.3: Add payment retry logic, fix timeout handling"
 
 # Push the tag to trigger the production pipeline
-git push origin v1.2.3
+git push origin 1.2.3
 ```
 
 **Annotated tags over lightweight tags**: Annotated tags (`git tag -a`) store the tagger's name, email, date, and a message. Lightweight tags (`git tag`) are just pointers. Annotated tags provide the audit trail that compliance requires -- who released, when, and why.
@@ -73,7 +73,7 @@ Developer pushes code
     |
     v
 [Create git tag] -- Deliberate release decision
-    | v1.2.3
+    | 1.2.3
     |
     v
 [CD: Plan] -- Triggered by tag, runs terraform plan
@@ -115,7 +115,7 @@ repos:
         # Catches provider-specific errors (invalid instance types,
         # deprecated resources, naming violations)
 
-      - id: terraform_checkov
+      - id: terraform_checkov  # Optional but recommended
         args:
           - --args=--quiet
           - --args=--compact
@@ -198,7 +198,7 @@ The production deployment pipeline triggers only on git tag creation. It include
 name: Terraform CD (Production)
 on:
   push:
-    tags: ["v*"]
+    tags: ["[0-9]*"]  # Matches semver tags (1.2.3); adjust to "v*" if using v-prefix
 
 permissions:
   id-token: write
@@ -295,7 +295,7 @@ BAD: Branch-based production deploys
 - No audit trail of who decided to release
 
 GOOD: Tag-based production deploys
-- Merge to main deploys to dev/staging only
+- Merge to main deploys to dev only
 - Production requires explicit git tag creation
 - Clear distinction: merge = integration, tag = release
 - Rollback means deploying the previous tag (instant)
@@ -323,7 +323,7 @@ GOOD: Mandatory approval gate
 | Tag-based trigger | GitHub Actions `on: push: tags` | Cloud Build Trigger (tag) | Azure Pipelines `trigger: tags` |
 | Plan artifact storage | GitHub Actions Artifacts | Cloud Storage | Azure Artifacts |
 | Deployment environment | GitHub Environment | Cloud Deploy Target | Azure DevOps Environment |
-| State locking | DynamoDB (with S3 backend) | GCS (native locking) | Azure Blob lease |
+| State locking | S3 native locking (`use_lockfile`) | GCS (native locking) | Azure Blob lease |
 | OIDC for pipeline auth | STS AssumeRoleWithWebIdentity | Workload Identity Federation | Federated Credentials |
 
 ## Examples
@@ -338,13 +338,13 @@ When designing or reviewing deployment pipelines:
 
 - [ ] Development environments deploy automatically from branch pushes (fast feedback)
 - [ ] Production environments deploy only from git tag creation (explicit release)
-- [ ] Git tags use semantic versioning with a `v` prefix (`v1.2.3`)
+- [ ] Git tags use semantic versioning (`1.2.3` or `v1.2.3` -- pick one convention)
 - [ ] Tags are annotated (`git tag -a`) with a message describing the release
 - [ ] A manual approval gate blocks `terraform apply` in production
 - [ ] The approval gate requires at least one reviewer (two recommended for infrastructure)
 - [ ] `terraform plan` output is posted as a PR comment for code review
 - [ ] `terraform plan` output is stored as an artifact and used by the apply step (plan and apply use the same plan file)
-- [ ] Pre-commit hooks are configured: terraform_fmt, terraform_validate, tflint, checkov
+- [ ] Pre-commit hooks are configured: terraform_fmt, terraform_validate, tflint (checkov optional but recommended)
 - [ ] Pre-commit hooks are verified in CI (`pre-commit run --all-files`)
 - [ ] Post-deployment verification (health checks, smoke tests) runs after every production deploy
 - [ ] Rollback procedure is documented: deploy the previous tag
