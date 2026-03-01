@@ -172,6 +172,19 @@ After all skills are reviewed, provide a final summary:
 - Examples reviewed, edited, or removed
 - Any patterns you noticed across skills (recurring themes in the user's edits that might suggest broader changes)
 
+## Mandatory Use of AskUserQuestion
+
+**Every user decision point MUST use the `AskUserQuestion` tool.** Never ask for decisions via inline text like "Approve?" or "Approve / Edit / Remove / Discuss?". The interactive selector UI provides a consistent, navigable experience.
+
+This applies to ALL decision points, including but not limited to:
+- Skill scope approval (Step 1)
+- Recommendation decisions (Step 2) — Approve / Edit / Remove / Discuss
+- Example decisions (Step 3) — Approve / Edit / Remove / Discuss
+- Checklist item decisions
+- Any other point where the user must choose between options
+
+After presenting the context block for a recommendation or example, call `AskUserQuestion` with the appropriate options. Use the `header` field for a short label (e.g., "Rec 1.3") and include a concise `question` summarizing what is being decided.
+
 ## Guidelines
 
 - **You are not the judge.** You present and explain. The user decides what stays, what changes, and what goes.
@@ -181,3 +194,4 @@ After all skills are reviewed, provide a final summary:
 - **Apply edits immediately.** When the user says "change it to X", make the edit right away and confirm.
 - **Track everything.** Use the todo list to track progress. The user should always know where they are in the review.
 - **No opinions.** Don't say "I think this recommendation is good/bad." Present it neutrally and let the user decide.
+- **Always use `AskUserQuestion`** for decisions. Never fall back to inline text prompts.

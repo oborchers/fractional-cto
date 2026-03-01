@@ -28,7 +28,7 @@ Stage 5: POLISH   (you, Opus)          → revised post (repeat until satisfied)
    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/preview-conversations.py 15
    ```
 2. Present the results to the user
-3. Ask which conversation to use (by UUID prefix)
+3. Ask which conversation to use (by UUID prefix) using `AskUserQuestion`
 4. Continue to Stage 1 with the chosen UUID
 
 ### Stage 1: Parse
@@ -83,13 +83,13 @@ Use the `triage-analyst` agent (Sonnet). Provide it with:
 5. Show context questions the agent surfaced
 6. Show red flags and PII warnings if any
 
-**Ask the user to pick an angle:**
+**Ask the user to pick an angle using `AskUserQuestion`:**
 - Accept the recommended angle (fast path)
 - Pick a different angle
 - Combine elements from multiple angles
 - Say "skip" to stop the pipeline
 
-**After the user picks an angle, ask these editorial questions in a single prompt:**
+**After the user picks an angle, ask these editorial questions.** Use `AskUserQuestion` for questions with fixed options (Language, Length, Thinking blocks). Open-ended questions (Backstory, Audience, Style reference, Public links) may use free-text prompts.
 
 1. **Backstory**: "Is there anything about this story the conversation can't capture? What happened before this session, why it matters to you, motivation, context the transcript doesn't contain?" — Open-ended, free-form. This is the most important question. The best blog material often lives outside the JSONL.
 
@@ -134,7 +134,7 @@ Use the `outline-architect` agent (Sonnet). Provide it with:
 3. Show word count estimates per section and total
 4. Show open questions the agent surfaced
 
-**Ask the user to decide:**
+**Ask the user to decide using `AskUserQuestion`:**
 - Approve the outline as-is
 - Reorder sections
 - Change treatment types (quote → summarize, etc.)
@@ -172,7 +172,7 @@ Using the approved outline:
 
 **After writing, suggest hero image ideas** — 3-5 short, concrete search terms the author can drop into a stock image search bar (Unsplash, Pexels, Shutterstock, etc.). Each term should be thematically tied to the post's central metaphor or subject, not generic. For example, a post about recursive tool-building might suggest: `"mirror reflecting mirror"`, `"blueprint of a blueprint"`, `"ouroboros snake"`, `"nesting dolls craftsmanship"`, `"feedback loop diagram"`. Avoid clichés like "person typing on laptop" or "abstract technology background."
 
-**Present the draft and image suggestions, then ask for feedback.**
+**Present the draft and image suggestions, then ask for feedback using `AskUserQuestion`** (e.g., Approve / Request changes / Done).
 
 ### Stage 5: Polish
 
@@ -185,6 +185,23 @@ This is a revision loop. The user reads the draft and provides feedback:
 Revise the post based on feedback. Update the file in place. Repeat until the user is satisfied or says "done."
 
 **On every revision pass**, scan for and eliminate any em dashes, en dashes, or hyphens used as punctuation. Rephrase those sentences using commas, semicolons, colons, parentheses, or by splitting into separate sentences. Maintain the configured output language consistently throughout. If the post is in German, ensure no English fragments have crept in (except for technical terms that are conventionally used in English, like "Pull Request" or "Deployment Pipeline").
+
+## Mandatory Use of AskUserQuestion
+
+**Every user decision point MUST use the `AskUserQuestion` tool.** Never ask for decisions via inline text like "Approve?" or listing options in prose. The interactive selector UI provides a consistent, navigable experience.
+
+This applies to ALL decision points with fixed options, including but not limited to:
+- Discovery mode: which conversation to use
+- PII warnings: how to proceed
+- Reference documents: whether the user has any (Yes/No)
+- Angle selection: accept recommendation, pick different, combine, or skip
+- Editorial questions with fixed options: Language (English/German), Length (Short/Medium/Long), Thinking blocks (Include/Exclude)
+- Outline approval: approve, reorder, cut, answer questions, etc.
+- Output path confirmation
+- Draft review: approve, request changes, or done
+- Polish loop: approve, request changes, or done
+
+Open-ended questions (backstory, audience description, revision feedback details) may use free-text prompts, but the initial decision gate for each stage must always use `AskUserQuestion`.
 
 ## Important Rules
 

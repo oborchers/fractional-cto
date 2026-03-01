@@ -77,6 +77,8 @@ There is no build step, linter, or test suite. Validation is manual: start a Cla
 - SKILL.md files include review checklists and good/bad pattern comparisons
 - Principles cite real-world sources and industry research
 - Meta-principles anchor each plugin (documented in the meta-skill and README)
+- **Use `AskUserQuestion` for every user decision point** in commands and agents. Never fall back to inline text prompts like "Approve?" or listing options in prose. The interactive selector provides a consistent, navigable UX. Open-ended free-text questions (backstory, detailed feedback) are exempt.
+- **Version bumps must update both files:** `.claude-plugin/plugin.json` (the plugin's own manifest) and `.claude-plugin/marketplace.json` (the central registry). These must always stay in sync.
 
 ## Single-Owner Rule for Skill Content
 
