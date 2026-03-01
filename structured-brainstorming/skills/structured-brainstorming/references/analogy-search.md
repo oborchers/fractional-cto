@@ -46,7 +46,7 @@ Common problem patterns and where to find analogies:
 
 ## Using WebSearch for Analogies
 
-In heavy-tier brainstorming, use WebSearch to find cross-domain solutions:
+When exploring analogies in depth, use WebSearch to find cross-domain solutions:
 - Search for the abstracted pattern, not the domain-specific problem
 - Example: instead of "microservice communication patterns", search "distributed coordination protocols" or "supply chain communication networks"
 - Look for academic papers, conference talks, and blog posts from unexpected domains

@@ -1,7 +1,7 @@
 ---
 name: structured-brainstorming
-description: "This skill should be used when the user needs to brainstorm, explore a problem space, think through design decisions, is stuck on an approach, wants to explore multiple solutions, asks 'how should I approach this', 'what are my options', 'help me think through this', 'help me decide between X and Y', 'what are the pros and cons', 'weigh the options', needs to evaluate alternatives, or wants structured thinking about a complex problem. Covers 8 bias-counteracting methods with parallel subagent exploration for deep dives."
-version: 0.1.0
+description: "This skill should be used when the user needs to brainstorm, explore a problem space, think through design decisions, compare approaches, evaluate trade-offs, is stuck on an approach, or wants to explore multiple solutions. Trigger phrases include 'how should I approach this', 'what are my options', 'help me think through this', 'help me decide between X and Y', 'what are the pros and cons', 'weigh the trade-offs', 'compare these approaches', and 'I'm stuck'. Covers 8 bias-counteracting methods with user-gated parallel subagent exploration for deep dives."
+version: 1.1.0
 ---
 
 # Structured Brainstorming
@@ -56,7 +56,9 @@ Match problem type to recommended methods:
 
 ## Applying Methods
 
-Select methods from the table above based on the problem type. Each `brainstorm-explorer` agent applies its assigned methods with enough depth to produce concrete findings, not platitudes. Agents use the reference files for the detailed step-by-step process of each method.
+For focused problems where 2-3 methods suffice, apply methods directly without dispatching agents. Use the method selection table to pick methods, then apply each following its reference file. Spend enough depth per method to produce a concrete finding, not a platitude.
+
+For complex, high-stakes, or multi-faceted problems, use the `/brainstorm` command to dispatch parallel `brainstorm-explorer` agents. Each agent applies its assigned methods with the same depth, using the reference files for the detailed step-by-step process.
 
 ## Parallel Exploration with Subagents
 

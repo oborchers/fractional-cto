@@ -1,6 +1,6 @@
 # Method Application Depth: Event System Design
 
-This example shows the depth of method application that each `brainstorm-explorer` agent produces. Five methods are applied to a single problem, demonstrating the concrete, specific findings expected from structured brainstorming.
+This example shows inline method application — brainstorming without dispatching parallel agents. Five methods are applied directly to a single problem, demonstrating the concrete, specific findings expected from structured brainstorming. This depth is representative of what each `brainstorm-explorer` agent also produces when agents are dispatched.
 
 ## User Prompt
 
