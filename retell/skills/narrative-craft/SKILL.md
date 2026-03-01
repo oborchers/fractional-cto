@@ -29,6 +29,25 @@ All blog posts use first-person voice from the author's perspective. This is not
 
 Never use em dashes, en dashes, or hyphens as punctuation in the final blog post. They are a dead giveaway of AI-generated text. Restructure sentences instead: use commas, semicolons, colons, parentheses, or split into separate sentences. Hyphens in compound words (e.g., "real-time", "well-known") are fine.
 
+### Output Language
+
+The blog post can be written in English or German, configured at the triage gate. The language setting affects all text output: section headings, prose, quotes, and revisions.
+
+**Language-independent rules:**
+- First-person voice applies in both languages ("I asked..." / "Ich fragte...")
+- The no-dashes-as-punctuation rule applies regardless of language
+- Quote handling rules apply regardless of language (clean typos, merge fragments, never fabricate)
+
+**Quote translation:** When the output language differs from the conversation language, translate all quotes into the output language so the entire post reads consistently in one language. Preserve the speaker's tone and emotional register in translation.
+
+**German-specific guidance:**
+- Use natural German prose, not translated English. "Ich bat Claude, die Architektur zu analysieren" not "Ich fragte Claude zu analysieren die Architektur."
+- First-person voice: "Ich verwarf den ersten Entwurf, weil..." not "Der Autor verwarf..."
+- Technical terms that are conventionally used in English in the German tech community may stay in English: "Pull Request," "Deployment," "Refactoring." Do not force German translations of established terms.
+- If a style reference is in English, extract structural patterns (paragraph rhythm, header density, humor level, sentence length distribution) and apply them to German prose. Do not translate the reference; borrow its voice architecture.
+
+**Supported languages:** English (default), German. This list is intentionally minimal. Quality multilingual output requires language-specific editorial rules, and adding a language without those rules would degrade output quality.
+
 ## Story Arc Detection
 
 ### Beat Types
@@ -123,8 +142,25 @@ The JSONL contains what happened but not why it matters. Author context fills th
 | **Audience framing** | Shapes tone, jargon level, assumptions |
 | **Corrections** | Prevents narrative built on a misread |
 | **Scope directives** | Editorial cuts before tokens are spent |
+| **Language setting** | Determines output language; interacts with style reference cross-lingually |
+| **Reference documents** | Provides depth the conversation can't: research data, design rationale, technical specs |
 
 Author context is tiny (~100-500 tokens) and travels forward through all subsequent stages.
+
+## Reference Documents
+
+Reference documents are markdown files the author provides as supplementary context. They differ from author context (free-text) in that they are structured, potentially long, and read from the filesystem.
+
+**Pipeline handling:**
+- **Triage (Stage 2):** Receives summaries only (headings + synopsis, ~500 tokens per doc). Enough to assess which angles benefit from the material.
+- **Outline (Stage 3):** Reads documents in full. Maps specific content to outline sections.
+- **Draft (Stage 4):** Has full access. Weaves in material where it enriches the narrative.
+
+**Editorial principles:**
+- The conversation remains the story's spine. Reference docs add texture, not structure.
+- Never dump reference material in block quotes. Integrate it as the author's knowledge: "I'd been researching X, and the data showed..."
+- If a reference doc contradicts the conversation, flag it as an open question for the author.
+- Multiple reference docs should be treated as a corpus, not cited individually unless the author wants attribution.
 
 ## Blog-Worthiness Heuristics
 

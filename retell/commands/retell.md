@@ -48,10 +48,30 @@ Present a brief summary to the user:
 - "Parsed 82 events across 2 sessions. 4 subagents available. ~87K signal tokens estimated."
 - If PII warnings exist, show them and ask how to proceed
 
+### Between Stage 1 and Stage 2: Reference Documents
+
+After presenting the parse summary, ask the user:
+
+"Do you have any reference documents that provide context beyond the conversation? These could be research notes, architecture docs, design specs, prior drafts, or any markdown file with background material. Provide file paths, or say 'none' to continue."
+
+If the user provides paths:
+1. Verify each file exists and is readable using `Read`
+2. For each document, generate a brief summary:
+   - File name and path
+   - Approximate length (word count)
+   - Key headings (first 2 levels)
+   - A 2-3 sentence synopsis of the content
+3. Present the summaries back to the user for confirmation
+4. If total reference doc size exceeds ~50K tokens (~200K characters), warn the user and suggest prioritizing the most relevant documents
+5. Store both the full paths and the summaries for downstream stages
+
+**Carry forward:** Reference document paths (full list) and reference document summaries (condensed).
+
 ### Stage 2: Triage
 
 Use the `triage-analyst` agent (Sonnet). Provide it with:
 - The path to `events.json` and `manifest.json`
+- Reference document summaries (if any were provided)
 - Instructions to read the files and produce its structured assessment
 
 **Present the triage results to the user interactively:**
@@ -73,19 +93,21 @@ Use the `triage-analyst` agent (Sonnet). Provide it with:
 
 1. **Backstory**: "Is there anything about this story the conversation can't capture? What happened before this session, why it matters to you, motivation, context the transcript doesn't contain?" — Open-ended, free-form. This is the most important question. The best blog material often lives outside the JSONL.
 
-2. **Audience**: "Who's reading this?" — e.g., "other Claude Code users", "non-technical founders", "developers building on LLMs". Shapes jargon level and what to explain vs. assume.
+2. **Language**: "Should the blog post be written in English or German?" — Default is English. This affects all text output from this point forward: section headings in the outline, all prose in the draft, and all revisions in polish. Quotes from the conversation will be translated into the output language so the entire post reads consistently. If a style reference is provided in a different language than the output language, the style patterns (rhythm, sentence structure, tone) will be extracted and applied to the target language.
 
-3. **Length**: "How long should the post be?" — Short (800-1,200 words), Medium (1,800-2,500 words, recommended), or Long (3,000+ words). Overrides the triage's estimate.
+3. **Audience**: "Who's reading this?" — e.g., "other Claude Code users", "non-technical founders", "developers building on LLMs". Shapes jargon level and what to explain vs. assume.
 
-4. **Thinking blocks**: "Include behind-the-scenes AI reasoning, or keep it to the visible exchange?" — Including thinking blocks adds depth ("Behind the scenes, Claude was weighing...") but not every post benefits from it.
+4. **Length**: "How long should the post be?" — Short (800-1,200 words), Medium (1,800-2,500 words, recommended), or Long (3,000+ words). Overrides the triage's estimate.
 
-5. **Style reference** (optional): "Is there a blog post whose writing style you'd like to match? Provide a URL." — If provided, use WebFetch to read the reference post before drafting. Analyze its voice, paragraph rhythm, sentence length, use of headers, code blocks, quotes, and humor. The draft stage should match these stylistic patterns while keeping the content original.
+5. **Thinking blocks**: "Include behind-the-scenes AI reasoning, or keep it to the visible exchange?" — Including thinking blocks adds depth ("Behind the scenes, Claude was weighing...") but not every post benefits from it.
 
-6. **Public links** (optional): "Any public URLs to reference in the post? (GitHub repo, project page, live demo, etc.)" — If the user is building in public, these links should be woven naturally into the post where relevant (e.g., "The full plugin is on GitHub" with a link, or "You can try it yourself" with a repo URL). Don't force every link in — only include where they fit the narrative.
+6. **Style reference** (optional): "Is there a blog post whose writing style you'd like to match? Provide a URL." — If provided, use WebFetch to read the reference post before drafting. Analyze its voice, paragraph rhythm, sentence length, use of headers, code blocks, quotes, and humor. The draft stage should match these stylistic patterns while keeping the content original. If the style reference is in a different language than the configured output language, extract the structural and tonal patterns and apply them to the target language; do not translate the reference post.
+
+7. **Public links** (optional): "Any public URLs to reference in the post? (GitHub repo, project page, live demo, etc.)" — If the user is building in public, these links should be woven naturally into the post where relevant (e.g., "The full plugin is on GitHub" with a link, or "You can try it yourself" with a repo URL). Don't force every link in — only include where they fit the narrative.
 
 Also present the triage's context questions and let the user answer any they want — these are optional but can unlock the best material.
 
-**Carry forward:** The chosen angle, all author context and backstory, audience, length target, thinking block policy, style reference analysis, public links, and any editorial notes.
+**Carry forward:** The chosen angle, all author context and backstory, output language, audience, length target, thinking block policy, style reference analysis, public links, reference document paths and summaries, and any editorial notes.
 
 ### Stage 3: Outline
 
@@ -98,6 +120,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/parse-conversation.py <identifier> --outpu
 Use the `outline-architect` agent (Sonnet). Provide it with:
 - The chosen angle (title, pitch, tone)
 - All author context and backstory collected so far
+- Reference document paths (for full reading by the agent)
+- Output language (English or German)
 - Target word count from the user's length preference
 - Thinking block policy (include or exclude)
 - Target audience
@@ -131,11 +155,13 @@ Using the approved outline:
 3. Match the specified tone, calibrated for the target audience
 4. Write in **first-person voice** — "I asked Claude to...", "I rejected the monochrome direction..."
 5. Target the user's chosen word count (short/medium/long)
-6. If thinking blocks are included, weave them as "behind the scenes" narrative — never quote thinking blocks directly, use them to inform the voice ("Behind the scenes, Claude was weighing...")
-7. If a style reference was provided, match its voice patterns: paragraph rhythm, sentence length, use of headers/subheaders, code block frequency, conversational vs. formal register, humor level. The content is original — the style is borrowed.
-8. If public links were provided, weave them naturally where they fit the narrative. Don't dump all links at the end — place them at the moment they become relevant. A GitHub repo link fits when the artifact is first named; a demo link fits at the closing.
-9. Do not invent facts; everything must come from the outline's content and author context
-10. **Never use em dashes, en dashes, or hyphens as punctuation.** They are a dead giveaway of AI-generated text. Use commas, semicolons, colons, parentheses, or split into separate sentences instead. Hyphens in compound words (e.g., "real-time") are fine.
+6. Write the entire post in the configured output language. If the output language is German, use natural German prose with first-person voice ("Ich fragte Claude...", "Ich verwarf die erste Richtung, weil..."). Translate all conversation quotes into the output language, preserving the speaker's tone and emotional register. Do not translate English idioms literally; use idiomatic equivalents. Technical terms that are conventionally used in English in the target language's tech community (e.g., "Pull Request", "Deployment") may stay in English. If a style reference was provided in a different language, apply its structural patterns (paragraph length, header frequency, humor level) to the output language without translating phrases from the reference.
+7. If thinking blocks are included, weave them as "behind the scenes" narrative — never quote thinking blocks directly, use them to inform the voice ("Behind the scenes, Claude was weighing...")
+8. If a style reference was provided, match its voice patterns: paragraph rhythm, sentence length, use of headers/subheaders, code block frequency, conversational vs. formal register, humor level. The content is original — the style is borrowed.
+9. If public links were provided, weave them naturally where they fit the narrative. Don't dump all links at the end — place them at the moment they become relevant. A GitHub repo link fits when the artifact is first named; a demo link fits at the closing.
+10. If reference documents were provided, draw on their content where it enriches the narrative. Use them to add depth, accuracy, or context that the conversation alone doesn't provide. Cite specific insights or data points naturally; never dump reference material wholesale. The conversation remains the spine of the story; reference docs are supplementary texture.
+11. Do not invent facts; everything must come from the outline's content, author context, and reference documents
+12. **Never use em dashes, en dashes, or hyphens as punctuation.** They are a dead giveaway of AI-generated text. Use commas, semicolons, colons, parentheses, or split into separate sentences instead. Hyphens in compound words (e.g., "real-time") are fine.
 
 **Ask the user where to save the blog post** before writing:
 - Default location: `~/Desktop/blogpost-<uuid-prefix>-<date>.md`
@@ -158,7 +184,7 @@ This is a revision loop. The user reads the draft and provides feedback:
 
 Revise the post based on feedback. Update the file in place. Repeat until the user is satisfied or says "done."
 
-**On every revision pass**, scan for and eliminate any em dashes, en dashes, or hyphens used as punctuation. Rephrase those sentences using commas, semicolons, colons, parentheses, or by splitting into separate sentences.
+**On every revision pass**, scan for and eliminate any em dashes, en dashes, or hyphens used as punctuation. Rephrase those sentences using commas, semicolons, colons, parentheses, or by splitting into separate sentences. Maintain the configured output language consistently throughout. If the post is in German, ensure no English fragments have crept in (except for technical terms that are conventionally used in English, like "Pull Request" or "Deployment Pipeline").
 
 ## Important Rules
 

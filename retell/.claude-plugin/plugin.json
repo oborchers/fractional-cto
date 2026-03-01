@@ -1,6 +1,6 @@
 {
   "name": "retell",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Transforms Claude Code conversation transcripts into polished, first-person blog posts through an interactive 5-stage pipeline — parse, triage, outline, draft, polish — with human editorial gates at every stage",
   "author": {
     "name": "Dr. Oliver Borchers"
