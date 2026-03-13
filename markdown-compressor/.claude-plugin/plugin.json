@@ -1,0 +1,11 @@
+{
+  "name": "markdown-compressor",
+  "version": "1.0.0",
+  "description": "Compress LLM agent instructions and code documentation markdown files through iterative section-by-section compression with compressor-reviewer loop — lossless structural optimization and lossy semantic compression modes",
+  "author": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "repository": "https://github.com/oborchers/fractional-cto",
+  "license": "MIT",
+  "keywords": ["compression", "markdown", "llm-instructions", "token-optimization", "agent-instructions", "prompt-engineering"]
+}

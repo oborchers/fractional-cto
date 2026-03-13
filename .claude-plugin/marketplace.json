@@ -76,6 +76,15 @@
       "author": {
         "name": "Dr. Oliver Borchers"
       }
+    },
+    {
+      "name": "markdown-compressor",
+      "description": "Compress LLM agent instructions and code documentation markdown files through iterative section-by-section compression with compressor-reviewer loop — lossless structural optimization and lossy semantic compression modes, with auto-approve for hands-off operation",
+      "version": "1.0.0",
+      "source": "./markdown-compressor",
+      "author": {
+        "name": "Dr. Oliver Borchers"
+      }
     }
   ]
 }
