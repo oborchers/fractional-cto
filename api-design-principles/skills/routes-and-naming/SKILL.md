@@ -320,7 +320,7 @@ When designing or reviewing API routes and naming:
 - [ ] Path parameters identify resources; query parameters filter or modify
 - [ ] URL path segments use kebab-case for multi-word names
 - [ ] JSON fields and query parameters use snake_case consistently
-- [ ] Boolean fields have `is_`, `has_`, `can_`, or `should_` prefix
+- [ ] Boolean fields have `is_`, `has_`, `can_`, `should_`, or `allow_` prefix
 - [ ] Timestamps use `_at` suffix and ISO 8601 format with UTC
 - [ ] Enum values are lowercase snake_case strings, not integers
 - [ ] No custom abbreviations (only universally understood ones like `id`, `url`, `api`)

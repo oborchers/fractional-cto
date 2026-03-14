@@ -21,6 +21,11 @@ routes:
     GET    /users/{id}/profile          → get_user_profile(path: user_id)
     PUT    /users/{id}/profile          → replace_user_profile(path: user_id, body: profile_data)
 
+    # Multi-word resource name (kebab-case in URL path)
+    GET    /payment-methods             → list_payment_methods(query: filters)
+    POST   /payment-methods             → create_payment_method(body: method_data)
+    GET    /payment-methods/{id}        → get_payment_method(path: id)
+
     # Flat access for globally unique resources
     GET    /orders/{id}                 → get_order(path: order_id)
     GET    /orders?user_id=42&status=pending  → list_orders(query: filters)

@@ -1,6 +1,6 @@
 {
   "name": "api-design-principles",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Research-backed, opinionated guidance for designing world-class RESTful APIs — routes, naming, errors, auth, caching, webhooks, and more, distilled from Stripe, GitHub, Twilio, Shopify, Google, and Microsoft",
   "author": {
     "name": "Dr. Oliver Borchers"

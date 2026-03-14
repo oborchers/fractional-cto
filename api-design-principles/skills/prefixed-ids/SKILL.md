@@ -26,7 +26,7 @@ Follow these constraints for every prefixed ID:
 
 - **Prefix length:** 2-5 lowercase characters. Short enough to read at a glance, long enough to be unambiguous.
 - **Separator:** Always a single underscore. Never a hyphen, colon, or dot.
-- **Random part:** Base62 characters (`a-zA-Z0-9`). URL-safe, no special characters. 14-24 characters depending on the generation strategy.
+- **Random part:** Base62 characters (`a-zA-Z0-9`). URL-safe, no special characters. 14-27 characters depending on the generation strategy.
 - **Total length:** 18-30 characters. Short enough to paste in Slack, long enough to be collision-free.
 
 ## Prefix Catalog
@@ -109,7 +109,8 @@ This catches the prefix (2-5 lowercase letters), the underscore separator, and t
 {
   "error": {
     "type": "invalid_request_error",
-    "message": "Expected customer ID (prefix 'cus_'), got 'ord_01HXK3GJ5V8WJKP'"
+    "message": "Expected customer ID (prefix 'cus_'), got 'ord_01HXK3GJ5V8WJKP'",
+    "param": "id"
   }
 }
 ```

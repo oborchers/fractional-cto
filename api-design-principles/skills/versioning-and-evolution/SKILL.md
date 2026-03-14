@@ -40,7 +40,7 @@ Within a major version, evolve the API using only additive, backward-compatible 
 
 **Non-breaking changes (always safe):**
 - Add new optional fields to response bodies
-- Add new optional query parameters or request body fields
+- Add new optional query parameters or request body fields (compatible with strict request validation — the API accepts fields it knows about and rejects unknown ones; see `rate-limiting-and-security` skill)
 - Add new endpoints
 - Add new enum values (if clients handle unknown values gracefully)
 - Increase rate limits

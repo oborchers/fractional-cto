@@ -1,6 +1,6 @@
 # Field Naming Conventions
 
-Demonstrates consistent snake_case JSON field naming with boolean prefixes (`is_`, `has_`, `can_`), timestamp suffixes (`_at`), descriptive enum values, and no abbreviations.
+Demonstrates consistent snake_case JSON field naming with boolean prefixes (`is_`, `has_`, `can_`, `should_`, `allow_`), timestamp suffixes (`_at`), descriptive enum values, and no abbreviations.
 
 ## Pseudocode
 
@@ -15,6 +15,8 @@ model User:
     is_verified:     boolean       # "is_" prefix for state
     has_two_factor:  boolean       # "has_" prefix for possession
     can_create_repos: boolean      # "can_" prefix for ability
+    should_notify:   boolean       # "should_" prefix for preference/setting
+    allow_comments:  boolean       # "allow_" prefix for permission setting
     created_at:      datetime      # "_at" suffix, ISO 8601 UTC
     updated_at:      datetime      # "_at" suffix, ISO 8601 UTC
     last_login_at:   datetime      # "_at" suffix for timestamps
