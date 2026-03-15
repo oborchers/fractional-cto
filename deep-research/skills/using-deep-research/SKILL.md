@@ -1,7 +1,7 @@
 ---
 name: using-deep-research
 description: "This skill should be used when the user asks 'how do I do deep research', 'show me research skills', 'help me research a topic', 'what research methodology should I use', or at the start of any structured web research task. Provides the index of all deep research principle skills and the /research command."
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Deep Research Methodology
@@ -38,10 +38,10 @@ For full orchestrated research sessions, use `/research`. The command:
 1. Checks web access permissions (one-time setup per project)
 2. Analyzes the research query — if too vague, asks 2-3 clarifying questions
 3. Decomposes into subtopics based on query complexity (not a fixed number)
-4. Spawns parallel `research-worker` agents (Sonnet) to investigate each subtopic
-5. Each worker writes findings incrementally to an intermediate document
-6. Dispatches a `research-synthesizer` agent (Opus) to merge all findings into the final document
-7. Preserves intermediate docs for traceability
+4. Spawns parallel `research-worker` agents (Sonnet) — each writes findings with a Verifiable Claims Table
+5. Spawns parallel `research-verifier` agents (Sonnet) — each re-fetches sources and checks claims independently
+6. Dispatches a `research-synthesizer` agent (Opus) — applies corrections, merges findings, writes final document with Confidence Assessment
+7. Preserves intermediate docs and verification reports for traceability
 
 ## The Three Meta-Principles
 

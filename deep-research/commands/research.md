@@ -88,8 +88,13 @@ Use `AskUserQuestion` to determine where the output should be written:
 Create the output directory structure:
 ```
 [output-dir]/
-├── research-output.md          # Final synthesized document
-└── workers/                    # Intermediate docs for traceability
+├── research-output.md                    # Final synthesized document
+└── workers/                              # Intermediate docs + verification reports
+    ├── subtopic-1.md                     # Worker findings
+    ├── subtopic-1-verification.md        # Verification report
+    ├── subtopic-2.md
+    ├── subtopic-2-verification.md
+    ...
 ```
 
 ## Step 6: Agent Dispatch
@@ -103,27 +108,39 @@ Spawn parallel `research-worker` subagents. Each agent receives:
 
 Each worker writes its findings to its own intermediate document in the `workers/` directory.
 
-## Step 7: Synthesis
+## Step 7: Verification
 
-After all workers complete, dispatch a single `research-synthesizer` agent (runs on Opus) to merge all intermediate documents into the final output. The synthesizer receives:
+After all workers complete, spawn parallel `research-verifier` subagents — **one per worker document**. Each verifier receives:
+- The path to one worker's intermediate document
+- The output path for its verification report (in the `workers/` directory, named `[worker-doc-name]-verification.md`)
+- Today's date
+
+Each verifier independently re-fetches key sources, checks numerical claims and critical facts against actual source content, and writes a verification report with corrections and confidence assessments.
+
+**Do NOT skip this step.** Verification is mandatory. The synthesizer uses verification reports to correct errors and assign confidence scores.
+
+## Step 8: Synthesis
+
+After all verifiers complete, dispatch a single `research-synthesizer` agent (runs on Opus) to merge all intermediate documents AND their verification reports into the final output. The synthesizer receives:
 - The research question
 - Paths to all worker intermediate documents in the `workers/` directory
+- Paths to all verification reports in the `workers/` directory
 - The output file path (`research-output.md`)
 - Today's date
 
-**Do NOT read the worker documents in the main conversation.** The synthesizer handles all reading, deduplication, conflict resolution, thematic organization, and citation management in its own context window. This keeps the main conversation lean.
+**Do NOT read the worker documents or verification reports in the main conversation.** The synthesizer handles all reading, correction application, deduplication, conflict resolution, thematic organization, and citation management in its own context window. This keeps the main conversation lean.
 
 When the synthesizer completes, read only the final `research-output.md` to present a brief summary to the user.
 
-## Step 8: Review and Next Steps
+## Step 9: Review and Next Steps
 
 Present a summary of the completed research to the user. Use `AskUserQuestion`:
 
 - **Done** — research is complete
-- **Investigate a gap** — pursue an uninvestigated area (dispatch additional workers)
+- **Investigate a gap** — pursue an uninvestigated area (dispatch additional workers, verify, re-synthesize)
 - **Deepen a section** — add more detail to a specific theme
 
-If the user wants more research, dispatch additional workers targeting the specific gap or theme, then re-synthesize.
+If the user wants more research, dispatch additional workers targeting the specific gap or theme, then verify and re-synthesize.
 
 ## Mandatory Use of AskUserQuestion
 
@@ -133,7 +150,7 @@ If the user wants more research, dispatch additional workers targeting the speci
 
 `AskUserQuestion` must be called from **this command** (the main conversation), never from subagents. The `research-worker` subagents handle web research and write intermediate documents. This command presents results and calls `AskUserQuestion` for every decision gate.
 
-**Pattern:** analyze query → call `AskUserQuestion` (refine/proceed) → present plan → call `AskUserQuestion` (adjust/proceed) → invoke subagents → read intermediate docs → synthesize → call `AskUserQuestion` (done/deepen/investigate).
+**Pattern:** analyze query → call `AskUserQuestion` (refine/proceed) → present plan → call `AskUserQuestion` (adjust/proceed) → dispatch workers → dispatch verifiers → dispatch synthesizer → call `AskUserQuestion` (done/deepen/investigate).
 
 ### Decision Points
 
@@ -141,4 +158,4 @@ This applies to ALL decision points with fixed options, including:
 - Scope refinement (Step 3)
 - Research plan confirmation (Step 4)
 - Output location (Step 5)
-- Next steps after synthesis (Step 8)
+- Next steps after synthesis (Step 9)

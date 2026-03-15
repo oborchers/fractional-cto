@@ -31,12 +31,16 @@ Built by [Dr. Oliver Borchers](https://linkedin.com/in/oliverborchers) -- AI eng
 - **[pedantic-coder](./pedantic-coder)** (15 skills) - Zero-tolerance code pedantry -- naming precision, casing law, structural symmetry, import discipline, CLAUDE.md guidelines compliance, plus language packs for Python, TypeScript, and Go
 - **[python-package](./python-package)** (11 skills) - Modern Python packaging -- project structure, pyproject.toml, Ruff/mypy, pytest, CI/CD, MkDocs, versioning, API design, wheels, supply chain security, developer experience
 
+### Research
+
+- **[deep-research](./deep-research)** (4 skills) - Structured deep research methodology -- query decomposition, parallel web research with source verification, hallucination prevention, and synthesis into well-sourced documents. Three-stage pipeline: research-workers (Sonnet) produce findings with Verifiable Claims Tables, research-verifiers (Sonnet) independently fact-check, research-synthesizer (Opus) merges with corrections and Confidence Assessment
+
 ### Thinking & Writing
 
 - **[structured-brainstorming](./structured-brainstorming)** (1 skill) - 8 thinking methods that counteract LLM reasoning biases -- first principles, inversion, constraint manipulation, perspective forcing, analogy search, MECE, assumption surfacing, and diverge-then-converge -- with parallel subagent exploration for deep dives
 - **[retell](./retell)** (2 skills) - Transform Claude Code conversations into polished, first-person blog posts -- 5-stage interactive pipeline (parse, triage, outline, draft, polish) with human editorial gates at every stage
 
-Each principle plugin ships with review checklists, working code examples, a review command, a reviewer agent, and a session hook. Retell is a workflow plugin with a `/retell` command, Sonnet subagents, and Python scripts for conversation parsing.
+Each principle plugin ships with review checklists, working code examples, a review command, a reviewer agent, and a session hook. Deep Research is a multi-agent research pipeline with `/research` command, parallel workers, verifiers, and an Opus synthesizer. Retell is a workflow plugin with a `/retell` command, Sonnet subagents, and Python scripts for conversation parsing.
 
 ## Installation
 
@@ -57,6 +61,7 @@ Then install any plugin:
 /plugin install visual-design-principles@fractional-cto
 /plugin install structured-brainstorming@fractional-cto
 /plugin install retell@fractional-cto
+/plugin install deep-research@fractional-cto
 ```
 
 ### Local Development

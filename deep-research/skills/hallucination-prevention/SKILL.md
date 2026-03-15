@@ -1,7 +1,7 @@
 ---
 name: hallucination-prevention
 description: "This skill should be used when producing any research output, verifying claims from web sources, checking citation accuracy, assessing confidence in findings, preventing hallucination cascading across agent boundaries, or reviewing research documents for factual reliability. Covers the hallucination taxonomy (7 types), OWASP ASI08 cascading failures, circuit breaker patterns, citation verification rules, confidence scoring, ground-truth validation, and known limitations of automated verification."
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Hallucination Prevention
@@ -83,6 +83,25 @@ Prefer deterministic validation over LLM-based validation:
 | **Cross-reference** | Multi-source comparison | Same fact from independent sources |
 
 LLM-based verification (asking a model "is this true?") is unreliable — models exhibit 17.8-57.3% bias-consistent behavior and high sycophancy rates (up to 58% initial compliance with wrong premises). Use code-based checks wherever possible.
+
+## Verification Pipeline Integration
+
+The `/research` command enforces hallucination prevention through a three-stage pipeline:
+
+1. **Workers** produce findings with a structured Verifiable Claims Table (exact values + verbatim source text)
+2. **Verifiers** re-fetch sources independently and check claims (one verifier per worker, in parallel)
+3. **Synthesizer** reads both worker docs and verification reports, applying corrections before writing
+
+This architecture addresses three hallucination failure modes:
+- **Self-verification failure:** Workers cannot reliably verify their own work due to sycophancy and lost context from incremental writing. Verifiers operate in a fresh context with adversarial instructions.
+- **Cascading trust:** The synthesizer previously trusted worker output implicitly. Verification reports make trust explicit and graduated (High/Moderate/Low/Corrected).
+- **Missing confidence signals:** The Verifiable Claims table and verification reports feed directly into the Confidence Assessment appendix in the final output.
+
+**Pipeline enforcement of confidence levels:**
+- **High:** Claim verified by the verifier AND corroborated by 2+ independent sources
+- **Moderate:** Claim verified by the verifier from a single source
+- **Low:** Claim could not be verified, or verifier found conflicting information
+- **Corrected:** Original claim was incorrect; corrected value from verification
 
 ## Known Limitations
 

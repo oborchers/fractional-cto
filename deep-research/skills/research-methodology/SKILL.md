@@ -1,7 +1,7 @@
 ---
 name: research-methodology
 description: "This skill should be used when starting any research task, decomposing a research query, planning research strategy, deciding how many sub-topics to investigate, scaling research effort to query complexity, determining when to stop researching, or dynamically re-planning based on intermediate findings. Covers query analysis, decomposition techniques (Self-Ask, Least-to-Most, DAG-based), effort scaling, plan representations, stopping criteria, and research anti-patterns."
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Research Methodology

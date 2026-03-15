@@ -1,7 +1,7 @@
 ---
 name: synthesis-and-reporting
 description: "This skill should be used when combining research findings from multiple sources or agents, deduplicating overlapping information, resolving conflicts between sources, constructing a narrative from research data, formatting citations and source lists, assessing report quality, or writing the final research document. Covers deduplication strategies, conflict resolution, thematic analysis, narrative construction, citation management, and synthesis anti-patterns."
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Synthesis & Report Generation

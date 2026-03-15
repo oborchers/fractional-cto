@@ -27,17 +27,31 @@ When using Claude Code for research, three problems emerge:
 1. Analyzes query complexity — asks clarifying questions if too vague
 2. Decomposes into subtopics (count emerges from query, not preset)
 3. Spawns parallel `research-worker` agents with web search
-4. Each worker writes an intermediate document with sources
-5. Synthesizes into a single output document with inline citations
-6. Preserves worker docs for traceability
+4. Each worker writes intermediate findings with a Verifiable Claims Table
+5. Spawns parallel `research-verifier` agents to independently fact-check
+6. Dispatches `research-synthesizer` to apply corrections, merge, and write final document with Confidence Assessment
+7. Preserves worker docs and verification reports for traceability
 
-### Agent
+### Agents
 
-**`research-worker`** — Parallel web research agent (runs on Sonnet):
+**`research-worker`** — Parallel web research agent (Sonnet):
 - Searches the web extensively on an assigned subtopic
 - Evaluates source credibility using the T1-T6 tier system
 - Writes intermediate findings with inline citations
+- Builds a Verifiable Claims Table with verbatim source text
 - Flags uncertainties and gaps explicitly
+
+**`research-verifier`** — Parallel fact-checking agent (Sonnet):
+- Re-fetches key sources cited by a worker independently
+- Checks numerical claims, stats, and feature assertions against actual source content
+- Seeks 2-source consensus for critical claims (funding, benchmarks, adoption metrics)
+- Writes a verification report with corrections and confidence assessment
+
+**`research-synthesizer`** — Synthesis agent (Opus):
+- Reads all worker docs AND verification reports
+- Applies verification corrections before synthesis
+- Organizes by theme with deduplication and conflict resolution
+- Writes final document with Confidence Assessment appendix
 
 ## Three Meta-Principles
 

@@ -83,6 +83,13 @@ Write your intermediate document with this structure:
 - [What could not be found or verified]
 - [Conflicting information encountered]
 
+## Verifiable Claims
+
+| # | Claim | Value | Source URL | Source Text (verbatim) |
+|---|-------|-------|-----------|----------------------|
+| 1 | [e.g., BullMQ weekly downloads] | [e.g., 450K] | [URL] | [exact quote from source] |
+| 2 | [e.g., Hatchet total funding] | [e.g., $5.7M] | [URL] | [exact quote from source] |
+
 ## Sources Consulted
 1. [Source Name](URL) — [what was found here]
 2. [Source Name](URL) — [what was found here]
@@ -103,3 +110,5 @@ Write your intermediate document with this structure:
 6. **Stay focused.** Research your assigned subtopic deeply. Do not drift into tangential areas — the parent agent handles cross-topic synthesis.
 
 7. **Write incrementally to your output file.** Start writing early — after your first 2-3 searches, create the output file with initial findings. Append new findings as you go using the Edit tool. This flushes information to disk and frees context for better searches. The synthesizer agent will read your final document.
+
+8. **Build the Verifiable Claims table incrementally.** Every time you write a numerical statistic, benchmark result, funding amount, adoption metric, pricing figure, or feature capability claim, add a row to the Verifiable Claims table at the bottom of your document. Copy the exact text from the source into the "Source Text (verbatim)" column. This table is used by the verification agent to spot-check your findings — it is your evidence trail.

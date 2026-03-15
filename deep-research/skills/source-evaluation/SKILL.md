@@ -1,7 +1,7 @@
 ---
 name: source-evaluation
 description: "This skill should be used when evaluating source credibility, deciding which search results to trust, choosing between search providers, detecting SEO spam or content farms, selecting domain-specific sources (academic, medical, legal, technical), evaluating software packages or libraries, comparing tools or technologies, assessing GitHub repo health, checking adoption metrics, or when research quality depends on retrieval quality. Covers the source credibility taxonomy (T1-T6 tiers), CRAAP framework adaptation, multi-provider search strategy, artifact evaluation framework (health/adoption/authority signals for packages, repos, APIs, standards, technologies), and source quality anti-patterns."
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Source Evaluation

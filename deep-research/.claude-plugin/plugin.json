@@ -1,6 +1,6 @@
 {
   "name": "deep-research",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Structured deep research methodology for Claude Code — query decomposition, parallel web research with source verification, hallucination prevention, and synthesis into well-sourced documents",
   "author": {
     "name": "Dr. Oliver Borchers"
