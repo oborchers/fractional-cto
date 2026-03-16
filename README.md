@@ -76,6 +76,10 @@ claude --plugin-dir /path/to/fractional-cto/<plugin-name>
 
 Plugins live directly in this repository. Each one is a self-contained directory with a `.claude-plugin/plugin.json` manifest. To add a new plugin, create the directory, add skills with review checklists and examples, wire up the session hook, and register it in `.claude-plugin/marketplace.json`.
 
+## Disclaimer
+
+These plugins are provided as-is, without warranty of any kind. The authors are not responsible for any hallucinations, misinformation, inaccuracies, or errors produced by AI tools using these plugins. All output -- including research findings, code suggestions, design recommendations, and any other generated content -- should be independently verified before use. Use at your own risk.
+
 ## License
 
 MIT
