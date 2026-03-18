@@ -94,6 +94,15 @@
       "author": {
         "name": "Dr. Oliver Borchers"
       }
+    },
+    {
+      "name": "stress-test",
+      "description": "Adversarial plan review using red-team/blue-team agents -- generates what-if questions and grounds answers in plan artifacts with configurable tool scope",
+      "version": "0.1.0",
+      "source": "./stress-test",
+      "author": {
+        "name": "Dr. Oliver Borchers"
+      }
     }
   ]
 }

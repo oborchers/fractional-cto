@@ -1,0 +1,11 @@
+{
+  "name": "stress-test",
+  "version": "0.1.0",
+  "description": "Adversarial plan review using red-team/blue-team agents -- generates what-if questions and grounds answers in plan artifacts with configurable tool scope",
+  "author": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "repository": "https://github.com/oborchers/fractional-cto",
+  "license": "MIT",
+  "keywords": ["stress-test", "plan-review", "adversarial", "red-team", "blue-team", "what-if", "quality-assurance"]
+}

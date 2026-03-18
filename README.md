@@ -4,7 +4,7 @@
 
 # fractional-cto: The AI CTO Co-Pilot for SaaS Engineering
 
-> 92 skills, 14 commands, and 14 agents across 10 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
+> 93 skills, 15 commands, and 16 agents across 11 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
 
 ![Plugins overview](.docs/images/plugins-overview.png)
 
@@ -16,6 +16,7 @@ Building a form? Skills activate automatically.
 Need an API review? `/api-review`
 Auditing code quality? `/pedantic-review`
 Researching a topic? `/research "your question"`
+Stress-testing a plan? `/stress-test path/to/plan.md`
 Compressing your CLAUDE.md? `/compress path/to/file.md`
 
 If this project helps you, star the repo.
@@ -54,6 +55,7 @@ Each plugin carries review checklists, good/bad pattern comparisons, working cod
 /plugin install deep-research@fractional-cto
 /plugin install structured-brainstorming@fractional-cto
 /plugin install retell@fractional-cto
+/plugin install stress-test@fractional-cto
 /plugin install markdown-compressor@fractional-cto
 ```
 
@@ -395,6 +397,30 @@ Compress LLM agent instructions and code documentation through iterative section
 - `/compress ./CLAUDE.md` -- Compress project guidelines while preserving critical rules
 - `/compress ./architecture.md --lossless --auto` -- Structural optimization only, no review stops
 - `Compress my LLM agent instructions for minimal token usage.`
+
+</details>
+
+<details>
+<summary><strong>11. stress-test</strong> -- Adversarial plan review with red-team/blue-team agents (1 skill, 1 command, 2 agents)</summary>
+
+Adversarial plan review using two independent agents: a red team generates what-if questions targeting gaps and unverified assumptions, then a blue team answers each with a grounded verdict. Configurable tool scope lets the blue team verify against local artifacts, web research, or live systems.
+
+**Skills (1):**
+
+- `stress-test-methodology` -- When/how to use adversarial plan review, verdict system, tool scope guidance
+
+**Commands:** `/stress-test <plan-file>` -- Orchestrates red-team/blue-team flow with QA report
+
+**Agents:**
+
+- `red-team` -- Generates adversarial what-if questions grounded in plan artifacts (local-only)
+- `blue-team` -- Answers what-ifs with verdicts (ANSWERED, PARTIALLY ADDRESSED, NOT COVERED, UNCERTAIN)
+
+**Examples:**
+
+- `/stress-test ./docs/implementation-plan.md` -- Stress-test a code implementation plan
+- `/stress-test ./strategy/go-to-market.md` -- Challenge a business plan against supporting docs
+- `Is my plan sound? Run a stress test on it.`
 
 </details>
 
