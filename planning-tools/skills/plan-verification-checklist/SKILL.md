@@ -6,7 +6,7 @@ version: 0.2.1
 
 # Plan Verification Checklist
 
-This skill codifies the audit performed by `/plan-verify` and the `plan-verifier` agent. It is the single owner of the checklist; the command and agent both reference it rather than duplicating rules.
+This skill codifies the audit performed by `/planning-tools:plan-verify` and the `plan-verifier` agent. It is the single owner of the checklist; the command and agent both reference it rather than duplicating rules.
 
 The checklist applies to any master plan written under the `master-plan-methodology` skill. Findings are graded **Critical**, **Important**, or **Suggestion**.
 
@@ -200,4 +200,4 @@ The verifier emits findings in this exact shape:
 
 ## Mandatory Use of AskUserQuestion
 
-The verifier agent does **not** call `AskUserQuestion` — it emits the report only. The main conversation (in `/plan-verify`) presents the report and calls `AskUserQuestion` to ask the user whether to append the `> **Verified:** YYYY-MM-DD` callout to the context block when the verdict is `PASS`.
+The verifier agent does **not** call `AskUserQuestion` — it emits the report only. The main conversation (in `/planning-tools:plan-verify`) presents the report and calls `AskUserQuestion` to ask the user whether to append the `> **Verified:** YYYY-MM-DD` callout to the context block when the verdict is `PASS`.

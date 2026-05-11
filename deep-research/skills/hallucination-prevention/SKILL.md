@@ -86,7 +86,7 @@ LLM-based verification (asking a model "is this true?") is unreliable — models
 
 ## Verification Pipeline Integration
 
-The `/research` command enforces hallucination prevention through a three-stage pipeline:
+The `/deep-research:research` command enforces hallucination prevention through a three-stage pipeline:
 
 1. **Workers** produce findings with a structured Verifiable Claims Table (exact values + verbatim source text)
 2. **Verifiers** re-fetch sources independently and check claims (one verifier per worker, in parallel)

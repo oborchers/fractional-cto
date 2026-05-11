@@ -9,7 +9,7 @@ You are **drafting a master planning document**. The output is a project-local `
 
 Parse the arguments:
 - **Topic** (required) — a ticket ID, file path, or free-form scope statement.
-- `--context <path>` (optional) — path to a scratch directory from a prior `/plan-context` run (containing per-domain worker findings). If supplied, **skip the discovery pre-flight** and go straight to synthesis.
+- `--context <path>` (optional) — path to a scratch directory from a prior `/planning-tools:plan-context` run (containing per-domain worker findings). If supplied, **skip the discovery pre-flight** and go straight to synthesis.
 - `--domains a,b,c` (optional) — pre-seed the domain partition (skips Stage 2 Confirm).
 
 If arguments are empty, ask the user for a topic via `AskUserQuestion` before proceeding.
@@ -41,7 +41,7 @@ Confirm the resolved path with the user via `AskUserQuestion` (`Use <path>` vs `
 
 If `--context <report-path>` is supplied, **skip this step** and go to Step 3.
 
-Otherwise, run the same four stages as `/plan-context`:
+Otherwise, run the same four stages as `/planning-tools:plan-context`:
 
 1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, propose a domain partition.
 2. **Stage 2 — Confirm domains** (`AskUserQuestion`): present the proposed partition; user can add/remove/edit. Skip if `--domains` was supplied or Triage yielded a single trivial domain.
@@ -76,7 +76,7 @@ Tell the user:
 - Any Open Questions that propagated from the worker findings
 
 Suggest next steps:
-- `/plan-verify <path>` to audit the plan
+- `/planning-tools:plan-verify <path>` to audit the plan
 - Open the plan and edit any Open Questions before iterating
 - When ready, copy the first phase into Claude Code's built-in `/plan` to start execution
 
@@ -89,7 +89,7 @@ Then **stop**. The user drives the next move.
 The main conversation owns all user interaction. Subagents never call `AskUserQuestion`.
 
 - **Plan output path resolution** (Step 1) — confirm the chosen path or pick from candidates.
-- **Domain confirmation** (Step 2 Stage 2) — same pattern as `/plan-context`.
+- **Domain confirmation** (Step 2 Stage 2) — same pattern as `/planning-tools:plan-context`.
 - **If the topic cannot be located** — ask whether to proceed with a free-form scope.
 
 The architect agent never asks the user anything. If it encounters ambiguity, it propagates the question into the plan's Open Questions section for the user to resolve manually.
@@ -97,5 +97,5 @@ The architect agent never asks the user anything. If it encounters ambiguity, it
 ## Notes
 
 - The plugin is **project-agnostic**. The architect chooses optional sections based on what the worker findings indicate the work touches, not from ticket prefixes or any plan-type classifier.
-- Plans are written to the user's project (git-versioned), not to `~/.claude/plans/` (which is reserved for per-session plan-mode files via `/plan-delete`).
-- Reusing a `/plan-context` report via `--context` lets you separate exploration (fast, no commitment) from synthesis (committed, opus-backed). Recommended workflow for non-trivial topics.
+- Plans are written to the user's project (git-versioned), not to `~/.claude/plans/` (which is reserved for per-session plan-mode files via `/planning-tools:plan-delete`).
+- Reusing a `/planning-tools:plan-context` report via `--context` lets you separate exploration (fast, no commitment) from synthesis (committed, opus-backed). Recommended workflow for non-trivial topics.

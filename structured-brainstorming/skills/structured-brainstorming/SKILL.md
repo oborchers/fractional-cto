@@ -8,7 +8,7 @@ version: 1.1.0
 
 Structured brainstorming applies specific thinking methods that counteract LLM reasoning biases during problem exploration. Without deliberate structure, LLM responses gravitate toward the most probable answer, skip genuine alternative exploration, and converge prematurely on conventional solutions.
 
-This skill provides 8 methods selected because they fight known LLM failure modes. The `/brainstorm` command drives an interactive flow where the user decides when to dispatch parallel `brainstorm-explorer` subagents for deep multi-angle exploration.
+This skill provides 8 methods selected because they fight known LLM failure modes. The `/structured-brainstorming:brainstorm` command drives an interactive flow where the user decides when to dispatch parallel `brainstorm-explorer` subagents for deep multi-angle exploration.
 
 ## Why Structure Matters for LLMs
 
@@ -58,11 +58,11 @@ Match problem type to recommended methods:
 
 For focused problems where 2-3 methods suffice, apply methods directly without dispatching agents. Use the method selection table to pick methods, then apply each following its reference file. Spend enough depth per method to produce a concrete finding, not a platitude.
 
-For complex, high-stakes, or multi-faceted problems, use the `/brainstorm` command to dispatch parallel `brainstorm-explorer` agents. Each agent applies its assigned methods with the same depth, using the reference files for the detailed step-by-step process.
+For complex, high-stakes, or multi-faceted problems, use the `/structured-brainstorming:brainstorm` command to dispatch parallel `brainstorm-explorer` agents. Each agent applies its assigned methods with the same depth, using the reference files for the detailed step-by-step process.
 
 ## Parallel Exploration with Subagents
 
-The `/brainstorm` command asks the user whether to dispatch parallel `brainstorm-explorer` subagents or rephrase the problem statement first. When the user chooses to dispatch, spawn agents in parallel using the Agent tool — each exploring the problem from a different angle simultaneously.
+The `/structured-brainstorming:brainstorm` command asks the user whether to dispatch parallel `brainstorm-explorer` subagents or rephrase the problem statement first. When the user chooses to dispatch, spawn agents in parallel using the Agent tool — each exploring the problem from a different angle simultaneously.
 
 **Agent dispatch pattern:**
 - Agent 1: First Principles + Assumption Surfacing (strip to fundamentals)

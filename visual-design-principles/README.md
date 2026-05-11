@@ -49,7 +49,7 @@ One meta-skill (`using-visual-design-principles`) that provides the complete ind
 
 ### Command (1)
 
-- `/design-review` — Review code, screenshots, or visual artifacts against all relevant design principles with 8-dimension scoring
+- `/visual-design-principles:design-review` — Review code, screenshots, or visual artifacts against all relevant design principles with 8-dimension scoring
 
 ### Agent (1)
 

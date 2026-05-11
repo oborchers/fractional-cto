@@ -20,10 +20,10 @@ Lossless is always safe. Lossy uses a compressor-reviewer loop with user approva
 ### Command
 
 ```
-/compress path/to/file.md              # Lossy mode (prompted)
-/compress path/to/file.md --lossless   # Lossless mode
-/compress path/to/file.md --auto       # Lossy, no per-section review
-/compress path/to/file.md --lossless --auto  # Lossless, no review
+/markdown-compressor:compress path/to/file.md              # Lossy mode (prompted)
+/markdown-compressor:compress path/to/file.md --lossless   # Lossless mode
+/markdown-compressor:compress path/to/file.md --auto       # Lossy, no per-section review
+/markdown-compressor:compress path/to/file.md --lossless --auto  # Lossless, no review
 ```
 
 ### Flow
@@ -61,7 +61,7 @@ The `markdown-compression` skill activates when Claude detects relevant work: "c
 | Skill | `skills/markdown-compression/SKILL.md` | Core compression principles and techniques |
 | References | `skills/markdown-compression/references/` | Detailed lossless and lossy technique catalogs |
 | Examples | `skills/markdown-compression/examples/` | Before/after compression examples |
-| Command | `commands/compress.md` | `/compress` slash command |
+| Command | `commands/compress.md` | `/markdown-compressor:compress` slash command |
 | Agents | `agents/section-compressor.md` | Compresses one section (aggressive) |
 | | `agents/compression-reviewer.md` | Reviews compression for info loss (adversarial) |
 | Hook | `hooks/hooks.json` | SessionStart awareness injection |

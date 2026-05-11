@@ -83,7 +83,7 @@ Marked Phase N done in <path>. <K> phase(s) remain.
 
 Where `<K>` is the count of rows whose Status is still `⏳`, `🚧`, or `❌`.
 
-If all phases are now `✅`, append: `All phases complete. Consider running /plan-verify to confirm and then opening the single PR per the Release section.`
+If all phases are now `✅`, append: `All phases complete. Consider running /planning-tools:plan-verify to confirm and then opening the single PR per the Release section.`
 
 ---
 
@@ -94,7 +94,7 @@ The main conversation owns all user interaction.
 - **Plan discovery** (Step 1) — when 2+ candidate plans exist or when not in a git repo and no path was supplied.
 - **Phase selection** (Step 3) — only when no phase number was passed as argument.
 
-This command has no subagent dispatch. It runs entirely in the main conversation, like `/plan-delete`.
+This command has no subagent dispatch. It runs entirely in the main conversation, like `/planning-tools:plan-delete`.
 
 ## Notes
 

@@ -8,7 +8,7 @@ version: 1.2.0
 
 Structured deep research transforms ad-hoc web searches into a repeatable, hallucination-resistant research pipeline. Without deliberate structure, research agents gravitate toward the first sources found, fail to verify claims, and produce confident reports built on unreliable foundations.
 
-This plugin provides 4 methodology skills and the `/research` command for orchestrated multi-agent research sessions.
+This plugin provides 4 methodology skills and the `/deep-research:research` command for orchestrated multi-agent research sessions.
 
 ## How to Access Skills
 
@@ -32,9 +32,9 @@ Invoke a skill when there is even a small chance the work touches one of these a
 - **Writing any claim**: Load `hallucination-prevention` to verify before stating
 - **Combining findings**: Load `synthesis-and-reporting` to merge and cite properly
 
-## The /research Command
+## The /deep-research:research Command
 
-For full orchestrated research sessions, use `/research`. The command:
+For full orchestrated research sessions, use `/deep-research:research`. The command:
 1. Checks web access permissions (one-time setup per project)
 2. Analyzes the research query — if too vague, asks 2-3 clarifying questions
 3. Decomposes into subtopics based on query complexity (not a fixed number)

@@ -54,7 +54,7 @@ On `Append the Verified marker`:
 
 On `Skip the marker`, just acknowledge.
 
-If the verdict is `FAIL`, **do not offer the marker option** — the plan is not ready to be marked verified. Recommend addressing the Critical findings first and re-running `/plan-verify`.
+If the verdict is `FAIL`, **do not offer the marker option** — the plan is not ready to be marked verified. Recommend addressing the Critical findings first and re-running `/planning-tools:plan-verify`.
 
 ---
 
@@ -63,7 +63,7 @@ If the verdict is `FAIL`, **do not offer the marker option** — the plan is not
 Suggest concrete actions based on the verdict:
 
 - **PASS:** plan is ready for execution. Suggest the user copies Phase 1 into Claude Code's built-in `/plan` to start iterating.
-- **FAIL:** suggest the user opens the plan and addresses the Critical findings (the report has line numbers). When done, re-run `/plan-verify <path>` for a second pass.
+- **FAIL:** suggest the user opens the plan and addresses the Critical findings (the report has line numbers). When done, re-run `/planning-tools:plan-verify <path>` for a second pass.
 
 Then **stop**. The user drives the next move.
 
@@ -81,6 +81,6 @@ The `plan-verifier` agent never calls `AskUserQuestion` — it only emits the re
 ## Notes
 
 - This command **never modifies the plan content** except to append the Verified marker (and only with explicit user approval).
-- Re-run `/plan-verify` after every plan edit. The audit is idempotent; running it on a clean plan is a no-op.
+- Re-run `/planning-tools:plan-verify` after every plan edit. The audit is idempotent; running it on a clean plan is a no-op.
 - The verification report is written to `/tmp/plan-verify/` (scratch). It is not part of the master plan and is not git-versioned.
 - The verifier's checklist is owned by the `plan-verification-checklist` skill. Updates to audit dimensions should land in that skill — not in this command or the agent.

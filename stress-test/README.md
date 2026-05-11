@@ -30,14 +30,14 @@ The key requirement: surrounding context must exist as local artifacts for the a
 ## Usage
 
 ```bash
-/stress-test path/to/plan.md
+/stress-test:stress-test path/to/plan.md
 ```
 
 ## Components
 
 | Component | Purpose |
 |-----------|---------|
-| `/stress-test` command | Orchestrates the full red-team/blue-team flow |
+| `/stress-test:stress-test` command | Orchestrates the full red-team/blue-team flow |
 | `red-team` agent | Generates adversarial what-if questions (local-only) |
 | `blue-team` agent | Answers what-ifs with verdicts and evidence (configurable tools) |
 | `stress-test-methodology` skill | When/how to use adversarial plan review, verdict system |

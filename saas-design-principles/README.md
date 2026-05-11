@@ -57,7 +57,7 @@ Each skill includes:
 
 ### Command (1)
 
-- `/saas-review` — Review the current code against all relevant SaaS design principles
+- `/saas-design-principles:saas-review` — Review the current code against all relevant SaaS design principles
 
 ### Agent (1)
 

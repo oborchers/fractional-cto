@@ -1,11 +1,21 @@
 {
   "name": "pedantic-coder",
-  "version": "1.0.0",
-  "description": "Zero-tolerance code pedantry — naming precision, casing law, structural symmetry, import discipline, and the obsessive details that separate clean code from correct code",
+  "version": "1.0.1",
+  "description": "Zero-tolerance code pedantry \u2014 naming precision, casing law, structural symmetry, import discipline, and the obsessive details that separate clean code from correct code",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["code-quality", "naming", "consistency", "symmetry", "style", "conventions", "organization", "pedantic", "clean-code"]
+  "keywords": [
+    "code-quality",
+    "naming",
+    "consistency",
+    "symmetry",
+    "style",
+    "conventions",
+    "organization",
+    "pedantic",
+    "clean-code"
+  ]
 }

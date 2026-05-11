@@ -1,6 +1,6 @@
 {
   "name": "fractional-cto",
-  "description": "Your AI CTO co-pilot — opinionated, research-backed plugins for building SaaS products that ship",
+  "description": "Your AI CTO co-pilot \u2014 opinionated, research-backed plugins for building SaaS products that ship",
   "owner": {
     "name": "Dr. Oliver Borchers"
   },
@@ -8,7 +8,7 @@
     {
       "name": "saas-design-principles",
       "description": "The holy principles of SaaS design: research-backed, opinionated guidance for building fast, predictable, and progressively powerful SaaS products",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./saas-design-principles",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -16,8 +16,8 @@
     },
     {
       "name": "api-design-principles",
-      "description": "Research-backed, opinionated guidance for designing world-class RESTful APIs — routes, naming, errors, auth, caching, webhooks, and more, distilled from Stripe, GitHub, Twilio, Shopify, Google, and Microsoft",
-      "version": "1.0.0",
+      "description": "Research-backed, opinionated guidance for designing world-class RESTful APIs \u2014 routes, naming, errors, auth, caching, webhooks, and more, distilled from Stripe, GitHub, Twilio, Shopify, Google, and Microsoft",
+      "version": "1.0.1",
       "source": "./api-design-principles",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -25,8 +25,8 @@
     },
     {
       "name": "pedantic-coder",
-      "description": "Zero-tolerance code pedantry — naming precision, casing law, structural symmetry, import discipline, and the obsessive details that separate clean code from correct code",
-      "version": "1.0.0",
+      "description": "Zero-tolerance code pedantry \u2014 naming precision, casing law, structural symmetry, import discipline, and the obsessive details that separate clean code from correct code",
+      "version": "1.0.1",
       "source": "./pedantic-coder",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -34,8 +34,8 @@
     },
     {
       "name": "python-package",
-      "description": "Research-backed best practices for building modern, production-grade Python packages — project structure, pyproject.toml, typing, testing, CI/CD, documentation, versioning, API design, packaging, security, and developer experience",
-      "version": "1.0.0",
+      "description": "Research-backed best practices for building modern, production-grade Python packages \u2014 project structure, pyproject.toml, typing, testing, CI/CD, documentation, versioning, API design, packaging, security, and developer experience",
+      "version": "1.0.1",
       "source": "./python-package",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -43,8 +43,8 @@
     },
     {
       "name": "cloud-foundation-principles",
-      "description": "Research-backed, opinionated guidance for building cloud infrastructure that doesn't rot — multi-account governance, naming conventions, IaC organization, security, deployment pipelines, and operational hygiene, distilled from production experience across multiple cloud migrations",
-      "version": "1.0.0",
+      "description": "Research-backed, opinionated guidance for building cloud infrastructure that doesn't rot \u2014 multi-account governance, naming conventions, IaC organization, security, deployment pipelines, and operational hygiene, distilled from production experience across multiple cloud migrations",
+      "version": "1.0.1",
       "source": "./cloud-foundation-principles",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -52,8 +52,8 @@
     },
     {
       "name": "visual-design-principles",
-      "description": "Research-backed visual design principles for websites, presentations, documents, and any visual medium — grounded in VisAWI, Gestalt psychology, and empirical aesthetics research",
-      "version": "1.0.0",
+      "description": "Research-backed visual design principles for websites, presentations, documents, and any visual medium \u2014 grounded in VisAWI, Gestalt psychology, and empirical aesthetics research",
+      "version": "1.0.1",
       "source": "./visual-design-principles",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -61,8 +61,8 @@
     },
     {
       "name": "structured-brainstorming",
-      "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration — first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, with user-gated parallel subagent exploration for deep dives",
-      "version": "1.1.1",
+      "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration \u2014 first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, with user-gated parallel subagent exploration for deep dives",
+      "version": "1.1.2",
       "source": "./structured-brainstorming",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -70,8 +70,8 @@
     },
     {
       "name": "retell",
-      "description": "Transform Claude Code conversation transcripts into polished, first-person blog posts through an interactive 5-stage pipeline — parse, triage, outline, draft, polish — with human editorial gates at every stage",
-      "version": "1.1.2",
+      "description": "Transform Claude Code conversation transcripts into polished, first-person blog posts through an interactive 5-stage pipeline \u2014 parse, triage, outline, draft, polish \u2014 with human editorial gates at every stage",
+      "version": "1.1.3",
       "source": "./retell",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -79,8 +79,8 @@
     },
     {
       "name": "markdown-compressor",
-      "description": "Compress LLM agent instructions and code documentation markdown files through iterative section-by-section compression with compressor-reviewer loop — lossless structural optimization and lossy semantic compression modes, with auto-approve for hands-off operation",
-      "version": "1.1.0",
+      "description": "Compress LLM agent instructions and code documentation markdown files through iterative section-by-section compression with compressor-reviewer loop \u2014 lossless structural optimization and lossy semantic compression modes, with auto-approve for hands-off operation",
+      "version": "1.1.1",
       "source": "./markdown-compressor",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -89,7 +89,7 @@
     {
       "name": "deep-research",
       "description": "Structured deep research methodology for Claude Code -- query decomposition, parallel web research with source verification, hallucination prevention, and synthesis into well-sourced documents",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "source": "./deep-research",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -98,7 +98,7 @@
     {
       "name": "stress-test",
       "description": "Adversarial plan review using red-team/blue-team agents -- generates what-if questions and grounds answers in plan artifacts with configurable tool scope",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./stress-test",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -107,7 +107,7 @@
     {
       "name": "planning-tools",
       "description": "Manage Claude Code's plan-mode artifacts and author multi-phase master planning documents. Provides /plan-context (pre-load), /plan-master (draft), /plan-verify (audit), /plan-tick (mark phase done), and /plan-delete (per-session cleanup). Integer-only phases, no sizing, project-agnostic.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "source": "./planning-tools",
       "author": {
         "name": "Dr. Oliver Borchers"

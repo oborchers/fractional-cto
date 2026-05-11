@@ -3,7 +3,7 @@ description: "Pre-load context for a master plan — Triage proposes domains, us
 argument-hint: "[topic | path] [--domains a,b,c]"
 ---
 
-You are **pre-loading context** for a future master plan. The user will run `/plan-master` later (with the `--context <this-report>` flag, optionally) to draft the actual plan. **You are NOT writing a plan file, NOT entering plan mode, NOT calling `ExitPlanMode`.** You run four stages and emit a structured scope report — then stop.
+You are **pre-loading context** for a future master plan. The user will run `/planning-tools:plan-master` later (with the `--context <this-report>` flag, optionally) to draft the actual plan. **You are NOT writing a plan file, NOT entering plan mode, NOT calling `ExitPlanMode`.** You run four stages and emit a structured scope report — then stop.
 
 **Input:** `$ARGUMENTS`
 
@@ -87,7 +87,7 @@ If you find discrepancies, note them as **Verification deltas** in the report. D
 
 ## Output: scope report
 
-Emit a terse report to the user (in the conversation, not a file). The user will use this to drive `/plan-master`.
+Emit a terse report to the user (in the conversation, not a file). The user will use this to drive `/planning-tools:plan-master`.
 
 ```markdown
 # Scope report: <topic>
@@ -117,7 +117,7 @@ Emit a terse report to the user (in the conversation, not a file). The user will
 ## Verification deltas
 <Claims from worker findings that didn't hold up under direct Read. Empty if all verified.>
 
-## Open questions blocking /plan-master
+## Open questions blocking /planning-tools:plan-master
 <Things the user must decide before drafting the plan. Empty if all clear.>
 
 ## Suggested phase split
@@ -135,7 +135,7 @@ A non-binding suggestion for how to phase the work in the master plan. The archi
 - ...
 ```
 
-After emitting the report, **stop**. The user will either run `/plan-master --context <intermediate-dir>` to draft the plan, or iterate by re-running `/plan-context` with adjusted domains.
+After emitting the report, **stop**. The user will either run `/planning-tools:plan-master --context <intermediate-dir>` to draft the plan, or iterate by re-running `/planning-tools:plan-context` with adjusted domains.
 
 ---
 
@@ -149,5 +149,5 @@ The main conversation owns all user interaction. Subagents only fetch and report
 ## Notes
 
 - This command is a **port and generalization** of `aia-knowledge-platform-interface/.claude/commands/verify-plan.md` with an added explicit Triage + Confirm stage and project-agnostic domain selection.
-- It writes intermediate worker findings to `/tmp/plan-context/<topic-slug>/`. These are scratch files, not the master plan — they are inputs to `/plan-master`.
+- It writes intermediate worker findings to `/tmp/plan-context/<topic-slug>/`. These are scratch files, not the master plan — they are inputs to `/planning-tools:plan-master`.
 - It does **not** modify the project, the plan file, or anything in `~/.claude/plans/`.

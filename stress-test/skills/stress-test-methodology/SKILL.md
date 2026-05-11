@@ -101,10 +101,10 @@ If most questions are ANSWERED, the plan is solid. If most are NOT COVERED, the 
 
 ## Running a Stress Test
 
-Use the `/stress-test` command:
+Use the `/stress-test:stress-test` command:
 
 ```
-/stress-test path/to/plan.md
+/stress-test:stress-test path/to/plan.md
 ```
 
 The command orchestrates the full flow: reads the plan, asks about tool scope, dispatches the red team, then the blue team, and presents a summary with action items.

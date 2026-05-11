@@ -71,9 +71,9 @@ One meta-skill (`using-pedantic-principles`) that provides the index, 11 univers
 
 ### Commands (3)
 
-- `/pedantic-review` — Review the current code against all relevant pedantic principles with severity-rated findings
-- `/pedantic-audit` — Audit an entire repository: discovers structure, samples files, identifies codebase-wide convention conflicts
-- `/guidelines-review` — Scan all CLAUDE.md files in the repo, build the inheritance chain, and check code compliance against the project's own rules
+- `/pedantic-coder:pedantic-review` — Review the current code against all relevant pedantic principles with severity-rated findings
+- `/pedantic-coder:pedantic-audit` — Audit an entire repository: discovers structure, samples files, identifies codebase-wide convention conflicts
+- `/pedantic-coder:guidelines-review` — Scan all CLAUDE.md files in the repo, build the inheritance chain, and check code compliance against the project's own rules
 
 ### Agent (1)
 

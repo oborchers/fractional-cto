@@ -14,11 +14,11 @@ This skill codifies the **format and conventions** every master plan must follow
 
 The plugin orchestrates master plans through five steps:
 
-1. **`/plan-context [topic | path] [--domains a,b,c]`** — Pre-load context. Stage 1 Triage proposes domains, Stage 2 Confirm checks them with the user, Stage 3 dispatches parallel Explore agents (one per confirmed domain), Stage 4 verifies findings with direct Reads. Emits a scope report. **NO plan file written.**
-2. **`/plan-master [topic] [--context <report-path>]`** — Draft the master plan. Reuses a fresh `/plan-context` report if `--context` is passed; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight internally. Then synthesizes the multi-phase plan via the `plan-master-architect` agent (opus). Writes to a project-local path.
-3. **`/plan-verify <path>`** — Audit the drafted plan. Dispatches the `plan-verifier` agent against the `plan-verification-checklist` skill, presents Critical/Important/Suggestion findings, and (on user approval) appends a `> **Verified:** YYYY-MM-DD` callout to the context block.
+1. **`/planning-tools:plan-context [topic | path] [--domains a,b,c]`** — Pre-load context. Stage 1 Triage proposes domains, Stage 2 Confirm checks them with the user, Stage 3 dispatches parallel Explore agents (one per confirmed domain), Stage 4 verifies findings with direct Reads. Emits a scope report. **NO plan file written.**
+2. **`/planning-tools:plan-master [topic] [--context <report-path>]`** — Draft the master plan. Reuses a fresh `/planning-tools:plan-context` report if `--context` is passed; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight internally. Then synthesizes the multi-phase plan via the `plan-master-architect` agent (opus). Writes to a project-local path.
+3. **`/planning-tools:plan-verify <path>`** — Audit the drafted plan. Dispatches the `plan-verifier` agent against the `plan-verification-checklist` skill, presents Critical/Important/Suggestion findings, and (on user approval) appends a `> **Verified:** YYYY-MM-DD` callout to the context block.
 4. **Manual phase iteration** — User copies the next unticked phase into Claude Code's built-in `/plan`. Plan mode produces the per-phase plan in `~/.claude/plans/<slug>.md`. User executes the phase and manually ticks the row in the master plan.
-5. **`/plan-delete`** — Clears the per-session plan file. Loop back to step 4 for the next phase.
+5. **`/planning-tools:plan-delete`** — Clears the per-session plan file. Loop back to step 4 for the next phase.
 
 ## Project-local plan storage
 
@@ -186,7 +186,7 @@ Blockquotes (`>`) are reserved for **invariants and constraints** (e.g., `> Temp
 
 ## Verified marker
 
-When `/plan-verify` passes a plan, it appends one line to the **context block** (not the end of the document):
+When `/planning-tools:plan-verify` passes a plan, it appends one line to the **context block** (not the end of the document):
 
 ```markdown
 > **Verified:** 2026-05-11

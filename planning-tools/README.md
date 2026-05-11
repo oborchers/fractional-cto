@@ -9,7 +9,7 @@ The plugin covers two workflows that complement each other:
 
 ## Commands
 
-### `/plan-context [topic | path] [--domains a,b,c]`
+### `/planning-tools:plan-context [topic | path] [--domains a,b,c]`
 
 Pre-load context for a future master plan. Four stages:
 
@@ -20,18 +20,18 @@ Pre-load context for a future master plan. Four stages:
 
 Emits a structured **scope report** (key locations, constraints, suggested phase split). **No plan file is written.**
 
-### `/plan-master <topic> [--context <report-path>] [--domains a,b,c]`
+### `/planning-tools:plan-master <topic> [--context <report-path>] [--domains a,b,c]`
 
 Draft a multi-phase master planning document.
 
-- If `--context <path>` is supplied, reuse the worker findings from a prior `/plan-context` run and skip the discovery pre-flight.
+- If `--context <path>` is supplied, reuse the worker findings from a prior `/planning-tools:plan-context` run and skip the discovery pre-flight.
 - Otherwise, run the same Triage + Confirm + Parallel Explore + Verify pre-flight internally.
 - Then dispatches `plan-master-architect` (opus) to synthesize the multi-phase plan in the user's standard template.
 - Writes to a project-local path. The plugin tries `context/tickets/`, then `docs/plans/`, then `.claude/plans/master/`, asking via `AskUserQuestion` if none exist.
 
 The architect composes the **universal core** sections (Title, Context block, Open Questions, Implementation Phases, Design Principles, Out of Scope) plus **trigger-based optional sections** (Schema + Rollback for data work; Component Architecture + UI States for UI work; Cost + Risks for ops; Recovery + Schema for incidents; etc.). Phases are numbered with **integers only** (`1, 2, 3, …`).
 
-### `/plan-verify <path>`
+### `/planning-tools:plan-verify <path>`
 
 Audit a drafted master plan against the `plan-verification-checklist` skill. Dispatches the `plan-verifier` agent, which checks:
 
@@ -46,27 +46,27 @@ Audit a drafted master plan against the `plan-verification-checklist` skill. Dis
 
 Emits Critical / Important / Suggestion findings with `path:line` references and a PASS / FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block (with explicit user approval via `AskUserQuestion`).
 
-### `/plan-tick <phase-number> [path]`
+### `/planning-tools:plan-tick <phase-number> [path]`
 
 Mark a phase ✅ done in a master plan. Updates **only** the Status cell of the matched row — the Name cell and every other section are untouched. Idempotent: re-running on an already-done phase is a no-op.
 
-Plan discovery follows the same path resolution as `/plan-master` (`context/tickets/`, `docs/plans/`, `.claude/plans/master/` under the git root). If multiple master plans exist, the command asks via `AskUserQuestion` (most-recently-modified labelled "(recent)"). If the phase number is omitted, the command asks via `AskUserQuestion` with the current pending phases listed.
+Plan discovery follows the same path resolution as `/planning-tools:plan-master` (`context/tickets/`, `docs/plans/`, `.claude/plans/master/` under the git root). If multiple master plans exist, the command asks via `AskUserQuestion` (most-recently-modified labelled "(recent)"). If the phase number is omitted, the command asks via `AskUserQuestion` with the current pending phases listed.
 
 Only works on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
 
-### `/plan-delete`
+### `/planning-tools:plan-delete`
 
 Clear the current session's plan file at `~/.claude/plans/<slug>.md`. Detects this session's slug by grepping the transcript at `~/.claude/projects/<encoded-cwd>/$CLAUDE_CODE_SESSION_ID.jsonl` — never relies on file mtime (which breaks with parallel sessions). Deletes the file, recreates it empty, re-reads it so the session is primed for the next plan-mode entry. Bootstraps via `EnterPlanMode` → no-op placeholder → `ExitPlanMode` if plan mode has never been entered.
 
 ## The 6-step Master Plan Workflow
 
 ```
-1. /plan-context         → scope report (no plan written)
-2. /plan-master          → multi-phase plan drafted to project-local path
-3. /plan-verify          → Critical/Important/Suggestion findings + PASS/FAIL
+1. /planning-tools:plan-context         → scope report (no plan written)
+2. /planning-tools:plan-master          → multi-phase plan drafted to project-local path
+3. /planning-tools:plan-verify          → Critical/Important/Suggestion findings + PASS/FAIL
 4. Manual phase loop     → copy phase into built-in /plan, execute
-5. /plan-tick <phase>    → mark the completed phase ✅ in the master plan
-6. /plan-delete          → clear per-session plan file, loop back to step 4
+5. /planning-tools:plan-tick <phase>    → mark the completed phase ✅ in the master plan
+6. /planning-tools:plan-delete          → clear per-session plan file, loop back to step 4
 ```
 
 ## Master-Plan Conventions
@@ -92,7 +92,7 @@ Plan files live globally in `~/.claude/plans/`, but each session has its own slu
 | Slug extraction | `grep -m1 -o '"slug":"[^"]*"' <transcript> \| sed 's/"slug":"//; s/"$//'` |
 | Plan file | `~/.claude/plans/<slug>.md` |
 
-If no slug is present in the transcript, plan mode has not been entered this session — `/plan-delete` bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` to allocate one, then re-extracts.
+If no slug is present in the transcript, plan mode has not been entered this session — `/planning-tools:plan-delete` bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` to allocate one, then re-extracts.
 
 ## Installation
 

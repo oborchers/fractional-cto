@@ -58,7 +58,7 @@ Each skill includes:
 
 ### Command (1)
 
-- `/api-review` — Review the current API code against all relevant design principles
+- `/api-design-principles:api-review` — Review the current API code against all relevant design principles
 
 ### Agent (1)
 

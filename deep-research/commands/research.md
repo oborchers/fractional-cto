@@ -48,7 +48,7 @@ Use `AskUserQuestion` to ask:
 
 Use `AskUserQuestion` to determine where the output should be written:
 
-- **Suggest a default path** based on the working directory (e.g., `./research/[topic-slug]/`)
+- **Suggest a default path** based on the working directory (e.g., `./deep-research:research/[topic-slug]/`)
 - Let the user specify a custom path
 
 Create the output directory structure:
@@ -103,7 +103,7 @@ Resolve `[absolute-output-dir]` to the full absolute path of the confirmed outpu
      ```
   3. **IMPORTANT:** Permissions from `.claude/settings.local.json` are loaded at session start. Tell the user:
 
-     > "Permissions added. Please restart your Claude Code session (`/exit` then relaunch) for them to take effect. Then run `/research` again."
+     > "Permissions added. Please restart your Claude Code session (`/exit` then relaunch) for them to take effect. Then run `/deep-research:research` again."
 
   4. **Stop here.** Do not proceed to Step 7. The permissions are not active until the session restarts.
 

@@ -27,17 +27,17 @@ Stage 5: POLISH   (Opus)               → revision loop until satisfied
 claude --plugin-dir /path/to/retell
 
 # Start the pipeline (shows recent conversations to pick from)
-/retell
+/retell:retell
 
 # Or provide a conversation UUID directly
-/retell 8c439a20
+/retell:retell 8c439a20
 ```
 
 ## Components
 
 ### Command
 
-- **`/retell [uuid]`** — Main pipeline orchestrator. Without a UUID, shows recent conversations for discovery. With a UUID, runs through all 5 stages interactively.
+- **`/retell:retell [uuid]`** — Main pipeline orchestrator. Without a UUID, shows recent conversations for discovery. With a UUID, runs through all 5 stages interactively.
 
 ### Agents
 

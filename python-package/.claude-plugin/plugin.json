@@ -1,11 +1,24 @@
 {
   "name": "python-package",
-  "version": "1.0.0",
-  "description": "Research-backed best practices for building modern, production-grade Python packages — project structure, pyproject.toml, typing, testing, CI/CD, documentation, versioning, API design, packaging, security, and developer experience",
+  "version": "1.0.1",
+  "description": "Research-backed best practices for building modern, production-grade Python packages \u2014 project structure, pyproject.toml, typing, testing, CI/CD, documentation, versioning, API design, packaging, security, and developer experience",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["python", "packaging", "pyproject-toml", "pytest", "ruff", "mypy", "ci-cd", "documentation", "versioning", "api-design", "security", "best-practices"]
+  "keywords": [
+    "python",
+    "packaging",
+    "pyproject-toml",
+    "pytest",
+    "ruff",
+    "mypy",
+    "ci-cd",
+    "documentation",
+    "versioning",
+    "api-design",
+    "security",
+    "best-practices"
+  ]
 }

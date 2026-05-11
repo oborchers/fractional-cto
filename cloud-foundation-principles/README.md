@@ -61,7 +61,7 @@ Each skill includes:
 
 ### Command (1)
 
-- `/cloud-foundation-review` — Review the current infrastructure code against all relevant cloud foundation principles
+- `/cloud-foundation-principles:cloud-foundation-review` — Review the current infrastructure code against all relevant cloud foundation principles
 
 ### Agent (1)
 

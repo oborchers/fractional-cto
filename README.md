@@ -13,12 +13,12 @@ Designed for Claude Code and Cowork. Skills compatible with other AI assistants.
 ## Start Here
 
 Building a form? Skills activate automatically.
-Need an API review? `/api-review`
-Auditing code quality? `/pedantic-review`
-Researching a topic? `/research "your question"`
-Stress-testing a plan? `/stress-test path/to/plan.md`
-Compressing your CLAUDE.md? `/compress path/to/file.md`
-Resetting your plan file? `/plan-delete`
+Need an API review? `/api-design-principles:api-review`
+Auditing code quality? `/pedantic-coder:pedantic-review`
+Researching a topic? `/deep-research:research "your question"`
+Stress-testing a plan? `/stress-test:stress-test path/to/plan.md`
+Compressing your CLAUDE.md? `/markdown-compressor:compress path/to/file.md`
+Resetting your plan file? `/planning-tools:plan-delete`
 
 If this project helps you, star the repo.
 
@@ -111,7 +111,7 @@ Research-backed SaaS design principles drawn from Linear, Stripe, Shopify Polari
 - `responsive-design` -- Breakpoints, table-to-card, touch targets, mobile nav
 - `using-saas-principles` -- Meta-skill: index of all principle skills
 
-**Commands:** `/saas-review` -- Review code against all SaaS design principles
+**Commands:** `/saas-design-principles:saas-review` -- Review code against all SaaS design principles
 
 **Agents:** `saas-design-reviewer` -- Comprehensive audit with severity-rated findings
 
@@ -143,7 +143,7 @@ Visual design principles grounded in VisAWI, Gestalt psychology, and empirical a
 - `design-evaluation-scoring` -- 8-dimension scoring framework, anti-pattern detection
 - `using-visual-design-principles` -- Meta-skill: index with 25 quick-reference rules
 
-**Commands:** `/design-review` -- Review visual artifacts with 8-dimension scoring (total out of 40)
+**Commands:** `/visual-design-principles:design-review` -- Review visual artifacts with 8-dimension scoring (total out of 40)
 
 **Agents:** `visual-design-reviewer` -- Per-dimension 1-5 scoring with severity-classified findings
 
@@ -176,7 +176,7 @@ API design principles drawn from Stripe, GitHub, Twilio, Google, OWASP, and indu
 - `advanced-patterns` -- Bulk/batch, REST vs GraphQL vs gRPC, SSE/WebSockets
 - `using-api-principles` -- Meta-skill: index of all principle skills
 
-**Commands:** `/api-review` -- Review API code against all 12 design principles
+**Commands:** `/api-design-principles:api-review` -- Review API code against all 12 design principles
 
 **Agents:** `api-design-reviewer` -- Comprehensive audit with severity-rated findings
 
@@ -212,7 +212,7 @@ Cloud infrastructure principles distilled from production experience across mult
 - `operational-hygiene` -- Resource cleanup, cost attribution, monitoring, drift detection
 - `using-cloud-foundation-principles` -- Meta-skill: index of all principle skills
 
-**Commands:** `/cloud-foundation-review` -- Review infrastructure code against all 15 principles
+**Commands:** `/cloud-foundation-principles:cloud-foundation-review` -- Review infrastructure code against all 15 principles
 
 **Agents:** `cloud-foundation-reviewer` -- Comprehensive infra audit with severity-rated findings
 
@@ -250,9 +250,9 @@ Zero-tolerance code pedantry. The obsessive details that separate clean code fro
 
 **Commands:**
 
-- `/pedantic-review` -- Review current code with severity-rated findings
-- `/pedantic-audit` -- Full repository audit: discovers structure, samples files, finds convention conflicts
-- `/guidelines-review` -- Scan CLAUDE.md files and check code compliance against project rules
+- `/pedantic-coder:pedantic-review` -- Review current code with severity-rated findings
+- `/pedantic-coder:pedantic-audit` -- Full repository audit: discovers structure, samples files, finds convention conflicts
+- `/pedantic-coder:guidelines-review` -- Scan CLAUDE.md files and check code compliance against project rules
 
 **Agents:** `pedantic-reviewer` -- Comprehensive pedantry audit with a pedantry score
 
@@ -286,8 +286,8 @@ Modern Python packaging best practices. Everything from `src/` layout to trusted
 
 **Commands:**
 
-- `/package-review` -- Targeted review of current code against python-package principles
-- `/package-audit [path]` -- Full repository audit with migration path recommendations
+- `/python-package:package-review` -- Targeted review of current code against python-package principles
+- `/python-package:package-audit [path]` -- Full repository audit with migration path recommendations
 
 **Agents:** `package-reviewer` -- Autonomous package auditor for release readiness checks
 
@@ -312,7 +312,7 @@ Structured deep research methodology. Three-stage pipeline: research-workers (So
 - `synthesis-and-reporting` -- Deduplication, conflict resolution, thematic analysis, citation management
 - `using-deep-research` -- Meta-skill: index of all research skills
 
-**Commands:** `/research <topic>` -- Orchestrated session with parallel workers, verification, and synthesis
+**Commands:** `/deep-research:research <topic>` -- Orchestrated session with parallel workers, verification, and synthesis
 
 **Agents:**
 
@@ -322,9 +322,9 @@ Structured deep research methodology. Three-stage pipeline: research-workers (So
 
 **Examples:**
 
-- `/research "What are the latest advances in production LLM agents?"`
+- `/deep-research:research "What are the latest advances in production LLM agents?"`
 - `Research the impact of supply chain attacks on open source packages in 2025.`
-- `/research "Best practices for multi-agent system architecture"`
+- `/deep-research:research "Best practices for multi-agent system architecture"`
 
 </details>
 
@@ -337,15 +337,15 @@ Structured thinking methods that counteract LLM reasoning biases: first principl
 
 - `structured-brainstorming` -- Core methods and subagent dispatch for all 8 thinking methods
 
-**Commands:** `/brainstorm "Problem statement"` -- Interactive brainstorming with parallel exploration
+**Commands:** `/structured-brainstorming:brainstorm "Problem statement"` -- Interactive brainstorming with parallel exploration
 
 **Agents:** `brainstorm-explorer` -- Applies different methods to the same problem in parallel
 
 **Examples:**
 
-- `/brainstorm "How should we design the auth system for our SaaS product?"`
+- `/structured-brainstorming:brainstorm "How should we design the auth system for our SaaS product?"`
 - `I'm stuck on reducing latency. Help me explore this from multiple angles.`
-- `/brainstorm "Best architecture for a real-time collaboration tool?"`
+- `/structured-brainstorming:brainstorm "Best architecture for a real-time collaboration tool?"`
 
 </details>
 
@@ -359,7 +359,7 @@ Transform Claude Code conversation transcripts into polished, first-person blog 
 - `conversation-format` -- JSONL schema, entry types, signal classification, subagent linking
 - `narrative-craft` -- Story arc detection, beat classification, quote handling, first-person voice rules
 
-**Commands:** `/retell [uuid]` -- Without UUID shows recent conversations; with UUID runs all 5 stages
+**Commands:** `/retell:retell [uuid]` -- Without UUID shows recent conversations; with UUID runs all 5 stages
 
 **Agents:**
 
@@ -368,8 +368,8 @@ Transform Claude Code conversation transcripts into polished, first-person blog 
 
 **Examples:**
 
-- `/retell` -- Browse recent conversations and pick one to turn into a post
-- `/retell 8c439a20` -- Transform a specific conversation into a blog post
+- `/retell:retell` -- Browse recent conversations and pick one to turn into a post
+- `/retell:retell 8c439a20` -- Transform a specific conversation into a blog post
 - `Use retell to turn my architecture session into a technical blog post.`
 
 </details>
@@ -385,9 +385,9 @@ Compress LLM agent instructions and code documentation through iterative section
 
 **Commands:**
 
-- `/compress path/to/file.md` -- Lossy compression with per-section review
-- `/compress path/to/file.md --lossless` -- Structure-only compression
-- `/compress path/to/file.md --auto` -- Hands-off lossy compression
+- `/markdown-compressor:compress path/to/file.md` -- Lossy compression with per-section review
+- `/markdown-compressor:compress path/to/file.md --lossless` -- Structure-only compression
+- `/markdown-compressor:compress path/to/file.md --auto` -- Hands-off lossy compression
 
 **Agents:**
 
@@ -396,8 +396,8 @@ Compress LLM agent instructions and code documentation through iterative section
 
 **Examples:**
 
-- `/compress ./CLAUDE.md` -- Compress project guidelines while preserving critical rules
-- `/compress ./architecture.md --lossless --auto` -- Structural optimization only, no review stops
+- `/markdown-compressor:compress ./CLAUDE.md` -- Compress project guidelines while preserving critical rules
+- `/markdown-compressor:compress ./architecture.md --lossless --auto` -- Structural optimization only, no review stops
 - `Compress my LLM agent instructions for minimal token usage.`
 
 </details>
@@ -411,7 +411,7 @@ Adversarial plan review using two independent agents: a red team generates what-
 
 - `stress-test-methodology` -- When/how to use adversarial plan review, verdict system, tool scope guidance
 
-**Commands:** `/stress-test <plan-file>` -- Orchestrates red-team/blue-team flow with QA report
+**Commands:** `/stress-test:stress-test <plan-file>` -- Orchestrates red-team/blue-team flow with QA report
 
 **Agents:**
 
@@ -420,8 +420,8 @@ Adversarial plan review using two independent agents: a red team generates what-
 
 **Examples:**
 
-- `/stress-test ./docs/implementation-plan.md` -- Stress-test a code implementation plan
-- `/stress-test ./strategy/go-to-market.md` -- Challenge a business plan against supporting docs
+- `/stress-test:stress-test ./docs/implementation-plan.md` -- Stress-test a code implementation plan
+- `/stress-test:stress-test ./strategy/go-to-market.md` -- Challenge a business plan against supporting docs
 - `Is my plan sound? Run a stress test on it.`
 
 </details>
@@ -435,11 +435,11 @@ Tools for managing Claude Code's plan-mode files. Each session reuses one slug i
 
 - `using-planning-tools` -- Meta-skill: index of commands, detection mechanics, plan-mode file storage
 
-**Commands:** `/plan-delete` -- Clear the current session's plan file: detect via $CLAUDE_CODE_SESSION_ID + transcript slug field, delete, recreate empty, re-read to prime the next plan. Bootstraps with EnterPlanMode/ExitPlanMode if plan mode has never been entered this session.
+**Commands:** `/planning-tools:plan-delete` -- Clear the current session's plan file: detect via $CLAUDE_CODE_SESSION_ID + transcript slug field, delete, recreate empty, re-read to prime the next plan. Bootstraps with EnterPlanMode/ExitPlanMode if plan mode has never been entered this session.
 
 **Examples:**
 
-- `/plan-delete` -- Reset the current session's plan file before drafting a new plan
+- `/planning-tools:plan-delete` -- Reset the current session's plan file before drafting a new plan
 - `My plan file is stale, clear it.`
 - `Start fresh with plan mode in this session.`
 

@@ -1,11 +1,22 @@
 {
   "name": "visual-design-principles",
-  "version": "1.0.0",
-  "description": "Research-backed visual design principles for websites, presentations, documents, and any visual medium — grounded in VisAWI, Gestalt psychology, and empirical aesthetics research",
+  "version": "1.0.1",
+  "description": "Research-backed visual design principles for websites, presentations, documents, and any visual medium \u2014 grounded in VisAWI, Gestalt psychology, and empirical aesthetics research",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["design", "visual", "typography", "color", "layout", "accessibility", "responsive", "whitespace", "hierarchy", "craftsmanship"]
+  "keywords": [
+    "design",
+    "visual",
+    "typography",
+    "color",
+    "layout",
+    "accessibility",
+    "responsive",
+    "whitespace",
+    "hierarchy",
+    "craftsmanship"
+  ]
 }

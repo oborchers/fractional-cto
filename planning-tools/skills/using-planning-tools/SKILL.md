@@ -8,8 +8,8 @@ version: 0.3.0
 
 This plugin provides two complementary workflows on top of Claude Code's plan mode:
 
-1. **Per-session plan-file management** — Claude Code stores each session's plan at `~/.claude/plans/<slug>.md`. The plugin's `/plan-delete` command cleans these up.
-2. **Master-plan authoring** — long, multi-phase planning documents that live in the user's project (e.g., `context/tickets/`, `docs/plans/`) and decompose work into actionable phases. The plugin's `/plan-context`, `/plan-master`, and `/plan-verify` commands cover this lifecycle.
+1. **Per-session plan-file management** — Claude Code stores each session's plan at `~/.claude/plans/<slug>.md`. The plugin's `/planning-tools:plan-delete` command cleans these up.
+2. **Master-plan authoring** — long, multi-phase planning documents that live in the user's project (e.g., `context/tickets/`, `docs/plans/`) and decompose work into actionable phases. The plugin's `/planning-tools:plan-context`, `/planning-tools:plan-master`, and `/planning-tools:plan-verify` commands cover this lifecycle.
 
 ## How to Access Skills
 
@@ -19,26 +19,26 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 
 | Command | Triggers On |
 |---------|-------------|
-| `/plan-context [topic] [--domains a,b,c]` | Pre-loading context for a future master plan. Stage 1 Triage proposes domains, Stage 2 Confirm (AskUserQuestion) lets the user adjust, Stage 3 dispatches parallel `plan-context-worker` agents (one per domain), Stage 4 verifies findings with direct Reads. Emits a scope report. NO plan file written. |
-| `/plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight. Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
-| `/plan-verify <path>` | Auditing a drafted master plan. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
-| `/plan-tick <phase> [path]` | Marking a phase ✅ done in a master plan. Updates only the Status cell of the matched row in the Implementation Phases table. Idempotent. Discovers candidate plans via path resolution if no path supplied; asks via AskUserQuestion when multiple plans or no phase number provided. Works only on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases + Status column). |
-| `/plan-delete` | Clearing the current session's plan file at `~/.claude/plans/<slug>.md`. Detects the slug via `$CLAUDE_CODE_SESSION_ID` + transcript grep, deletes the file, recreates empty, re-reads. Bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` if the session has never entered plan mode. |
+| `/planning-tools:plan-context [topic] [--domains a,b,c]` | Pre-loading context for a future master plan. Stage 1 Triage proposes domains, Stage 2 Confirm (AskUserQuestion) lets the user adjust, Stage 3 dispatches parallel `plan-context-worker` agents (one per domain), Stage 4 verifies findings with direct Reads. Emits a scope report. NO plan file written. |
+| `/planning-tools:plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/planning-tools:plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight. Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
+| `/planning-tools:plan-verify <path>` | Auditing a drafted master plan. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
+| `/planning-tools:plan-tick <phase> [path]` | Marking a phase ✅ done in a master plan. Updates only the Status cell of the matched row in the Implementation Phases table. Idempotent. Discovers candidate plans via path resolution if no path supplied; asks via AskUserQuestion when multiple plans or no phase number provided. Works only on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases + Status column). |
+| `/planning-tools:plan-delete` | Clearing the current session's plan file at `~/.claude/plans/<slug>.md`. Detects the slug via `$CLAUDE_CODE_SESSION_ID` + transcript grep, deletes the file, recreates empty, re-reads. Bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` if the session has never entered plan mode. |
 
 ## The 6-step Master Plan Workflow
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│  1. /plan-context [topic] [--domains a,b,c]                       │
+│  1. /planning-tools:plan-context [topic] [--domains a,b,c]                       │
 │     Stage 1 Triage → Stage 2 Confirm → Stage 3 Parallel Explore   │
 │     → Stage 4 Verify. Emits a scope report. No plan file written. │
 ├───────────────────────────────────────────────────────────────────┤
-│  2. /plan-master <topic> [--context <report-path>]                │
-│     Reuses /plan-context report (if --context) or runs the same   │
+│  2. /planning-tools:plan-master <topic> [--context <report-path>]                │
+│     Reuses /planning-tools:plan-context report (if --context) or runs the same   │
 │     pre-flight, then dispatches plan-master-architect (opus) to   │
 │     synthesize. Writes to a project-local path.                   │
 ├───────────────────────────────────────────────────────────────────┤
-│  3. /plan-verify <path>                                           │
+│  3. /planning-tools:plan-verify <path>                                           │
 │     Audits the drafted plan. Critical/Important/Suggestion        │
 │     findings + PASS/FAIL verdict. Optional Verified callout.      │
 ├───────────────────────────────────────────────────────────────────┤
@@ -47,11 +47,11 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 │     Claude Code's built-in /plan. Plan mode produces the per-     │
 │     phase plan at ~/.claude/plans/<slug>.md. User executes.       │
 ├───────────────────────────────────────────────────────────────────┤
-│  5. /plan-tick <phase>                                            │
+│  5. /planning-tools:plan-tick <phase>                                            │
 │     Mark the completed phase ✅ in the master plan's Status cell. │
 │     Idempotent. Status cell only — no other edits.                │
 ├───────────────────────────────────────────────────────────────────┤
-│  6. /plan-delete                                                  │
+│  6. /planning-tools:plan-delete                                                  │
 │     Clears the per-session plan file. Loop back to step 4.        │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -61,11 +61,11 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 | Skill | Purpose |
 |---|---|
 | `planning-tools:master-plan-methodology` | Codifies the master-plan template: universal core sections, trigger-based optional sections, integer-only phase rule, Open Questions at top, status emoji convention, evidence attribution, callouts, cross-references. Read this before authoring or reviewing any master plan. |
-| `planning-tools:plan-verification-checklist` | Single owner of the audit dimensions used by `/plan-verify` and the `plan-verifier` agent. Defines severity (Critical/Important/Suggestion) and the PASS/FAIL verdict rule. |
+| `planning-tools:plan-verification-checklist` | Single owner of the audit dimensions used by `/planning-tools:plan-verify` and the `plan-verifier` agent. Defines severity (Critical/Important/Suggestion) and the PASS/FAIL verdict rule. |
 
 ## How Per-Session Plan File Detection Works
 
-For `/plan-delete`: Claude Code stamps every transcript entry with a top-level `"slug"` field once plan mode is entered. That slug equals the plan filename (without `.md`). This is the authoritative source:
+For `/planning-tools:plan-delete`: Claude Code stamps every transcript entry with a top-level `"slug"` field once plan mode is entered. That slug equals the plan filename (without `.md`). This is the authoritative source:
 
 1. Read `$CLAUDE_CODE_SESSION_ID` from the environment (the current session's UUID).
 2. Compute the transcript path: `$HOME/.claude/projects/<encoded-cwd>/$CLAUDE_CODE_SESSION_ID.jsonl`
@@ -81,8 +81,8 @@ If the grep returns empty, the session has not entered plan mode yet — bootstr
 
 ## Why This Plugin Exists
 
-- **Per-session plan files persist by design** — they live outside the context window and survive compaction so they can be re-loaded. The downside: stale content accumulates in the slug file across re-plans, and after compaction Claude often loses awareness of the path. `/plan-delete` solves both.
-- **Master plans are a different artifact** — they live in the project (git-versioned), describe a topic in depth across multiple phases, and act as the source of truth for execution. The plugin codifies how they are authored (`/plan-context`, `/plan-master`) and audited (`/plan-verify`), with a strict format-driven methodology so plans are predictable and machine-checkable.
+- **Per-session plan files persist by design** — they live outside the context window and survive compaction so they can be re-loaded. The downside: stale content accumulates in the slug file across re-plans, and after compaction Claude often loses awareness of the path. `/planning-tools:plan-delete` solves both.
+- **Master plans are a different artifact** — they live in the project (git-versioned), describe a topic in depth across multiple phases, and act as the source of truth for execution. The plugin codifies how they are authored (`/planning-tools:plan-context`, `/planning-tools:plan-master`) and audited (`/planning-tools:plan-verify`), with a strict format-driven methodology so plans are predictable and machine-checkable.
 
 ## Conventions That Apply Everywhere
 

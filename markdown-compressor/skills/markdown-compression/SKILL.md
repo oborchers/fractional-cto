@@ -15,7 +15,7 @@ Two modes address different risk tolerances:
 | **Lossless** | Structure only — whitespace, formatting, redundant syntax | Zero semantic change | Safe first pass on any file |
 | **Lossy** | Semantics — rewriting for density, removing filler, consolidating | Information loss possible | Deep compression with review |
 
-Section-by-section compression with user approval at each step is the recommended workflow. The `/compress` command provides a guided session; the skill also activates when compression-related work is detected mid-conversation.
+Section-by-section compression with user approval at each step is the recommended workflow. The `/markdown-compressor:compress` command provides a guided session; the skill also activates when compression-related work is detected mid-conversation.
 
 ## Core Principle: What LLMs Actually Need
 

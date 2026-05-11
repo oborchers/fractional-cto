@@ -21,8 +21,8 @@ Research-backed best practices for building modern, production-grade Python pack
 | 11 | Developer Experience | One-command setup, CONTRIBUTING.md, Makefile/justfile, issue templates |
 
 **2 commands:**
-- `/package-review` — Targeted review of current code against python-package principles
-- `/package-audit [path]` — Full repository audit with migration path recommendations
+- `/python-package:package-review` — Targeted review of current code against python-package principles
+- `/python-package:package-audit [path]` — Full repository audit with migration path recommendations
 
 **1 agent:**
 - `package-reviewer` — Autonomous comprehensive package auditor (triggered by "review my Python package", "check if ready to publish", "modernize my package")

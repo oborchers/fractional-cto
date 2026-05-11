@@ -1,11 +1,19 @@
 {
   "name": "retell",
-  "version": "1.1.2",
-  "description": "Transforms Claude Code conversation transcripts into polished, first-person blog posts through an interactive 5-stage pipeline — parse, triage, outline, draft, polish — with human editorial gates at every stage",
+  "version": "1.1.3",
+  "description": "Transforms Claude Code conversation transcripts into polished, first-person blog posts through an interactive 5-stage pipeline \u2014 parse, triage, outline, draft, polish \u2014 with human editorial gates at every stage",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["blog", "writing", "narrative", "conversation", "content", "editorial", "storytelling"]
+  "keywords": [
+    "blog",
+    "writing",
+    "narrative",
+    "conversation",
+    "content",
+    "editorial",
+    "storytelling"
+  ]
 }

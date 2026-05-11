@@ -1,11 +1,24 @@
 {
   "name": "cloud-foundation-principles",
-  "version": "1.0.0",
-  "description": "Research-backed, opinionated guidance for building cloud infrastructure that doesn't rot — multi-account governance, naming conventions, IaC organization, security, deployment pipelines, and operational hygiene, distilled from production experience across multiple cloud migrations",
+  "version": "1.0.1",
+  "description": "Research-backed, opinionated guidance for building cloud infrastructure that doesn't rot \u2014 multi-account governance, naming conventions, IaC organization, security, deployment pipelines, and operational hygiene, distilled from production experience across multiple cloud migrations",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["cloud", "infrastructure", "terraform", "iac", "security", "governance", "multi-account", "devops", "deployment", "naming", "secrets", "networking"]
+  "keywords": [
+    "cloud",
+    "infrastructure",
+    "terraform",
+    "iac",
+    "security",
+    "governance",
+    "multi-account",
+    "devops",
+    "deployment",
+    "naming",
+    "secrets",
+    "networking"
+  ]
 }

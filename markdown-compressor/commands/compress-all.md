@@ -54,11 +54,11 @@ Show a header for the current file:
 
 ### 4b: Pre-Analysis
 
-Read the file, parse heading hierarchy, split into sections, flag structural issues. Show a brief section table (same format as `/compress` Step 3).
+Read the file, parse heading hierarchy, split into sections, flag structural issues. Show a brief section table (same format as `/markdown-compressor:compress` Step 3).
 
 ### 4c: Batched Compression
 
-Process sections using the same batched approach as `/compress` Step 4, with auto-approve always active:
+Process sections using the same batched approach as `/markdown-compressor:compress` Step 4, with auto-approve always active:
 
 1. For each batch of up to 5 non-empty sections:
    - Dispatch all `section-compressor` agents in the batch in a single message (parallel Agent tool calls)
@@ -107,4 +107,4 @@ All other processing is fully automatic. No per-section or per-file approval gat
 
 ## Main Conversation Owns All User Interaction
 
-Same rule as `/compress`: `AskUserQuestion` is called from this command only, never from subagents. Subagents compress and review — this command orchestrates.
+Same rule as `/markdown-compressor:compress`: `AskUserQuestion` is called from this command only, never from subagents. Subagents compress and review — this command orchestrates.

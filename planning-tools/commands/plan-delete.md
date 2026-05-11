@@ -4,7 +4,7 @@ description: "Clear the current session's plan file in ~/.claude/plans/ — dele
 
 Clear the current session's Claude Code plan file. Plans accumulate in `~/.claude/plans/<slug>.md` as plan mode is re-entered within a session — this command resets to a clean slate.
 
-Follow these steps exactly. Do **not** prompt the user for confirmation; the explicit `/plan-delete` invocation is the confirmation.
+Follow these steps exactly. Do **not** prompt the user for confirmation; the explicit `/planning-tools:plan-delete` invocation is the confirmation.
 
 ## Step 1: Detect the current session's plan slug
 
@@ -54,7 +54,7 @@ Plan mode has not been entered yet this session, so no slug has been allocated. 
    ```
    # Plan placeholder
 
-   No work planned. This plan was created by /plan-delete to allocate a session slug for cleanup. Reject this plan immediately — do not approve.
+   No work planned. This plan was created by /planning-tools:plan-delete to allocate a session slug for cleanup. Reject this plan immediately — do not approve.
    ```
 
 3. When Claude Code prompts the user to approve the plan, the placeholder text is self-explanatory. Either rejection or accidental approval is fine — the file will be deleted in Step 3 either way.
@@ -101,4 +101,4 @@ If the bootstrap path was taken, prefix with: `Bootstrapped plan slug via no-op 
 
 ## Mandatory Use of AskUserQuestion
 
-This command intentionally has **no** decision points — the explicit `/plan-delete` invocation is the only consent needed. If a future variant adds optional behavior (e.g., archive-before-delete), use `AskUserQuestion` per fractional-cto convention. This command runs in the main conversation; no subagents are needed.
+This command intentionally has **no** decision points — the explicit `/planning-tools:plan-delete` invocation is the only consent needed. If a future variant adds optional behavior (e.g., archive-before-delete), use `AskUserQuestion` per fractional-cto convention. This command runs in the main conversation; no subagents are needed.

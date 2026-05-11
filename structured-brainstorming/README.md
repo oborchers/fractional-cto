@@ -28,10 +28,10 @@ The skill activates when Claude detects relevant work: "how should I approach th
 ### Command
 
 ```
-/brainstorm "How should we design the auth system for our SaaS product?"
+/structured-brainstorming:brainstorm "How should we design the auth system for our SaaS product?"
 ```
 
-The `/brainstorm` command follows an interactive flow:
+The `/structured-brainstorming:brainstorm` command follows an interactive flow:
 
 1. **Problem restatement** — Claude restates the problem for confirmation
 2. **Dispatch or rephrase** — the user chooses to launch parallel agents or refine the problem statement first
@@ -50,7 +50,7 @@ When the user chooses to dispatch, `brainstorm-explorer` subagents are spawned i
 | Skill | `skills/structured-brainstorming/SKILL.md` | Core methods, method selection, subagent dispatch |
 | References | `skills/structured-brainstorming/references/` | Detailed per-method guides (8 files) |
 | Examples | `skills/structured-brainstorming/examples/` | Worked sessions: method depth and parallel agent (2 files) |
-| Command | `commands/brainstorm.md` | `/brainstorm` slash command |
+| Command | `commands/brainstorm.md` | `/structured-brainstorming:brainstorm` slash command |
 | Agent | `agents/brainstorm-explorer.md` | Subagent for parallel exploration |
 | Hooks | `hooks/hooks.json` | SessionStart awareness + UserPromptSubmit detection |
 

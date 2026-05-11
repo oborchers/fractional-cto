@@ -1,11 +1,18 @@
 {
   "name": "structured-brainstorming",
-  "version": "1.1.1",
-  "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration — first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, with user-gated parallel subagent exploration for deep dives",
+  "version": "1.1.2",
+  "description": "Structured thinking methods that counteract LLM reasoning biases during problem exploration \u2014 first principles, inversion, constraint manipulation, perspective forcing, analogy search, and more, with user-gated parallel subagent exploration for deep dives",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["brainstorming", "problem-solving", "thinking", "exploration", "first-principles", "structured-thinking"]
+  "keywords": [
+    "brainstorming",
+    "problem-solving",
+    "thinking",
+    "exploration",
+    "first-principles",
+    "structured-thinking"
+  ]
 }

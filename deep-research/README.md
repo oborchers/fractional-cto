@@ -23,7 +23,7 @@ When using Claude Code for research, three problems emerge:
 
 ### Command
 
-**`/research <topic>`** — Orchestrated research session:
+**`/deep-research:research <topic>`** — Orchestrated research session:
 1. Analyzes query complexity — asks clarifying questions if too vague
 2. Decomposes into subtopics (count emerges from query, not preset)
 3. Spawns parallel `research-worker` agents with web search
@@ -73,7 +73,7 @@ claude --plugin-dir /path/to/deep-research
 
 ```
 # Full orchestrated research session
-/research "How do production LLM agents handle memory and state?"
+/deep-research:research "How do production LLM agents handle memory and state?"
 
 # Skills auto-activate when relevant
 # Ask about source quality → source-evaluation loads
