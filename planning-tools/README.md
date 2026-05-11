@@ -14,7 +14,7 @@ The plugin covers two workflows that complement each other:
 Pre-load context for a future master plan. Four stages:
 
 1. **Stage 1 Triage** — main conversation reads the source artifact and dir-scans likely context locations (`context/`, `docs/`, project root) to propose a non-overlapping domain partition.
-2. **Stage 2 Confirm** — the proposal goes through `AskUserQuestion` (multi-select). User adds, removes, or edits the domain list. Skipped if `--domains` was supplied.
+2. **Stage 2 Confirm** — main conversation prints the proposed N domains as a plain-text numbered list, then asks a **binary** `AskUserQuestion`: `Proceed with all N domains` / `Cancel — I'll re-run with --domains`. Binary (never multi-select) because `AskUserQuestion` has a hard 4-option cap that would crash on typical 5–10-domain partitions. To customize, the user cancels and re-runs with `--domains a,b,c`. Skipped if `--domains` was supplied or Triage yielded only one domain.
 3. **Stage 3 Parallel Explore** — dispatches `plan-context-worker` agents (one per confirmed domain) in a single message. Each writes intermediate findings to `/tmp/plan-context/<topic-slug>/<domain>.md`.
 4. **Stage 4 Verify** — main conversation directly reads 3–6 critical files each worker cited, confirms patterns hold, flags any deltas.
 

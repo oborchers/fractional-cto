@@ -24,16 +24,24 @@ Determine where to write the master plan. Try these locations in order, picking 
 2. `docs/plans/`
 3. `.claude/plans/master/`
 
-If multiple exist, prefer the order above. If **none** exist, ask the user via `AskUserQuestion`:
+If multiple exist, prefer the order above. If **none** exist, use the **binary-confirm pattern** (avoids `AskUserQuestion`'s 4-option cap):
 
-- The three candidates above (with "create new" alongside each)
-- An "Other" path the user types
+1. **Print** the candidate directories as a plain-text numbered list with creation status:
+   ```
+   No standard plan directory found. Candidate locations under <git root>:
+     1. context/tickets/ — does not exist (will create)
+     2. docs/plans/ — does not exist (will create)
+     3. .claude/plans/master/ — does not exist (will create)
+   ```
+2. **Call `AskUserQuestion`** with exactly two options:
+   - **Option 1 (recommended):** `"Create context/tickets/ and use it"` — description: "Make the standard ticket-style directory and write the plan there."
+   - **Option 2:** `"Cancel — I'll re-run with explicit path"` — description: "Stop now. Re-run /planning-tools:plan-master with the path arg set explicitly."
 
 The plan filename defaults to:
 - `<TICKET-ID>-PLAN.md` if the topic is a ticket ID
 - A kebab-case slug derived from the topic otherwise
 
-Confirm the resolved path with the user via `AskUserQuestion` (`Use <path>` vs `Choose different`) before any work.
+Once the directory is settled, confirm the **final plan file path** (directory + filename) with the user via `AskUserQuestion`: `"Use <path>"` / `"Choose different"` — exactly 2 options. Both fixed (FIXED-pattern, safe).
 
 ---
 
@@ -44,7 +52,7 @@ If `--context <report-path>` is supplied, **skip this step** and go to Step 3.
 Otherwise, run the same four stages as `/planning-tools:plan-context`:
 
 1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, propose a domain partition.
-2. **Stage 2 — Confirm domains** (`AskUserQuestion`): present the proposed partition; user can add/remove/edit. Skip if `--domains` was supplied or Triage yielded a single trivial domain.
+2. **Stage 2 — Confirm domains** (binary `AskUserQuestion`): print the proposed N domains as a plain-text numbered list, then call `AskUserQuestion` with exactly two options — `"Proceed with all N domains"` / `"Cancel — I'll re-run with --domains"`. Never multi-select. Skip Stage 2 entirely if `--domains` was supplied or Triage yielded a single trivial domain. (Same pattern as `/planning-tools:plan-context` Stage 2.)
 3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each writes findings to `/tmp/plan-context/<topic-slug>/<domain>.md`.
 4. **Stage 4 — Verify**: read 3–6 critical files each worker cited to confirm patterns hold.
 

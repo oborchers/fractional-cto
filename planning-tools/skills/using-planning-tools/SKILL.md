@@ -1,7 +1,7 @@
 ---
 name: using-planning-tools
 description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-verify, /plan-tick, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, or mentions ~/.claude/plans/. Provides the index of planning-tools commands, the master-plan workflow lifecycle, and the mechanics of Claude Code's plan-mode file storage."
-version: 0.4.0
+version: 0.4.1
 ---
 
 # Planning Tools
@@ -19,9 +19,9 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 
 | Command | Triggers On |
 |---------|-------------|
-| `/planning-tools:plan-context [topic] [--domains a,b,c]` | Pre-loading context for a future master plan. Stage 1 Triage proposes domains, Stage 2 Confirm (AskUserQuestion) lets the user adjust, Stage 3 dispatches parallel `plan-context-worker` agents (one per domain), Stage 4 verifies findings with direct Reads. Emits a scope report. NO plan file written. |
-| `/planning-tools:plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/planning-tools:plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight. Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
-| `/planning-tools:plan-verify <path>` | Auditing a drafted master plan. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
+| `/planning-tools:plan-context [topic] [--domains a,b,c]` | Pre-loading context for a future master plan. Stage 1 Triage proposes domains, Stage 2 Confirm prints them as text + asks a **binary** `AskUserQuestion` (Proceed / Cancel — never multi-select, since the 4-option cap would crash on common N≥5), Stage 3 dispatches parallel `plan-context-worker` agents (one per domain), Stage 4 verifies findings with direct Reads. Emits a scope report. NO plan file written. |
+| `/planning-tools:plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/planning-tools:plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight (Stage 2 uses the same binary-confirm pattern). Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
+| `/planning-tools:plan-verify [path]` | Auditing a drafted master plan. If no path is supplied, globs candidates and uses binary-confirm (Proceed with most-recent / Cancel) to pick. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
 | `/planning-tools:plan-tick [phase] [path]` | Auto-ticking provenly-achieved phases in a master plan. **Default (no args):** detects the current branch, resolves the master plan that matches it, dispatches the `plan-tick-auditor` agent to audit each unticked phase against the working tree + branch diff, ticks all phases verdicted `ACHIEVED`. **Manual override** `/planning-tools:plan-tick <phase>`: ticks one phase without audit. Both modes are non-interactive — never asks. Works only on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+. |
 | `/planning-tools:plan-delete` | Clearing the current session's plan file at `~/.claude/plans/<slug>.md`. Detects the slug via `$CLAUDE_CODE_SESSION_ID` + transcript grep, deletes the file, recreates empty, re-reads. Bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` if the session has never entered plan mode. |
 

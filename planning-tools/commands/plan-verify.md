@@ -7,7 +7,24 @@ You are **auditing a master planning document** against the `plan-verification-c
 
 **Input:** `$ARGUMENTS` — the path to the master plan.
 
-If arguments are empty, ask the user for the plan path via `AskUserQuestion`. Offer to glob `context/tickets/*-PLAN.md`, `docs/plans/*.md`, `.claude/plans/master/*.md` (whichever exists) and present a multi-select to pick from.
+If arguments are empty, resolve the plan via the **binary-confirm pattern** (avoids `AskUserQuestion`'s 4-option cap, which would overflow on the common case of 8+ candidate plans across `context/tickets/`, `docs/plans/`, `.claude/plans/master/`):
+
+1. **Glob** `context/tickets/*-PLAN.md`, `docs/plans/*.md`, `.claude/plans/master/*.md` (whichever exists) under the git root. Sort by modification time, newest first.
+2. **0 candidates:** error with the three searched paths and a hint to pass an explicit path.
+3. **1 candidate:** use it. Print the resolved path. Continue to Step 1.
+4. **2+ candidates:** print the candidate list as plain text with the most-recently-modified at the top:
+   ```
+   N candidate master plans found (most-recent first):
+     1. context/tickets/CI-21-PLAN.md — modified <date>
+     2. context/tickets/CI-08-LITE-PLAN.md — modified <date>
+     ...
+     N. docs/plans/foo.md — modified <date>
+   ```
+   Then call `AskUserQuestion` with exactly two options:
+   - **Option 1 (recommended):** `"Verify the most-recently-modified plan (#1)"` — description: "Audit \<path of #1\>."
+   - **Option 2:** `"Cancel — I'll re-run with explicit path"` — description: "Stop. Re-run /planning-tools:plan-verify <path> to target a specific plan."
+
+   Branch on the answer. On Proceed, use the #1 (most-recently-modified) plan and continue to Step 1. On Cancel, stop.
 
 ---
 

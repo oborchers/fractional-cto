@@ -36,19 +36,38 @@ Output the proposed partition as a numbered list with a one-line scope hint per 
 
 ---
 
-## Stage 2 — Confirm domains (`AskUserQuestion`)
+## Stage 2 — Confirm domains (binary `AskUserQuestion`)
 
-Present the proposed partition to the user via `AskUserQuestion` (multi-select):
+**Why binary, not multi-select:** `AskUserQuestion` has a hard maximum of 4 options per question. Real triages routinely propose 5–10 domains (backend, frontend, analytics, i18n, research, adrs, infra, tests). A multi-select with one option per domain overflows the cap and crashes the command. The binary fallback works for any N.
 
-- Each proposed domain becomes one option labelled with the domain name and a short scope hint.
-- Allow the user to deselect domains they don't want investigated.
-- The "Other" path lets the user add a domain (free-text).
+**The pattern:**
+
+1. **Print** the proposed partition as a plain-text numbered list directly in the conversation (not via `AskUserQuestion`). One line per domain with a one-line scope hint:
+
+   ```
+   Proposed N domains:
+     1. backend — Supabase edge functions in supabase/functions/<area>/
+     2. frontend — React components under src/features/<area>/
+     3. analytics — event shapes referenced in analytics/<area>.ts
+     ...
+     N. <domain> — <hint>
+   ```
+
+2. **Call `AskUserQuestion`** with exactly one question and exactly **two** options:
+
+   - **Question:** `"Proceed with all N domains?"`
+   - **Option 1 (recommended):** `"Proceed with all N domains"` — description: "Continue to Stage 3 and dispatch one plan-context-worker per domain."
+   - **Option 2:** `"Cancel — I'll re-run with --domains"` — description: "Stop now. Re-run /planning-tools:plan-context with --domains a,b,c to specify exactly which domains to investigate."
+
+3. **Branch on the answer:**
+   - **Proceed:** continue to Stage 3 with the full proposed list.
+   - **Cancel:** stop and instruct the user to re-run with `--domains <list>`.
 
 **Skip Stage 2 entirely if:**
-- `--domains a,b,c` was supplied — use that list verbatim.
+- `--domains a,b,c` was supplied — use that list verbatim (no print, no question).
 - Triage proposed only one domain — fan out to a single Explore agent with no Confirm step.
 
-After confirmation, the surviving list of domains drives Stage 3.
+This is the **canonical binary-confirm pattern** for the plugin. The same pattern applies to any dynamic-length list (candidate plans, candidate paths, etc.) — never use multi-select for dynamic data, because the 4-option cap will eventually break it.
 
 ---
 
@@ -141,7 +160,7 @@ After emitting the report, **stop**. The user will either run `/planning-tools:p
 
 ## Mandatory Use of AskUserQuestion
 
-- **Stage 2 (Confirm domains)** — the main conversation calls `AskUserQuestion` (multi-select) after Triage proposes domains. Subagents never call it.
+- **Stage 2 (Confirm domains)** — the main conversation prints the proposed domain list as plain text, then calls `AskUserQuestion` with **exactly two options** (`Proceed` / `Cancel`). Never multi-select — the 4-option cap would crash on common N≥5 triages. Subagents never call `AskUserQuestion` at all.
 - If the source artifact cannot be located (Read fails on a supplied path, or the topic doesn't resolve to a file), ask the user via `AskUserQuestion` whether to proceed with the topic as a free-form brief or to provide a path.
 
 The main conversation owns all user interaction. Subagents only fetch and report.
