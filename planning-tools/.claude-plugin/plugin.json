@@ -1,11 +1,11 @@
 {
   "name": "planning-tools",
-  "version": "0.1.0",
-  "description": "Tools for managing Claude Code's plan-mode artifacts in ~/.claude/plans/ — clean up stale plans, reset the current session's plan file, and (future) inspect, archive, and master plan workflows",
+  "version": "0.2.0",
+  "description": "Manage Claude Code's plan-mode artifacts and author multi-phase master planning documents. Provides /plan-context (pre-load), /plan-master (draft), /plan-verify (audit), and /plan-delete (per-session cleanup). Integer-only phases, no sizing, project-agnostic.",
   "author": {
     "name": "Dr. Oliver Borchers"
   },
   "repository": "https://github.com/oborchers/fractional-cto",
   "license": "MIT",
-  "keywords": ["plan-mode", "planning", "cleanup", "workflow", "claude-code"]
+  "keywords": ["plan-mode", "planning", "master-plan", "multi-phase", "verify-plan", "cleanup", "workflow", "claude-code"]
 }

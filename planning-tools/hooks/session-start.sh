@@ -6,10 +6,26 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-session_context="<IMPORTANT>\nYou have the planning-tools plugin installed.\n\nThis plugin manages Claude Code's plan-mode artifacts that live at ~/.claude/plans/<slug>.md. Each session reuses its allocated slug across re-plans and compactions, so the file accumulates content unless explicitly cleared.\n\nAvailable commands:\n- /plan-delete — Clear the current session's plan file: detect via \$CLAUDE_CODE_SESSION_ID + transcript grep, delete, recreate empty, re-read so the session is primed for the next plan. If the session has not entered plan mode yet, bootstrap with a no-op plan (EnterPlanMode → minimal placeholder → ExitPlanMode) before cleaning.\n\nFor methodology and detection details, see the using-planning-tools skill.\n</IMPORTANT>"
+# Read the using-planning-tools skill content
+using_skill_content=$(cat "${PLUGIN_ROOT}/skills/using-planning-tools/SKILL.md" 2>&1 || echo "Error reading using-planning-tools skill")
+
+# Escape string for JSON embedding
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+using_skill_escaped=$(escape_for_json "$using_skill_content")
+session_context="<IMPORTANT>\nYou have the planning-tools plugin installed.\n\n**Below is the skill index. For individual principles, use the 'Skill' tool:**\n\n${using_skill_escaped}\n</IMPORTANT>"
 
 cat <<EOF
 {
+  "additional_context": "${session_context}",
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
     "additionalContext": "${session_context}"
