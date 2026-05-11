@@ -4,7 +4,7 @@
 
 # fractional-cto: The AI CTO Co-Pilot for SaaS Engineering
 
-> 93 skills, 15 commands, and 16 agents across 11 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
+> 94 skills, 16 commands, and 16 agents across 12 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
 
 ![Plugins overview](.docs/images/plugins-overview.png)
 
@@ -18,6 +18,7 @@ Auditing code quality? `/pedantic-review`
 Researching a topic? `/research "your question"`
 Stress-testing a plan? `/stress-test path/to/plan.md`
 Compressing your CLAUDE.md? `/compress path/to/file.md`
+Resetting your plan file? `/plan-delete`
 
 If this project helps you, star the repo.
 
@@ -57,6 +58,7 @@ Each plugin carries review checklists, good/bad pattern comparisons, working cod
 /plugin install retell@fractional-cto
 /plugin install stress-test@fractional-cto
 /plugin install markdown-compressor@fractional-cto
+/plugin install planning-tools@fractional-cto
 ```
 
 ### Other AI assistants (skills only)
@@ -421,6 +423,25 @@ Adversarial plan review using two independent agents: a red team generates what-
 - `/stress-test ./docs/implementation-plan.md` -- Stress-test a code implementation plan
 - `/stress-test ./strategy/go-to-market.md` -- Challenge a business plan against supporting docs
 - `Is my plan sound? Run a stress test on it.`
+
+</details>
+
+<details>
+<summary><strong>12. planning-tools</strong> -- Manage Claude Code plan-mode artifacts in ~/.claude/plans/ (1 skill, 1 command, 0 agents)</summary>
+
+Tools for managing Claude Code's plan-mode files. Each session reuses one slug in ~/.claude/plans/<slug>.md across re-plans and compactions, so content accumulates unless explicitly cleared. Detection uses the authoritative `"slug"` field in the session transcript at ~/.claude/projects/<encoded-cwd>/<session-id>.jsonl -- never file mtime (breaks with parallel sessions).
+
+**Skills (1):**
+
+- `using-planning-tools` -- Meta-skill: index of commands, detection mechanics, plan-mode file storage
+
+**Commands:** `/plan-delete` -- Clear the current session's plan file: detect via $CLAUDE_CODE_SESSION_ID + transcript slug field, delete, recreate empty, re-read to prime the next plan. Bootstraps with EnterPlanMode/ExitPlanMode if plan mode has never been entered this session.
+
+**Examples:**
+
+- `/plan-delete` -- Reset the current session's plan file before drafting a new plan
+- `My plan file is stale, clear it.`
+- `Start fresh with plan mode in this session.`
 
 </details>
 

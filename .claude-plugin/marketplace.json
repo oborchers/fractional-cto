@@ -103,6 +103,15 @@
       "author": {
         "name": "Dr. Oliver Borchers"
       }
+    },
+    {
+      "name": "planning-tools",
+      "description": "Tools for managing Claude Code's plan-mode artifacts in ~/.claude/plans/ -- clean up stale plans, reset the current session's plan file, and (future) inspect, archive, and master plan workflows",
+      "version": "0.1.0",
+      "source": "./planning-tools",
+      "author": {
+        "name": "Dr. Oliver Borchers"
+      }
     }
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "name": "planning-tools",
+  "version": "0.1.0",
+  "description": "Tools for managing Claude Code's plan-mode artifacts in ~/.claude/plans/ — clean up stale plans, reset the current session's plan file, and (future) inspect, archive, and master plan workflows",
+  "author": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "repository": "https://github.com/oborchers/fractional-cto",
+  "license": "MIT",
+  "keywords": ["plan-mode", "planning", "cleanup", "workflow", "claude-code"]
+}
