@@ -46,13 +46,22 @@ Audit a drafted master plan against the `plan-verification-checklist` skill. Dis
 
 Emits Critical / Important / Suggestion findings with `path:line` references and a PASS / FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block (with explicit user approval via `AskUserQuestion`).
 
-### `/planning-tools:plan-tick <phase-number> [path]`
+### `/planning-tools:plan-tick [phase-number] [path]`
 
-Mark a phase ✅ done in a master plan. Updates **only** the Status cell of the matched row — the Name cell and every other section are untouched. Idempotent: re-running on an already-done phase is a no-op.
+**Auto mode (no args):** detect the current branch, find the master plan that matches it (by filename → branch-name substring), dispatch the `plan-tick-auditor` agent (sonnet) to verdict each unticked phase against the working tree + branch diff vs the merge-base, then tick every phase the auditor verdicts `ACHIEVED`. Conservative — `UNCERTAIN` and `NOT_ACHIEVED` phases stay unticked.
 
-Plan discovery follows the same path resolution as `/planning-tools:plan-master` (`context/tickets/`, `docs/plans/`, `.claude/plans/master/` under the git root). If multiple master plans exist, the command asks via `AskUserQuestion` (most-recently-modified labelled "(recent)"). If the phase number is omitted, the command asks via `AskUserQuestion` with the current pending phases listed.
+**Manual override:** `/planning-tools:plan-tick <phase>` ticks the named phase explicitly without invoking the auditor. Use this when the auditor under-judges (e.g., non-code phases like documentation or planning) or when you know better than the audit.
 
-Only works on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
+Both modes are **non-interactive** — the command never calls `AskUserQuestion`. If something cannot be resolved deterministically (e.g., not in a git repo, no master plans found, malformed plan), it errors with a clear message.
+
+**Plan discovery in auto mode:**
+1. Glob candidates under `context/tickets/`, `docs/plans/`, `.claude/plans/master/` (relative to git root).
+2. If exactly one candidate exists → use it.
+3. If multiple → pick the one whose normalized basename appears in the normalized current branch name (case + separator insensitive).
+4. If multiple match → pick the most-recently-modified among the matches.
+5. If no match → fall back to the most-recently-modified candidate overall.
+
+Only works on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
 
 ### `/planning-tools:plan-delete`
 

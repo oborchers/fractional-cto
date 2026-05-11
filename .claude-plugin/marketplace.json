@@ -106,8 +106,8 @@
     },
     {
       "name": "planning-tools",
-      "description": "Manage Claude Code's plan-mode artifacts and author multi-phase master planning documents. Provides /plan-context (pre-load), /plan-master (draft), /plan-verify (audit), /plan-tick (mark phase done), and /plan-delete (per-session cleanup). Integer-only phases, no sizing, project-agnostic.",
-      "version": "0.3.1",
+      "description": "Manage Claude Code's plan-mode artifacts and author multi-phase master planning documents. Provides /plan-context (pre-load), /plan-master (draft), /plan-verify (audit), /plan-tick (auto-tick provenly-achieved phases from the current branch), and /plan-delete (per-session cleanup). Integer-only phases, no sizing, project-agnostic.",
+      "version": "0.4.0",
       "source": "./planning-tools",
       "author": {
         "name": "Dr. Oliver Borchers"
