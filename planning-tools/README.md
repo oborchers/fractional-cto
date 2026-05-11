@@ -46,18 +46,27 @@ Audit a drafted master plan against the `plan-verification-checklist` skill. Dis
 
 Emits Critical / Important / Suggestion findings with `path:line` references and a PASS / FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block (with explicit user approval via `AskUserQuestion`).
 
+### `/plan-tick <phase-number> [path]`
+
+Mark a phase ✅ done in a master plan. Updates **only** the Status cell of the matched row — the Name cell and every other section are untouched. Idempotent: re-running on an already-done phase is a no-op.
+
+Plan discovery follows the same path resolution as `/plan-master` (`context/tickets/`, `docs/plans/`, `.claude/plans/master/` under the git root). If multiple master plans exist, the command asks via `AskUserQuestion` (most-recently-modified labelled "(recent)"). If the phase number is omitted, the command asks via `AskUserQuestion` with the current pending phases listed.
+
+Only works on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
+
 ### `/plan-delete`
 
 Clear the current session's plan file at `~/.claude/plans/<slug>.md`. Detects this session's slug by grepping the transcript at `~/.claude/projects/<encoded-cwd>/$CLAUDE_CODE_SESSION_ID.jsonl` — never relies on file mtime (which breaks with parallel sessions). Deletes the file, recreates it empty, re-reads it so the session is primed for the next plan-mode entry. Bootstraps via `EnterPlanMode` → no-op placeholder → `ExitPlanMode` if plan mode has never been entered.
 
-## The 5-step Master Plan Workflow
+## The 6-step Master Plan Workflow
 
 ```
 1. /plan-context         → scope report (no plan written)
 2. /plan-master          → multi-phase plan drafted to project-local path
 3. /plan-verify          → Critical/Important/Suggestion findings + PASS/FAIL
-4. Manual phase loop     → copy phase into built-in /plan, execute, tick row
-5. /plan-delete          → clear per-session plan file, loop back to step 4
+4. Manual phase loop     → copy phase into built-in /plan, execute
+5. /plan-tick <phase>    → mark the completed phase ✅ in the master plan
+6. /plan-delete          → clear per-session plan file, loop back to step 4
 ```
 
 ## Master-Plan Conventions

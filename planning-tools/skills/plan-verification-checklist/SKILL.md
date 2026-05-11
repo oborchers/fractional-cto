@@ -1,7 +1,7 @@
 ---
 name: plan-verification-checklist
-description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, trigger-based section-coverage gaps, phase actionability, integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, and Open Questions placement. Single-owner of the audit checklist.
-version: 0.2.0
+description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, trigger-based section-coverage gaps, phase actionability, integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
+version: 0.2.1
 ---
 
 # Plan Verification Checklist
@@ -128,7 +128,20 @@ If Open Questions is at the bottom = **Important**.
 
 Sizing present = **Important** (will be deleted on next revision).
 
-### 10. Status conventions
+### 10. One PR per master plan
+
+Scan every phase scope and every section other than `Release`:
+
+- [ ] No `gh pr create` instructions inside a phase
+- [ ] No "Open PR" / "Merge PR" / "Request review" instructions inside a phase
+- [ ] No "Reviewer can sign off after this phase" or similar per-phase PR handoff
+- [ ] No per-phase merges to `main`, `master`, or `develop`
+
+Per-phase `git commit` and `git push` to the working branch are **allowed** — do not flag them.
+
+Per-phase PR creation, merging, or review-request = **Critical**. The fix is to remove the per-phase PR prose and move it (if needed) into a single `Release` section at the bottom of the plan.
+
+### 11. Status conventions
 
 - [ ] `Status` column uses emoji from the set `⏳ 🚧 ✅ ❌`
 - [ ] No raw text like "Pending" / "Done" instead of emoji (the column header is "Status", values are emoji)

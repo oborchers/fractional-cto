@@ -146,4 +146,6 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 
 10. **One H1, one synopsis.** The H1 is the title. No additional H1s anywhere in the document.
 
-11. **Honor the methodology skill.** Read `planning-tools:master-plan-methodology` first and write to its spec. If you find yourself wanting to deviate, stop and re-read the skill — the answer is almost certainly already there.
+11. **One PR per master plan — never per phase.** Per-phase `git commit` and `git push` to the working branch are **allowed and encouraged** (they keep history clean and the branch in sync). What is forbidden is per-phase PR creation: do NOT write `gh pr create`, "Open PR", "Merge PR", "Reviewer can sign off after this phase", or any per-phase merge to `main`/`master`/`develop` inside a phase. All PR-related content (title, body, manual QA, deployment notes) goes in **one optional `Release` section at the bottom of the plan** that describes the single PR shipping after all phases land. Treat any urge to add per-phase PR/merge prose as a signal that the phase boundary is wrong.
+
+12. **Honor the methodology skill.** Read `planning-tools:master-plan-methodology` first and write to its spec. If you find yourself wanting to deviate, stop and re-read the skill — the answer is almost certainly already there.

@@ -1,7 +1,7 @@
 ---
 name: using-planning-tools
-description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-verify, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, or mentions ~/.claude/plans/. Provides the index of planning-tools commands, the master-plan workflow lifecycle, and the mechanics of Claude Code's plan-mode file storage."
-version: 0.2.0
+description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-verify, /plan-tick, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, or mentions ~/.claude/plans/. Provides the index of planning-tools commands, the master-plan workflow lifecycle, and the mechanics of Claude Code's plan-mode file storage."
+version: 0.3.0
 ---
 
 # Planning Tools
@@ -22,9 +22,10 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 | `/plan-context [topic] [--domains a,b,c]` | Pre-loading context for a future master plan. Stage 1 Triage proposes domains, Stage 2 Confirm (AskUserQuestion) lets the user adjust, Stage 3 dispatches parallel `plan-context-worker` agents (one per domain), Stage 4 verifies findings with direct Reads. Emits a scope report. NO plan file written. |
 | `/plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight. Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
 | `/plan-verify <path>` | Auditing a drafted master plan. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
+| `/plan-tick <phase> [path]` | Marking a phase ✅ done in a master plan. Updates only the Status cell of the matched row in the Implementation Phases table. Idempotent. Discovers candidate plans via path resolution if no path supplied; asks via AskUserQuestion when multiple plans or no phase number provided. Works only on plans conforming to `master-plan-methodology` v0.2.1+ (integer phases + Status column). |
 | `/plan-delete` | Clearing the current session's plan file at `~/.claude/plans/<slug>.md`. Detects the slug via `$CLAUDE_CODE_SESSION_ID` + transcript grep, deletes the file, recreates empty, re-reads. Bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` if the session has never entered plan mode. |
 
-## The 5-step Master Plan Workflow
+## The 6-step Master Plan Workflow
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
@@ -45,9 +46,12 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 │     User copies the next unticked phase from the master plan into │
 │     Claude Code's built-in /plan. Plan mode produces the per-     │
 │     phase plan at ~/.claude/plans/<slug>.md. User executes.       │
-│     User manually ticks the row in the master plan.               │
 ├───────────────────────────────────────────────────────────────────┤
-│  5. /plan-delete                                                  │
+│  5. /plan-tick <phase>                                            │
+│     Mark the completed phase ✅ in the master plan's Status cell. │
+│     Idempotent. Status cell only — no other edits.                │
+├───────────────────────────────────────────────────────────────────┤
+│  6. /plan-delete                                                  │
 │     Clears the per-session plan file. Loop back to step 4.        │
 └───────────────────────────────────────────────────────────────────┘
 ```

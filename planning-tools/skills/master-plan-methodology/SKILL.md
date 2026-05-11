@@ -1,7 +1,7 @@
 ---
 name: master-plan-methodology
-description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, status conventions, evidence attribution, callouts, and cross-reference formats for master plans. Project-agnostic — no ticket-prefix or plan-type taxonomy.
-version: 0.2.0
+description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, and cross-reference formats for master plans. Project-agnostic — no ticket-prefix or plan-type taxonomy.
+version: 0.2.1
 ---
 
 # Master Plan Methodology
@@ -61,6 +61,32 @@ The architect adds these **based on what the work touches**, derived from the wo
 | Work has tests | **Tests** (Unit / Integration / E2E) |
 | Work has prerequisites | **Prerequisites** (what must ship first) |
 | Project has guideline docs (e.g., `FEATURE.md`) | **\<Project\>.md Compliance** — checklist against those guidelines |
+| Plan ships as a single PR (almost always) | **Release** — the *one* PR description that ships after all phases land: title, body summary, manual QA, deployment notes. The **only** place where `git push` / `gh pr create` belong. Optional but recommended for non-trivial plans. |
+
+## One PR per master plan (non-negotiable)
+
+A master plan ships as **one pull request**, opened once after the final phase lands — not one PR per phase.
+
+**Per-phase `git commit` and `git push` are explicitly allowed and encouraged** — they keep the working branch in sync, give reviewers a clean per-phase history, and survive machine failures. What is *not* allowed is opening, merging, or requesting review on a PR per phase.
+
+Phase scope **may** include:
+
+- File paths to modify
+- Code patterns and structure
+- Local verification (tests pass, type-check passes, behavior verified)
+- Exit criteria / Definition of Done
+- `git add` / `git commit` / `git push` instructions (per-phase commits to the working branch are fine)
+
+Phase scope **must not** include:
+
+- `gh pr create` instructions
+- "Open PR" / "Merge PR" / "Request review" instructions
+- "Reviewer can sign off after this phase" or any per-phase PR handoff
+- Per-phase merges to `main` / `master` / `develop` or any shared branch
+
+If the work requires staged releases (e.g., a feature-flag rollout split across PRs), that is the rare exception and **must** be modelled as separate master plans, not as per-phase PRs inside one plan.
+
+A single optional **Release** section at the bottom of the master plan describes the one PR that ships after all phases complete (title, body summary, manual QA steps to run before merge). This is the only place where `gh pr create` belongs.
 
 ## Integer phase numbering (non-negotiable)
 

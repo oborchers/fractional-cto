@@ -46,6 +46,7 @@ You will receive:
    - Citation resolution (every evidence claim traceable)
    - Callout/evidence convention compliance (bold-prefix labels, blockquote use)
    - **Open Questions placement** — must be immediately after context block; if at the bottom, Important finding.
+   - **One PR per master plan** — phases may contain `git commit`/`git push` but must NOT contain `gh pr create`, "Open PR", "Merge PR", per-phase merges to shared branches, or per-phase reviewer-signoff prose. Any of those = Critical. PR content belongs only in an optional `Release` section at the end.
    - No sizing estimates
    - Status conventions (emoji from `⏳ 🚧 ✅ ❌`)
 
