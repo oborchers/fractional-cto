@@ -1,7 +1,7 @@
 ---
 name: using-planning-tools
-description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-verify, /plan-tick, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, or mentions ~/.claude/plans/. Provides the index of planning-tools commands, the master-plan workflow lifecycle, and the mechanics of Claude Code's plan-mode file storage."
-version: 0.4.1
+description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-verify, /plan-tick, /plan-progress, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, asks how to write progress entries, or mentions ~/.claude/plans/ or .claude/planning-tools.local.md. Provides the index of planning-tools commands, the master-plan workflow lifecycle, the progress-entry methodology, and the mechanics of Claude Code's plan-mode file storage."
+version: 0.5.0
 ---
 
 # Planning Tools
@@ -23,22 +23,25 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 | `/planning-tools:plan-master <topic> [--context <path>] [--domains a,b,c]` | Drafting a multi-phase master plan. Reuses a prior `/planning-tools:plan-context` report if `--context` is supplied; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight (Stage 2 uses the same binary-confirm pattern). Then dispatches `plan-master-architect` (opus) to synthesize. Writes to a project-local path (`context/tickets/`, `docs/plans/`, or `.claude/plans/master/`). |
 | `/planning-tools:plan-verify [path]` | Auditing a drafted master plan. If no path is supplied, globs candidates and uses binary-confirm (Proceed with most-recent / Cancel) to pick. Dispatches `plan-verifier` agent against the `plan-verification-checklist` skill. Emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block. |
 | `/planning-tools:plan-tick [phase] [path]` | Auto-ticking provenly-achieved phases in a master plan. **Default (no args):** detects the current branch, resolves the master plan that matches it, dispatches the `plan-tick-auditor` agent to audit each unticked phase against the working tree + branch diff, ticks all phases verdicted `ACHIEVED`. **Manual override** `/planning-tools:plan-tick <phase>`: ticks one phase without audit. Both modes are non-interactive — never asks. Works only on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+. |
+| `/planning-tools:plan-progress [--final] [--destination <type>:<id>] [--style-from <path>] [--ticket <id>]` | Synthesizing a single dense progress entry for the current branch and applying it at the configured destination (markdown file / Linear comment / GitHub issue/PR comment). Reuses plan-tick's branch + plan resolution. SHA-based idempotency: safe to re-run between phases. Three-way detection on the existing entry: new / in-flight update / completed (3-option refresh prompt). First-run destination selection persists to `.claude/planning-tools.local.md`. `--final` flips to shipped state with `**Shipped <date> via PR #<N>.**` + `✅` heading. Dispatches the `plan-progress-synthesizer` agent (sonnet). Style spec, sub-markers, and adapter contracts in `planning-tools:progress-methodology`. |
 | `/planning-tools:plan-delete` | Clearing the current session's plan file at `~/.claude/plans/<slug>.md`. Detects the slug via `$CLAUDE_CODE_SESSION_ID` + transcript grep, deletes the file, recreates empty, re-reads. Bootstraps with `EnterPlanMode` → no-op plan → `ExitPlanMode` if the session has never entered plan mode. |
 
-## The 6-step Master Plan Workflow
+## The 7-step Master Plan Workflow
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│  1. /planning-tools:plan-context [topic] [--domains a,b,c]                       │
-│     Stage 1 Triage → Stage 2 Confirm → Stage 3 Parallel Explore   │
-│     → Stage 4 Verify. Emits a scope report. No plan file written. │
+│  1. /planning-tools:plan-context [topic] [--domains a,b,c]        │
+│     Stage 0 (optional ticket-fetch) → Stage 1 Triage → Stage 2    │
+│     Confirm → Stage 3 Parallel Explore → Stage 4 Verify. Emits a  │
+│     scope report. No plan file written.                           │
 ├───────────────────────────────────────────────────────────────────┤
-│  2. /planning-tools:plan-master <topic> [--context <report-path>]                │
-│     Reuses /planning-tools:plan-context report (if --context) or runs the same   │
-│     pre-flight, then dispatches plan-master-architect (opus) to   │
-│     synthesize. Writes to a project-local path.                   │
+│  2. /planning-tools:plan-master <topic> [--context <report-path>] │
+│     Reuses /plan-context report (if --context) or runs the same   │
+│     pre-flight. Auto-fetches ticket title + body + all comments   │
+│     if topic matches a Linear/GitHub pattern. Dispatches          │
+│     plan-master-architect (opus). Writes to a project-local path. │
 ├───────────────────────────────────────────────────────────────────┤
-│  3. /planning-tools:plan-verify <path>                                           │
+│  3. /planning-tools:plan-verify <path>                            │
 │     Audits the drafted plan. Critical/Important/Suggestion        │
 │     findings + PASS/FAIL verdict. Optional Verified callout.      │
 ├───────────────────────────────────────────────────────────────────┤
@@ -51,10 +54,19 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 │     Auto-tick: branch-matched plan + auditor-verdicted ACHIEVED   │
 │     phases get ✅. Conservative. Manual override: /plan-tick <n>. │
 ├───────────────────────────────────────────────────────────────────┤
-│  6. /planning-tools:plan-delete                                                  │
+│  6. /planning-tools:plan-progress [--final]                       │
+│     Synthesize one dense entry per branch; append/update at the   │
+│     configured destination (markdown / Linear / GitHub). SHA-     │
+│     based idempotency, three-way entry detection, --final ships.  │
+├───────────────────────────────────────────────────────────────────┤
+│  7. /planning-tools:plan-delete                                   │
 │     Clears the per-session plan file. Loop back to step 4.        │
 └───────────────────────────────────────────────────────────────────┘
 ```
+
+## Ticket-aware planning
+
+`/planning-tools:plan-master` and `/planning-tools:plan-context` accept a ticket URL or ID as their first argument. When matched (Linear `[A-Z]{2,6}-\d+` or `https://linear.app/...`; GitHub `https://github.com/<owner>/<repo>/issues/<N>` or `<owner>/<repo>#<N>`), the plugin fetches the ticket via the source adapter — title, body, and **all comments, no cap** — and propagates the block to Stage 1 Triage + every Stage 3 worker + the architect. The architect prepends `> **Ticket:** <url>` above the Context block. Free-text topics still work — on no pattern match, existing behavior is preserved. See `planning-tools:progress-methodology` for the adapter contract.
 
 ## Supporting Skills
 
@@ -62,6 +74,7 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 |---|---|
 | `planning-tools:master-plan-methodology` | Codifies the master-plan template: universal core sections, trigger-based optional sections, integer-only phase rule, Open Questions at top, status emoji convention, evidence attribution, callouts, cross-references. Read this before authoring or reviewing any master plan. |
 | `planning-tools:plan-verification-checklist` | Single owner of the audit dimensions used by `/planning-tools:plan-verify` and the `plan-verifier` agent. Defines severity (Critical/Important/Suggestion) and the PASS/FAIL verdict rule. |
+| `planning-tools:progress-methodology` | Single owner of the progress-entry style (dense paragraph), sub-marker convention (`Piggybacked:` / `Verification:` / `Out of scope:` / `Shipped`), entry-key marker format, SHA-tracking idempotency algorithm, three-way detection rule, comment-fetch policy (all comments, no cap), and the source + destination adapter contracts (markdown / Linear / GitHub). Read this when running or maintaining `/planning-tools:plan-progress`. |
 
 ## How Per-Session Plan File Detection Works
 

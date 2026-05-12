@@ -8,11 +8,34 @@ You are **drafting a master planning document**. The output is a project-local `
 **Input:** `$ARGUMENTS`
 
 Parse the arguments:
-- **Topic** (required) — a ticket ID, file path, or free-form scope statement.
+- **Topic** (required) — a ticket ID, ticket URL, file path, or free-form scope statement.
 - `--context <path>` (optional) — path to a scratch directory from a prior `/planning-tools:plan-context` run (containing per-domain worker findings). If supplied, **skip the discovery pre-flight** and go straight to synthesis.
 - `--domains a,b,c` (optional) — pre-seed the domain partition (skips Stage 2 Confirm).
 
 If arguments are empty, ask the user for a topic via `AskUserQuestion` before proceeding.
+
+### Ticket-source detection (Step 0)
+
+Before treating the topic as free-text, run pattern detection against the first argument. If it matches one of these forms, **fetch the ticket source** via the adapter contract codified in `planning-tools:progress-methodology`:
+
+| Pattern | Provider |
+|---|---|
+| `^[A-Z]{2,6}-\d+$` (e.g., `AIA-1234`, `CI-21`) | Linear |
+| `^https://linear\.app/.+/issue/([A-Z]{2,6}-\d+)/` | Linear |
+| `^https://github\.com/([^/]+)/([^/]+)/(issues\|pull)/(\d+)` | GitHub |
+| `^([^/\s]+/[^/\s]+)#(\d+)$` (e.g., `org/repo#42`) | GitHub |
+
+On a match:
+
+1. **Fetch** title, body, and **all comments** (no cap, per the comment-fetch policy in `progress-methodology`):
+   - Linear: `mcp__linear-server__get_issue(id)` + `mcp__linear-server__list_comments(issueId)`.
+   - GitHub: `gh issue view <N> --repo <owner>/<repo> --json title,body,state,url,comments` (or `gh pr view`).
+2. **Treat the fetched `{ title, body, comments[] }` as additional source artifact context** for Stage 1 Triage and propagate it to Stage 3 workers + the architect. The Triage step scans comments for: acceptance criteria, prior decisions, unresolved questions to surface as Open Questions, and recent reroutes that override the body.
+3. **Save the ticket URL** on the architect's input so the rendered plan prepends a `> **Ticket:** <url>` callout above the Context block (per the `master-plan-methodology` skill).
+
+If the matched provider's MCP/CLI is unavailable, **fail loudly**: e.g., `Linear MCP not loaded — cannot fetch <ticket>. Re-run on a session that has the Linear MCP, or pass the topic as free-form text.` Do not silently degrade.
+
+If no pattern matches → existing free-text behavior (no fetch, no `> **Ticket:**` callout).
 
 ---
 
@@ -53,7 +76,7 @@ Otherwise, run the same four stages as `/planning-tools:plan-context`:
 
 1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, propose a domain partition.
 2. **Stage 2 — Confirm domains** (binary `AskUserQuestion`): print the proposed N domains as a plain-text numbered list, then call `AskUserQuestion` with exactly two options — `"Proceed with all N domains"` / `"Cancel — I'll re-run with --domains"`. Never multi-select. Skip Stage 2 entirely if `--domains` was supplied or Triage yielded a single trivial domain. (Same pattern as `/planning-tools:plan-context` Stage 2.)
-3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each writes findings to `/tmp/plan-context/<topic-slug>/<domain>.md`.
+3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each writes findings to `/tmp/plan-context/<topic-slug>/<domain>.md`. **If Step 0 fetched a ticket source**, include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent sees the same acceptance criteria + decision history.
 4. **Stage 4 — Verify**: read 3–6 critical files each worker cited to confirm patterns hold.
 
 Capture the worker findings paths — you will pass them to the architect in Step 3.
@@ -68,6 +91,7 @@ Dispatch the `plan-master-architect` agent (opus). The agent receives:
 - Paths to all worker findings (either from Step 2 or from the supplied `--context` directory)
 - The **output file path** resolved in Step 1
 - **Today's date**
+- **Ticket context block** (optional) — if Step 0 fetched a ticket source, pass `{ title, body, comments[], url }` verbatim. The architect uses this for the Context block, the `> **Ticket:** <url>` callout, and Open Questions extraction.
 
 The architect reads the `master-plan-methodology` skill, then composes the master plan: universal core sections + trigger-based optional sections. It writes the plan to disk. Integer phases only. Open Questions at the top. No sizing.
 

@@ -9,9 +9,35 @@ You are **pre-loading context** for a future master plan. The user will run `/pl
 
 Parse the arguments:
 - A file path → Read it first; it is the planning source artifact.
-- A topic name / ticket ID → treat it as a scope statement; locate the source artifact via Glob if obvious (e.g., `context/tickets/<ID>-*.md`).
+- A ticket ID or ticket URL → treat it as a scope statement; **also** run the Stage 0 ticket-source detection below to fetch ticket content via adapter.
+- A topic name → treat it as a scope statement; locate the source artifact via Glob if obvious (e.g., `context/tickets/<ID>-*.md`).
 - `--domains a,b,c` flag (anywhere in arguments) → pre-seed the Stage 2 proposal with this list.
 - Empty arguments → ask the user for a topic or path before starting Stage 1.
+
+---
+
+## Stage 0 — Ticket-source detection (optional)
+
+Before Stage 1, run pattern detection against the first argument. If it matches one of these forms, **fetch the ticket source** via the adapter contract codified in `planning-tools:progress-methodology`:
+
+| Pattern | Provider |
+|---|---|
+| `^[A-Z]{2,6}-\d+$` (e.g., `AIA-1234`, `CI-21`) | Linear |
+| `^https://linear\.app/.+/issue/([A-Z]{2,6}-\d+)/` | Linear |
+| `^https://github\.com/([^/]+)/([^/]+)/(issues\|pull)/(\d+)` | GitHub |
+| `^([^/\s]+/[^/\s]+)#(\d+)$` (e.g., `org/repo#42`) | GitHub |
+
+On a match:
+
+1. **Fetch** title, body, and **all comments** (no cap — per the comment-fetch policy in `progress-methodology`):
+   - Linear: `mcp__linear-server__get_issue(id)` + `mcp__linear-server__list_comments(issueId)`.
+   - GitHub: `gh issue view <N> --repo <owner>/<repo> --json title,body,state,url,comments` (or `gh pr view`).
+2. **Augment the Stage 1 Triage source artifact** with the fetched `{ title, body, comments[], url }` block. Triage scans comments for acceptance criteria, prior decisions, and unresolved questions to flag in the Open Questions section of the scope report.
+3. **Persist the ticket block** so Stage 3 workers receive it verbatim (each domain agent sees the same acceptance criteria + decision history).
+
+If the matched provider's MCP/CLI is unavailable, **fail loudly**: e.g., `Linear MCP not loaded — cannot fetch <ticket>. Re-run on a session that has the Linear MCP, or pass the topic as free-form text.` Do not silently degrade.
+
+If no pattern matches → no fetch, proceed to Stage 1 with the original arguments unchanged.
 
 ---
 
@@ -86,6 +112,7 @@ Each agent's prompt must be **self-contained** — it has not seen this conversa
 - Files/paths to investigate
 - The required deliverable: concrete `path:line` references, existing patterns, reusable helpers, constraints, suggested phase split for that domain
 - The explicit constraint: **"Report only — do not write code. Do not propose changes."**
+- **If Stage 0 fetched a ticket source:** include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent has the same ticket context.
 
 Agent count = number of confirmed domains.
 

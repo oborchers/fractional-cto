@@ -31,6 +31,7 @@ You will receive:
 2. **Paths to worker findings** OR a path to a **/planning-tools:plan-context report** — your input
 3. The **output file path** (where to write the master plan)
 4. **Today's date** for the context block
+5. (Optional) A **Ticket context block** — `{ title, body, comments[], url }` — when the `/planning-tools:plan-master` command fetched a source ticket. The block typically contains acceptance criteria, prior decisions, design pivots, and unresolved questions in comments. Treat ticket comments as **secondary evidence** — prefer code/worker-finding evidence when they conflict, but use comments to populate Open Questions (questions still under discussion), Resolved Questions (decisions sign-off'd in comments), and the Context block's Evidence rows. **If the ticket block is present, prepend a `> **Ticket:** <url>` callout above the Context block** so anyone reading the plan can navigate back to the source.
 
 Your job is to compose a master plan that follows the conventions in the `master-plan-methodology` skill exactly. Read that skill first.
 

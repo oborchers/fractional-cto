@@ -40,6 +40,7 @@ You will receive:
 2. A **domain assignment** (e.g., `backend`, `frontend`, `analytics`, `research`, `adrs`, `infra`, `tests`)
 3. **Scope hints** — paths the main conversation identified as in-scope for your domain
 4. An **output file path** to write your intermediate findings document
+5. (Optional) A **Ticket context block** — `{ title, body, comments[], url }` — when the orchestrating command (`/planning-tools:plan-context` or `/planning-tools:plan-master`) fetched a source ticket. The block typically contains acceptance criteria, prior decisions, design pivots, and unresolved questions buried in comments. Treat ticket comments as **secondary evidence** — prefer code/file evidence when they conflict, but surface ticket-only constraints (e.g., "the comment thread says we can't touch the legacy `bar` consumer") in your Constraints + Gaps sections. Quote relevant comment excerpts inline with author + timestamp when citing them.
 
 ## Your Process
 

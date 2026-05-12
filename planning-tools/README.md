@@ -63,19 +63,73 @@ Both modes are **non-interactive** — the command never calls `AskUserQuestion`
 
 Only works on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
 
+### `/planning-tools:plan-progress [--final] [--destination <type>:<id>] [--style-from <path>] [--ticket <id>]`
+
+Synthesize a single dense progress entry for the current branch and append/update it at the configured destination. Reuses the same branch-matching + plan resolution as `/planning-tools:plan-tick`. SHA-based idempotency means safe to re-run between phases — only new commits drive new prose; already-cited SHAs in the existing entry are preserved verbatim.
+
+**Destinations (v1):**
+
+- `markdown` — a project-local markdown file at any path the user chooses (e.g., `PROGRESS.md` at root, `docs/PROGRESS.md`, `context/PROGRESS.md`, or wherever this project conventionally keeps progress logs). Entries are prepended (newest-first).
+- `linear` — comment on a Linear ticket (via `mcp__linear-server__save_comment`). Identifier: ticket ID like `AIA-1234`.
+- `github` — comment on a GitHub issue or PR (via `gh` CLI). Identifier: `<owner>/<repo>#<number>`.
+
+**No path is assumed.** First-run selection probes the repo for an existing `PROGRESS.md` / `CHANGELOG.md` / `CHANGES.md` file. If one is found, it is offered as the recommended option in a **binary `AskUserQuestion`** (Use `<discovered-path>` / Cancel — re-run with `--destination`). If none is found, the recommended option is Cancel — the user supplies a path via `--destination markdown:<path>` so the plugin never fabricates a default location. The choice persists to `.claude/planning-tools.local.md`; override per-call with `--destination <type>:<id>` without overwriting the saved setting.
+
+**Three-way entry detection:**
+
+- No existing entry → synthesize a new one.
+- Existing entry without `✅` → in-flight update; the synthesizer extends in place, preserving prior SHA citations.
+- Existing entry with `✅` → 3-option `AskUserQuestion`: refresh / new entry / cancel.
+
+**`--final` flag:** prepends `**Shipped <today> via PR #<N>.**` (PR number resolved via `gh pr list --head <branch>` when available) and appends `✅` to the heading.
+
+For the canonical style spec, sub-markers (`Piggybacked:`, `Verification:`, `Out of scope:`), entry-key marker convention, SHA-tracking algorithm, and the source/destination adapter contracts, see the `planning-tools:progress-methodology` skill.
+
 ### `/planning-tools:plan-delete`
 
 Clear the current session's plan file at `~/.claude/plans/<slug>.md`. Detects this session's slug by grepping the transcript at `~/.claude/projects/<encoded-cwd>/$CLAUDE_CODE_SESSION_ID.jsonl` — never relies on file mtime (which breaks with parallel sessions). Deletes the file, recreates it empty, re-reads it so the session is primed for the next plan-mode entry. Bootstraps via `EnterPlanMode` → no-op placeholder → `ExitPlanMode` if plan mode has never been entered.
 
-## The 6-step Master Plan Workflow
+## The 7-step Master Plan Workflow
 
 ```
 1. /planning-tools:plan-context         → scope report (no plan written)
 2. /planning-tools:plan-master          → multi-phase plan drafted to project-local path
 3. /planning-tools:plan-verify          → Critical/Important/Suggestion findings + PASS/FAIL
 4. Manual phase loop     → copy phase into built-in /plan, execute
-5. /planning-tools:plan-tick <phase>    → mark the completed phase ✅ in the master plan
-6. /planning-tools:plan-delete          → clear per-session plan file, loop back to step 4
+5. /planning-tools:plan-tick            → auto-tick provenly-achieved phases ✅ in the master plan
+6. /planning-tools:plan-progress        → append/update progress entry at configured destination (markdown / Linear / GitHub)
+7. /planning-tools:plan-delete          → clear per-session plan file, loop back to step 4
+```
+
+## Ticket-aware planning
+
+`/planning-tools:plan-master` and `/planning-tools:plan-context` accept ticket URLs or IDs as their first argument. When matched, the plugin fetches the ticket via the source adapter — title, body, and **all comments, no cap** — and injects the block into Stage 1 Triage + every Stage 3 worker prompt. The architect uses the ticket for the Context block's Evidence row, propagates unresolved comment-thread questions into Open Questions, and prepends a `> **Ticket:** <url>` callout above the plan's Context block.
+
+Supported ticket sources (v1): Linear (via `mcp__linear-server__*`) and GitHub (via `gh` CLI). Free-text topics still work — pattern detection runs first; on no match, existing behavior is preserved.
+
+## Configuration
+
+Per-project progress settings live at `.claude/planning-tools.local.md` (project-relative, **should be gitignored**). YAML frontmatter + markdown body, per the `plugin-dev:plugin-settings` pattern:
+
+```yaml
+---
+progress_destination: markdown            # or "linear" or "github"
+progress_destination_id: <your-progress-path>  # for markdown, a path you choose (e.g., PROGRESS.md, docs/PROGRESS.md, context/PROGRESS.md); for linear/github, a ticket/issue ref
+ticket_provider: linear                   # or "github" or "none"
+ticket_prefix: AIA                        # optional anchor for Linear ID auto-detection from branch names
+---
+
+# planning-tools settings
+
+Free-form notes about this project's progress conventions, if any.
+```
+
+`/planning-tools:plan-progress` writes this file the first time the user picks a destination. To switch destinations later, edit the file directly or pass `--destination <type>:<id>` for a one-off override.
+
+Add to `.gitignore`:
+
+```gitignore
+.claude/*.local.md
 ```
 
 ## Master-Plan Conventions

@@ -35,12 +35,13 @@ If none exist and the user does not specify a path, the architect asks via `AskU
 Every master plan **must** include these sections in this order:
 
 1. **Title** (H1) — name + one-line synopsis
-2. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
-3. **Open Questions** — table of blocking questions, **placed immediately after the context block** (not at the end)
-4. **Resolved Questions** — table of resolved questions (may be empty)
-5. **Implementation Phases** — table with Phase, Name, Status, Scope columns
-6. **Design Principles** — numbered list of opinionated rules
-7. **What's NOT in <TOPIC> (and why)** — explicit out-of-scope items with reasoning
+2. **Ticket callout** (optional, prepended above the context block) — `> **Ticket:** <url>`. The architect emits this when `/planning-tools:plan-master` was invoked with a ticket URL/ID that resolved via the source adapter (see `planning-tools:progress-methodology`). Omit if no ticket source was supplied.
+3. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
+4. **Open Questions** — table of blocking questions, **placed immediately after the context block** (not at the end)
+5. **Resolved Questions** — table of resolved questions (may be empty)
+6. **Implementation Phases** — table with Phase, Name, Status, Scope columns
+7. **Design Principles** — numbered list of opinionated rules
+8. **What's NOT in <TOPIC> (and why)** — explicit out-of-scope items with reasoning
 
 ## Trigger-based optional sections
 
