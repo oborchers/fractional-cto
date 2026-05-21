@@ -70,9 +70,9 @@ Never call `AskUserQuestion`. If multiple plans tie on modification time and no 
 2. Find the `## Implementation Phases` heading. **Reject** `## Implementation Sub-Phases` or any other variant with an error pointing at the integer-only phase rule in `planning-tools:master-plan-methodology`.
 3. **Detect the plan shape** by scanning the content immediately after the `## Implementation Phases` heading:
 
-   - **v0.3.0 list shape (preferred):** one or more `### Phase <N>: <name> <emoji>` H3 headings appear under `## Implementation Phases`. Use the **heading parser** (step 4 below).
+   - **v0.3.0+ list shape (preferred):** one or more `### Phase <N>: <name> <emoji>` H3 headings appear under `## Implementation Phases`. Use the **heading parser** (step 4 below). Scope under each heading is a plain `- <action>` unordered list (v0.3.2+ canonical); legacy `- [ ]` / `- [x]` prefixes are tolerated and stripped before evidence extraction.
    - **v0.2.x table shape (legacy, transition-supported):** a markdown table with header row `| Phase | Name | Status | Scope |` appears immediately after the heading. Use the **legacy table parser** (step 5 below). Emit one note to the user: `Plan uses v0.2.x table shape — supported during transition window. Consider migrating to v0.3.0 list shape (see planning-tools:master-plan-methodology).`
-   - **Neither:** error with `Plan does not conform to master-plan-methodology v0.3.0+ — Implementation Phases must use ### Phase <N>: <name> <emoji> H3 headings with - [ ] checklists (or, transitionally, the v0.2.x | Phase | Name | Status | Scope | table shape). See planning-tools:master-plan-methodology.`
+   - **Neither:** error with `Plan does not conform to master-plan-methodology v0.3.0+ — Implementation Phases must use ### Phase <N>: <name> <emoji> H3 headings with - bulleted scope items (or, transitionally, the v0.2.x | Phase | Name | Status | Scope | table shape). See planning-tools:master-plan-methodology.`
 
 ### Step 4 — Heading parser (v0.3.0 list shape)
 
@@ -80,7 +80,7 @@ For each `### Phase <N>: <name> <emoji>` heading under `## Implementation Phases
 
 - Extract `<N>` (the integer phase number, e.g., `1`, `2`, `10`).
 - Extract `<emoji>` (the last token on the line, separated from the phase name by exactly one space — one of `⏳ 🚧 ✅ ❌`).
-- Capture the scope as the text between this heading and the **next `### Phase` heading or next `## ` heading** (the scope text is the bulleted `- [ ]` / `- [x]` checklist).
+- Capture the scope as the text between this heading and the **next `### Phase` heading or next `## ` heading** (the scope text is the bulleted `- ` unordered list. Legacy plans may include `- [ ]` / `- [x]` prefixes — the parser strips the optional `[ ]`/`[x]` and treats the remainder as a normal bullet for evidence extraction).
 - If `<N>` is non-integer (`1a`, `A`, `0.5`, ranges), error with the integer-only rule pointer.
 - If `<emoji>` is missing or not one of `⏳ 🚧 ✅ ❌`, error with `Phase <N> heading does not end with a status emoji (⏳ 🚧 ✅ ❌). See planning-tools:master-plan-methodology v0.3.0 Status conventions.`
 
@@ -121,10 +121,10 @@ The audit runs **entirely in the main conversation**. No subagent is dispatched.
 
 4. **For each unticked phase, audit it inline:**
 
-   a. **Extract evidence anchors** from the phase's scope text (the bulleted region under the `### Phase <N>:` heading for v0.3.0, or the Scope cell for v0.2.x):
+   a. **Extract evidence anchors** from the phase's scope text (the bulleted region under the `### Phase <N>:` heading for v0.3.0+, or the Scope cell for v0.2.x):
       - **File paths** mentioned (anything matching a path pattern like `src/foo/bar.ts`, `supabase/functions/<x>/index.ts`, `__tests__/x.test.ts`, etc.).
       - **Symbol names** mentioned (function names, class names, type names, SQL identifiers, i18n keys, analytics event names).
-      - **Exit criteria** (extracted from the bolded `**Exit criteria:**` scope item in v0.3.0; from prose in the Scope cell in v0.2.x).
+      - **Exit criteria** (extracted from the bolded `**Exit criteria:**` scope item in v0.3.0+; from prose in the Scope cell in v0.2.x).
 
    b. **Check file existence.** For each in-scope file path, Read it (or check it exists). If a file is referenced as needing to be created and is missing → strong `NOT_ACHIEVED` signal.
 
@@ -132,15 +132,15 @@ The audit runs **entirely in the main conversation**. No subagent is dispatched.
 
    d. **Check symbol presence.** For each named symbol, grep the relevant file(s) for the symbol. The symbol must be present in the current working tree.
 
-   e. **Check checkbox state (v0.3.0 only).** Count `- [ ]` vs `- [x]` items in the phase's scope. If every checkbox is `- [x]`, treat as a **strong additional `ACHIEVED` signal** — but still require diff-membership + file-existence to verdict `ACHIEVED`. An all-checked phase with no diff hits is still `NOT_ACHIEVED` (checkboxes can be ticked optimistically; code is the source of truth).
+   e. **Tally** per the conservative verdict criteria table below.
 
-   f. **Tally** per the conservative verdict criteria table below.
+   *(v0.3.2+: per-bullet `- [ ]` / `- [x]` checkbox state is **no longer counted** as evidence. The phase status emoji on the heading is the sole tick signal; code evidence — file existence, diff membership, symbol presence — is the sole audit signal.)*
 
 5. **Verdict criteria (conservative — err toward NOT ticking):**
 
    | Verdict | All of these must hold |
    |---|---|
-   | `ACHIEVED` | (a) every file path in Scope exists, (b) ≥1 in-scope file appears in the branch diff vs merge-base, (c) every named symbol is present in the working tree, (d) no scope-mentioned file is conspicuously absent. For v0.3.0 plans: an all-`- [x]` scope strengthens the verdict but does not on its own grant `ACHIEVED` — code evidence still required. |
+   | `ACHIEVED` | (a) every file path in Scope exists, (b) ≥1 in-scope file appears in the branch diff vs merge-base, (c) every named symbol is present in the working tree, (d) no scope-mentioned file is conspicuously absent. |
    | `UNCERTAIN` | Some evidence present (e.g., files exist) but not enough — diff doesn't include the files, or a key symbol is missing, or the phase is non-code (docs/planning) and the audit cannot judge from code state. |
    | `NOT_ACHIEVED` | Scope references files that don't exist, or zero in-scope files appear in the branch diff, or named symbols are missing across the board. |
 
@@ -165,7 +165,6 @@ The audit runs **entirely in the main conversation**. No subagent is dispatched.
      - <one-line check result, e.g., `src/features/sf-links.ts` exists ✓>
      - <`getRoaUrl` symbol present at `src/features/sf-links.ts:42` ✓>
      - <file appears in branch diff ✓>
-     - <(v0.3.0) checkbox state: 5/5 ticked>
    - **Conclusion:** <one short sentence>
 
    ### Phase <N+1>: …
@@ -227,6 +226,6 @@ All decisions are made from local code state.
 
 - This command **only** writes the status emoji (heading suffix for v0.3.0, Status cell for v0.2.x). It does not commit, push, PR, modify phase names (no strikethrough), or touch any other section.
 - The command is **idempotent**: ticking an already-done phase is a no-op.
-- Supports both **v0.3.0 list shape** (`### Phase <N>: <name> <emoji>` headings with `- [ ]` checklists) and **v0.2.x legacy table shape** (`| Phase | Name | Status | Scope |`). Shape detection is automatic.
+- Supports both **v0.3.0+ list shape** (`### Phase <N>: <name> <emoji>` headings with `- ` bulleted scope items; v0.3.2+ canonical, legacy `- [ ]` / `- [x]` tolerated) and **v0.2.x legacy table shape** (`| Phase | Name | Status | Scope |`). Shape detection is automatic.
 - The audit is **conservative**. If it under-ticks (verdicts `UNCERTAIN` for a phase you know is done), run `/planning-tools:plan-tick <phase>` to override.
 - **No subagent is dispatched.** The audit runs entirely in the main conversation. See `[[no-subagents-for-procedural-wrappers]]` for why.

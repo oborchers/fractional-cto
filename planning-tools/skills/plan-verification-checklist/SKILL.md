@@ -1,7 +1,7 @@
 ---
 name: plan-verification-checklist
-description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + per-phase TL;DR + checklist + exit criteria), the v0.3.1+ per-phase TL;DR requirement, integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
-version: 0.3.1
+description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + per-phase TL;DR + bulleted scope + exit criteria), the v0.3.1+ per-phase TL;DR requirement, the v0.3.2+ plain-bullet scope shape (legacy `- [ ]`/`- [x]` accepted silently), integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
+version: 0.3.2
 ---
 
 # Plan Verification Checklist
@@ -26,7 +26,7 @@ Verify every required section is present and in the prescribed order:
 - [ ] **Quoted context block** (blockquote starting with `>`) containing Ticket(s), PRD/Source, Evidence, Depends on, Constraints
 - [ ] **Open Questions** section as an **unordered list** (no table), located **immediately after the context block** (Critical finding if at the bottom)
 - [ ] **Resolved Questions** section as an **unordered list** (may be empty; no table)
-- [ ] **Implementation Phases** section with `### Phase <N>: <name> <emoji>` H3 headings (no table)
+- [ ] **Implementation Phases** section with `### Phase <N>: <name> <emoji>` H3 headings and `- ` bulleted scope items (no table; v0.3.2+ canonical shape is plain bullets, legacy `- [ ]`/`- [x]` accepted silently)
 - [ ] **Design Principles** numbered list
 - [ ] **What's NOT in <TOPIC> (and why)** section
 
@@ -55,17 +55,17 @@ For each trigger observed in the plan, check the corresponding optional section 
 
 Missing trigger-driven section = **Important**.
 
-### 3. Phase actionability (v0.3.0 list shape, v0.3.1 TL;DR)
+### 3. Phase actionability (v0.3.0 list shape, v0.3.1 TL;DR, v0.3.2 plain bullets)
 
-Every phase must be one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a `**TL;DR:**` callout and a GitHub-flavored to-do checklist. Each phase block must contain:
+Every phase must be one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a `**TL;DR:**` callout and a plain unordered bulleted list of scope items. Each phase block must contain:
 
 - [ ] An H3 heading of the exact shape `### Phase <N>: <verb-led name> <emoji>` where `<N>` is a positive integer and `<emoji>` is one of `⏳ 🚧 ✅ ❌` and is the last token on the line
 - [ ] **Per-phase TL;DR (v0.3.1+):** the **first non-blank line under the heading** must start with `**TL;DR:**` and contain 1–3 sentences capturing what the phase does and why. Missing or empty TL;DR = **Important**. Existing v0.3.0 plans without TL;DRs are flagged Important but not Critical — the rest of the audit still proceeds and PASS verdict is still reachable if no other Critical findings exist.
-- [ ] At least one `- [ ]` (or `- [x]`) scope item with a concrete **file path** or named symbol (when the work touches code)
+- [ ] At least one `- ` scope item with a concrete **file path** or named symbol (when the work touches code). Legacy `- [ ]` / `- [x]` shapes are accepted silently — no finding either way for v0.3.2+ plans.
 - [ ] A bolded `**Exit criteria:** …` scope item describing definition of done
 - [ ] A bolded `**Tests:** …` scope item when the phase requires tests (omit when no tests are needed)
 
-Phases with vague scope ("update the UI", "improve performance") = **Critical**. Phases missing exit criteria = **Critical**. Phases missing any `- [ ]` scope item at all = **Critical**. Phases missing TL;DR = **Important** (not Critical).
+Phases with vague scope ("update the UI", "improve performance") = **Critical**. Phases missing exit criteria = **Critical**. Phases missing any `- ` scope item at all = **Critical**. Phases missing TL;DR = **Important** (not Critical).
 
 ### 4. Integer phase numbering (non-negotiable)
 
@@ -145,15 +145,16 @@ Per-phase PR creation, merging, or review-request = **Critical**. The fix is to 
 
 - [ ] Every `### Phase <N>:` heading ends with one of `⏳ 🚧 ✅ ❌` as the last token on the line (separated from the phase name by exactly one space)
 - [ ] No raw text like "Pending" / "Done" instead of emoji on the heading
-- [ ] Within scope checklists, `- [ ]` / `- [x]` shapes are well-formed (no `- [-]`, no `- [?]`)
 
 Mixed conventions = **Suggestion**. Missing heading emoji = **Important**.
+
+Per-bullet checkbox well-formedness is **not audited** (v0.3.2+). Plain `- ` bullets are canonical; legacy `- [ ]`/`- [x]` shapes pass through silently.
 
 ### 12. No tables for phases / questions (v0.3.0+)
 
 Implementation Phases, Open Questions, and Resolved Questions must use the v0.3.0 list shape — not markdown tables.
 
-- [ ] Implementation Phases uses `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists, **not** a `| Phase | Name | Status | Scope |` markdown table
+- [ ] Implementation Phases uses `### Phase <N>: <name> <emoji>` H3 headings with `- ` bulleted scope items (v0.3.2+; legacy `- [ ]`/`- [x]` accepted silently), **not** a `| Phase | Name | Status | Scope |` markdown table
 - [ ] Open Questions uses bulleted `- **Q<N> — <question>:** ...` lines, **not** a `| Q | Blocking? |` table
 - [ ] Resolved Questions uses bulleted `- **Q<N> — <question>:** <resolution>` lines, **not** a `| Q | Resolution |` table
 

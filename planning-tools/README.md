@@ -159,7 +159,7 @@ Codified in the `master-plan-methodology` skill. Highlights:
 - **No sizing estimates** — XS/S/M/L, T-shirt sizes, time estimates are not used. Phases describe scope, not effort.
 - **Open Questions at the top** — placed immediately after the context block, not at the end. Blockers must be visible to anyone skimming the first 30 lines.
 - **Project-agnostic** — no ticket-prefix or plan-type taxonomy. Optional sections are added based on what the work touches, derived from worker findings.
-- **Authoring shape (v0.3.0+)** — phases are `### Phase <N>: <verb-led name> <emoji>` H3 headings with `- [ ]` to-do checklists underneath. Open Questions and Resolved Questions are bulleted `- **Q<N> — <question>:** ...` lines. **No markdown tables for any of these three sections** — wide-cell tables in markdown become unreadable. Narrow-cell tables elsewhere (Architecture, Data Model, file × phase matrix, etc.) are still allowed.
+- **Authoring shape (v0.3.0+, plain bullets v0.3.2+)** — phases are `### Phase <N>: <verb-led name> <emoji>` H3 headings with `- ` bulleted scope items underneath (plain bullets — no `- [ ]` checkboxes; the phase heading emoji is the sole tick signal). Open Questions and Resolved Questions are bulleted `- **Q<N> — <question>:** ...` lines. **No markdown tables for any of these three sections** — wide-cell tables in markdown become unreadable. Narrow-cell tables elsewhere (Architecture, Data Model, file × phase matrix, etc.) are still allowed. Legacy v0.3.0/0.3.1 plans with `- [ ]` / `- [x]` keep parsing — the optional `[ ]`/`[x]` prefix is stripped silently.
 - **Per-phase TL;DR (v0.3.1+)** — each phase has a `**TL;DR:** <1–3 sentences>` line under the heading, before scope items. First sentence = what the phase does, subsequent sentence(s) = why. Lets readers scan the plan top-to-bottom reading only TL;DR lines to grasp every phase in 60 seconds. The verifier flags missing TL;DRs as Important.
 - **Status emoji** — `⏳ 🚧 ✅ ❌` as the last token of each phase heading.
 - **Evidence attribution** — every claim cites source (transcript+date+speaker, ADR-NN, `path:line`).
@@ -174,19 +174,19 @@ Codified in the `master-plan-methodology` skill. Highlights:
 
 **TL;DR:** Stamp `code: 'invalid_session'` on every `requireAuth` 401 response so the frontend can discriminate genuine session expiry from upstream-relayed 401s. Needed because the current discriminator is bare HTTP status, which conflates auth-gate failures with EPOS/SF upstream rejection.
 
-- [ ] Widen `ProblemDetails.status` to `401 | 404 | 503` at `_shared/problem-response.ts:32`
-- [ ] Replace 3 `corsError(string, 401)` paths in `_shared/auth.ts:82-128` with `problemResponse({ status: 401, code: 'invalid_session', ... })`
-- [ ] **Tests:** `_shared/auth.test.ts` — assert all 3 paths emit Content-Type `application/problem+json`
-- [ ] **Exit criteria:** `make test-functions` green; local curl returns 401 + problem+json + `code: invalid_session`
+- Widen `ProblemDetails.status` to `401 | 404 | 503` at `_shared/problem-response.ts:32`
+- Replace 3 `corsError(string, 401)` paths in `_shared/auth.ts:82-128` with `problemResponse({ status: 401, code: 'invalid_session', ... })`
+- **Tests:** `_shared/auth.test.ts` — assert all 3 paths emit Content-Type `application/problem+json`
+- **Exit criteria:** `make test-functions` green; local curl returns 401 + problem+json + `code: invalid_session`
 
 ### Phase 2: Add code-match safety net to session-errors.ts ✅
 
 **TL;DR:** Add positive `code === 'session_expired' | 'invalid_session' | 'PGRST302'` branches to `shouldInvalidateSession` before removing the bare-401 fallback in Phase 4. Lands the safety net first so real session expiry continues to fire when Phase 4 removes the broad branch.
 
-- [x] Add `error.code === 'session_expired' || 'invalid_session'` branches to `shouldInvalidateSession` at `:175`
-- [x] Add `error.code === 'PGRST302'` branch (closes JWT-malformed gap)
-- [x] **Tests:** `session-errors.test.ts` — 3 positive fixtures
-- [x] **Exit criteria:** `make test` green; bare-401 branch unchanged (Phase 4 removes it)
+- Add `error.code === 'session_expired' || 'invalid_session'` branches to `shouldInvalidateSession` at `:175`
+- Add `error.code === 'PGRST302'` branch (closes JWT-malformed gap)
+- **Tests:** `session-errors.test.ts` — 3 positive fixtures
+- **Exit criteria:** `make test` green; bare-401 branch unchanged (Phase 4 removes it)
 ```
 
 ## How Per-Session Plan File Detection Works

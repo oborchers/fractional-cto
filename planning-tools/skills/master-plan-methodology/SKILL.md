@@ -1,7 +1,7 @@
 ---
 name: master-plan-methodology
-description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, the v0.3.0 list-shape mandate (phases and questions are heading + to-do list, never markdown tables), and the v0.3.1 per-phase TL;DR requirement (1–3 sentence what/why summary under each phase heading for glance-ability). Project-agnostic — no ticket-prefix or plan-type taxonomy.
-version: 0.3.1
+description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, the v0.3.0 list-shape mandate (phases and questions are heading + bulleted list, never markdown tables), the v0.3.1 per-phase TL;DR requirement (1–3 sentence what/why summary under each phase heading for glance-ability), and the v0.3.2 plain-bullet scope shape (`- <action>` items, no `- [ ]` checkboxes — the phase status emoji is the sole tick signal). Project-agnostic — no ticket-prefix or plan-type taxonomy.
+version: 0.3.2
 ---
 
 # Master Plan Methodology
@@ -39,7 +39,7 @@ Every master plan **must** include these sections in this order:
 3. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
 4. **Open Questions** — unordered list of blocking questions with `**Q<N> — <one-line question>:**` prefix, **placed immediately after the context block** (not at the end). **No tables.**
 5. **Resolved Questions** — unordered list with the same `**Q<N> — <question>:** <resolution>` shape (may be empty). **No tables.**
-6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, followed by a required `**TL;DR:**` callout (1–3 sentences, what + why), then a GitHub-flavored to-do checklist (`- [ ]` items) as Scope. **No tables.** See the "Per-phase TL;DR" section below for the v0.3.1 TL;DR requirement.
+6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, followed by a required `**TL;DR:**` callout (1–3 sentences, what + why), then a plain unordered bulleted list (`- <action>` items) as Scope. **No tables. No `- [ ]` checkboxes (v0.3.2+).** See the "Per-phase TL;DR" section below for the v0.3.1 TL;DR requirement and "Plain-bullet scope shape" below for v0.3.2+.
 7. **Design Principles** — numbered list of opinionated rules
 8. **What's NOT in <TOPIC> (and why)** — explicit out-of-scope items with reasoning
 
@@ -121,11 +121,11 @@ Example: `### Phase 3: Wire MutationCache.onError through shouldInvalidateSessio
 
 The emoji is the **last token** of the heading line. `/planning-tools:plan-tick` flips this emoji to `✅` when the phase is verdicted ACHIEVED. Strikethrough (`~~Phase 1: …~~`) on completed phase headings is allowed but not required.
 
-**Within a phase's scope checklist**, the GitHub `- [ ]` / `- [x]` checkbox state is per-item — the author or executor can tick scope items as they finish each one. `/planning-tools:plan-tick`'s inline audit treats an all-`- [x]` phase as a **strong** ACHIEVED signal, but still requires diff-membership + file-existence evidence before verdicting ACHIEVED.
+The **phase heading emoji is the sole tick signal** (v0.3.2+). Per-bullet checkbox state is no longer used — see "Plain-bullet scope shape" below.
 
 ## Per-phase TL;DR (non-negotiable, v0.3.1+)
 
-Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturing what the phase does and why — placed on the **first non-blank line under the heading**, before the first `- [ ]` scope item.
+Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturing what the phase does and why — placed on the **first non-blank line under the heading**, before the first `- ` scope item.
 
 **Shape:**
 
@@ -134,8 +134,8 @@ Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturin
 
 **TL;DR:** Add a session-classifier branch at the top of `MutationCache.onError` so real session-expired mutations trigger the modal instead of a silent toast. Needed because the existing path only classified queries — mutations 401'd into a dead-end UX.
 
-- [ ] <scope item>
-- [ ] **Exit criteria:** …
+- <scope item>
+- **Exit criteria:** …
 ```
 
 **Content rules:**
@@ -157,7 +157,7 @@ Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturin
 
 The Implementation Phases, Open Questions, and Resolved Questions sections **must not** use markdown tables. Use:
 
-- `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists for phases.
+- `### Phase <N>: <name> <emoji>` H3 headings with `- ` bulleted scope items for phases (v0.3.2+ shape — plain bullets, no `- [ ]` checkboxes).
 - `- **Q<N> — <question>:**` bulleted lines for Open and Resolved Questions (free-form prose follows the colon).
 
 **Why:** Markdown tables force each cell onto a single line — phase Scope cells became 1500–2500 char escaped-prose walls that cannot be read without horizontal scroll, cannot contain native lists or code blocks, and consume tokens on pipe-escape overhead. Headings + lists restore native markdown affordances.
@@ -165,6 +165,14 @@ The Implementation Phases, Open Questions, and Resolved Questions sections **mus
 **Narrow-cell tables elsewhere are still allowed.** Architecture matrices, Code-Changes-by-file × phase coverage tables, Dependency tables, Cost summaries, etc., remain in table form — the ban is scoped to phases / questions, where wide cells are the failure mode.
 
 The `plan-verifier` agent flags any master plan that uses tables for phases or questions as a **Critical** finding. The `/planning-tools:plan-tick` command supports the legacy v0.2.x table shape during a transition window so existing plans keep working (it emits a one-line note when it falls through to the legacy parser), but newly-authored plans must use the v0.3.0 shape.
+
+## Plain-bullet scope shape (non-negotiable, v0.3.2+)
+
+Phase scope is a plain `- <action>` unordered list — **no `- [ ]` checkboxes**. The phase **status emoji** on the heading (`⏳ 🚧 ✅ ❌`) is the sole tick signal; per-bullet "done" state is not tracked because in practice it is not maintained.
+
+**Bold-prefix scope items still work unchanged:** `- **Tests:** …`, `- **Exit criteria:** …`, `- **Note:** …` — the bold label was always the semantic anchor; the bracket was decoration.
+
+**Legacy checkbox shape (transition).** Plans authored under v0.3.0 / v0.3.1 may use `- [ ]` / `- [x]` scope items. These continue to parse — `/planning-tools:plan-tick`'s heading parser strips the optional `[ ]`/`[x]` prefix before evidence extraction. No verifier finding is emitted for the legacy shape; the goal is reducing noise, not creating it. New plans should use plain `- ` bullets.
 
 ## Skeleton template
 
@@ -197,17 +205,17 @@ The `plan-verifier` agent flags any master plan that uses tables for phases or q
 
 **TL;DR:** <One sentence stating what the phase does.> <Optional 1–2 sentences explaining why — motivation, constraint, gap addressed.>
 
-- [ ] <Scope item: action + concrete file path + line range>
-- [ ] <Scope item with `code spans` and **bolded emphasis** as needed>
-- [ ] **Tests:** <test files to add/update, named cases>
-- [ ] **Exit criteria:** <what proves the phase is done — green checks, behavior verified>
+- <Scope item: action + concrete file path + line range>
+- <Scope item with `code spans` and **bolded emphasis** as needed>
+- **Tests:** <test files to add/update, named cases>
+- **Exit criteria:** <what proves the phase is done — green checks, behavior verified>
 
 ### Phase 2: <verb-led phase name> ⏳
 
 **TL;DR:** <What + why, 1–3 sentences.>
 
-- [ ] …
-- [ ] **Exit criteria:** …
+- …
+- **Exit criteria:** …
 
 ## Design Principles
 
