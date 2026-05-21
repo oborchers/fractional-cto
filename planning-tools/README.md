@@ -31,6 +31,24 @@ Draft a multi-phase master planning document.
 
 The architect composes the **universal core** sections (Title, Context block, Open Questions, Implementation Phases, Design Principles, Out of Scope) plus **trigger-based optional sections** (Schema + Rollback for data work; Component Architecture + UI States for UI work; Cost + Risks for ops; Recovery + Schema for incidents; etc.). Phases are numbered with **integers only** (`1, 2, 3, …`).
 
+### `/planning-tools:plan-open-questions [path] [question-number]`
+
+Walk through a master plan's `## Open Questions` one by one, capturing the user's choice for each via `AskUserQuestion`, then batch-apply all resolutions to the plan.
+
+For each open question, the command (running in the **main conversation** — no subagent dispatch):
+
+1. Reads cited evidence files (`path:line` refs, ADRs, ticket IDs) to ground the analysis.
+2. Composes a context block: question header → 1–2 context paragraphs → optional "Why X / Why it could matter / Risk profile" sub-analysis → 2–4 numbered alternatives.
+3. Marks one alternative as **Recommended** when an obvious best answer exists; always includes a **Defer — keep open** path.
+4. Calls `AskUserQuestion` with the 2–4 alternatives (capped at 4 per the schema).
+5. Captures the choice in memory.
+
+After all questions are walked, presents a batch summary and a 3-option apply gate (`Apply / Show diff first / Discard`). On Apply, moves answered questions from `## Open Questions` to `## Resolved Questions`. Deferred questions stay in Open.
+
+Supports both v0.3.0 list shape and v0.2.x legacy table shape (transition note printed when the legacy parser fires).
+
+Optional `[question-number]` argument targets a single question — useful for re-running on just one Q after a partial answer.
+
 ### `/planning-tools:plan-verify <path>`
 
 Audit a drafted master plan against the `plan-verification-checklist` skill. Dispatches the `plan-verifier` agent, which checks:
@@ -61,7 +79,7 @@ Both modes are **non-interactive** — the command never calls `AskUserQuestion`
 4. If multiple match → pick the most-recently-modified among the matches.
 5. If no match → fall back to the most-recently-modified candidate overall.
 
-Only works on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+ (integer phases, Status column with the prescribed emoji values). Non-conforming plans get a clear error pointing at the methodology skill.
+Works on plans conforming to `planning-tools:master-plan-methodology` v0.3.0+ (heading + checklist shape) and on legacy v0.2.x table-shape plans (transition window). Shape detection is automatic — non-conforming plans get a clear error pointing at the methodology skill.
 
 ### `/planning-tools:plan-progress [--final] [--destination <type>:<id>] [--style-from <path>] [--ticket <id>]`
 
@@ -89,16 +107,17 @@ For the canonical style spec, sub-markers (`Piggybacked:`, `Verification:`, `Out
 
 Clear the current session's plan file at `~/.claude/plans/<slug>.md`. Detects this session's slug by grepping the transcript at `~/.claude/projects/<encoded-cwd>/$CLAUDE_CODE_SESSION_ID.jsonl` — never relies on file mtime (which breaks with parallel sessions). Deletes the file, recreates it empty, re-reads it so the session is primed for the next plan-mode entry. Bootstraps via `EnterPlanMode` → no-op placeholder → `ExitPlanMode` if plan mode has never been entered.
 
-## The 7-step Master Plan Workflow
+## The 8-step Master Plan Workflow
 
 ```
-1. /planning-tools:plan-context         → scope report (no plan written)
-2. /planning-tools:plan-master          → multi-phase plan drafted to project-local path
-3. /planning-tools:plan-verify          → Critical/Important/Suggestion findings + PASS/FAIL
-4. Manual phase loop     → copy phase into built-in /plan, execute
-5. /planning-tools:plan-tick            → auto-tick provenly-achieved phases ✅ in the master plan
-6. /planning-tools:plan-progress        → append/update progress entry at configured destination (markdown / Linear / GitHub)
-7. /planning-tools:plan-delete          → clear per-session plan file, loop back to step 4
+1. /planning-tools:plan-context           → scope report (no plan written)
+2. /planning-tools:plan-master            → multi-phase plan drafted to project-local path
+3. /planning-tools:plan-open-questions    → walk through Open Questions; batch-apply to Resolved
+4. /planning-tools:plan-verify            → Critical/Important/Suggestion findings + PASS/FAIL
+5. Manual phase loop       → copy phase into built-in /plan, execute
+6. /planning-tools:plan-tick              → auto-tick provenly-achieved phases ✅ in the master plan
+7. /planning-tools:plan-progress          → append/update progress entry at configured destination (markdown / Linear / GitHub)
+8. /planning-tools:plan-delete            → clear per-session plan file, loop back to step 5
 ```
 
 ## Ticket-aware planning
@@ -140,9 +159,30 @@ Codified in the `master-plan-methodology` skill. Highlights:
 - **No sizing estimates** — XS/S/M/L, T-shirt sizes, time estimates are not used. Phases describe scope, not effort.
 - **Open Questions at the top** — placed immediately after the context block, not at the end. Blockers must be visible to anyone skimming the first 30 lines.
 - **Project-agnostic** — no ticket-prefix or plan-type taxonomy. Optional sections are added based on what the work touches, derived from worker findings.
-- **Status column** — `⏳ 🚧 ✅ ❌` emoji in the Implementation Phases table.
+- **Authoring shape (v0.3.0+)** — phases are `### Phase <N>: <verb-led name> <emoji>` H3 headings with `- [ ]` to-do checklists underneath. Open Questions and Resolved Questions are bulleted `- **Q<N> — <question>:** ...` lines. **No markdown tables for any of these three sections** — wide-cell tables in markdown become unreadable. Narrow-cell tables elsewhere (Architecture, Data Model, file × phase matrix, etc.) are still allowed.
+- **Status emoji** — `⏳ 🚧 ✅ ❌` as the last token of each phase heading.
 - **Evidence attribution** — every claim cites source (transcript+date+speaker, ADR-NN, `path:line`).
 - **Callout labels** — bold-prefix `**Decision:**`, `**Rationale:**`, `**Risk:**`, `**Mitigation:**`, `**Note:**`.
+
+### Tiny worked example
+
+```markdown
+## Implementation Phases
+
+### Phase 1: Add invalid_session discriminator to requireAuth 401s ⏳
+
+- [ ] Widen `ProblemDetails.status` to `401 | 404 | 503` at `_shared/problem-response.ts:32`
+- [ ] Replace 3 `corsError(string, 401)` paths in `_shared/auth.ts:82-128` with `problemResponse({ status: 401, code: 'invalid_session', ... })`
+- [ ] **Tests:** `_shared/auth.test.ts` — assert all 3 paths emit Content-Type `application/problem+json`
+- [ ] **Exit criteria:** `make test-functions` green; local curl returns 401 + problem+json + `code: invalid_session`
+
+### Phase 2: Add code-match safety net to session-errors.ts ✅
+
+- [x] Add `error.code === 'session_expired' || 'invalid_session'` branches to `shouldInvalidateSession` at `:175`
+- [x] Add `error.code === 'PGRST302'` branch (closes JWT-malformed gap)
+- [x] **Tests:** `session-errors.test.ts` — 3 positive fixtures
+- [x] **Exit criteria:** `make test` green; bare-401 branch unchanged (Phase 4 removes it)
+```
 
 ## How Per-Session Plan File Detection Works
 

@@ -1,7 +1,7 @@
 ---
 name: master-plan-methodology
-description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, and cross-reference formats for master plans. Project-agnostic — no ticket-prefix or plan-type taxonomy.
-version: 0.2.1
+description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, and the v0.3.0 list-shape mandate (phases and questions are heading + to-do list, never markdown tables). Project-agnostic — no ticket-prefix or plan-type taxonomy.
+version: 0.3.0
 ---
 
 # Master Plan Methodology
@@ -37,9 +37,9 @@ Every master plan **must** include these sections in this order:
 1. **Title** (H1) — name + one-line synopsis
 2. **Ticket callout** (optional, prepended above the context block) — `> **Ticket:** <url>`. The architect emits this when `/planning-tools:plan-master` was invoked with a ticket URL/ID that resolved via the source adapter (see `planning-tools:progress-methodology`). Omit if no ticket source was supplied.
 3. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
-4. **Open Questions** — table of blocking questions, **placed immediately after the context block** (not at the end)
-5. **Resolved Questions** — table of resolved questions (may be empty)
-6. **Implementation Phases** — table with Phase, Name, Status, Scope columns
+4. **Open Questions** — unordered list of blocking questions with `**Q<N> — <one-line question>:**` prefix, **placed immediately after the context block** (not at the end). **No tables.**
+5. **Resolved Questions** — unordered list with the same `**Q<N> — <question>:** <resolution>` shape (may be empty). **No tables.**
+6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, with a GitHub-flavored to-do checklist (`- [ ]` items) underneath as Scope. **No tables.**
 7. **Design Principles** — numbered list of opinionated rules
 8. **What's NOT in <TOPIC> (and why)** — explicit out-of-scope items with reasoning
 
@@ -110,19 +110,38 @@ XS/S/M/L, T-shirt sizes, time estimates, and any "effort" column are **not used*
 
 ## Status conventions
 
-The Implementation Phases table includes a `Status` column with these emoji:
+Each phase heading ends with one of these emoji, separated from the phase name by exactly one space:
 
 - `⏳` Pending
 - `🚧` In Progress
 - `✅` Done
 - `❌` Blocked
 
-Strikethrough (`~~Phase 1: …~~`) on completed phase rows is allowed but not required.
+Example: `### Phase 3: Wire MutationCache.onError through shouldInvalidateSession ⏳`.
+
+The emoji is the **last token** of the heading line. `/planning-tools:plan-tick` flips this emoji to `✅` when the phase is verdicted ACHIEVED. Strikethrough (`~~Phase 1: …~~`) on completed phase headings is allowed but not required.
+
+**Within a phase's scope checklist**, the GitHub `- [ ]` / `- [x]` checkbox state is per-item — the author or executor can tick scope items as they finish each one. `plan-tick-auditor` treats an all-`- [x]` phase as a **strong** ACHIEVED signal, but still requires diff-membership + file-existence evidence before verdicting ACHIEVED.
+
+## No tables for phases / questions (non-negotiable, v0.3.0+)
+
+The Implementation Phases, Open Questions, and Resolved Questions sections **must not** use markdown tables. Use:
+
+- `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists for phases.
+- `- **Q<N> — <question>:**` bulleted lines for Open and Resolved Questions (free-form prose follows the colon).
+
+**Why:** Markdown tables force each cell onto a single line — phase Scope cells became 1500–2500 char escaped-prose walls that cannot be read without horizontal scroll, cannot contain native lists or code blocks, and consume tokens on pipe-escape overhead. Headings + lists restore native markdown affordances.
+
+**Narrow-cell tables elsewhere are still allowed.** Architecture matrices, Code-Changes-by-file × phase coverage tables, Dependency tables, Cost summaries, etc., remain in table form — the ban is scoped to phases / questions, where wide cells are the failure mode.
+
+The `plan-verifier` agent flags any master plan that uses tables for phases or questions as a **Critical** finding. The `/planning-tools:plan-tick` command supports the legacy v0.2.x table shape during a transition window so existing plans keep working (it emits a one-line note when it falls through to the legacy parser), but newly-authored plans must use the v0.3.0 shape.
 
 ## Skeleton template
 
 ```markdown
 # <Title>: <one-line synopsis>
+
+> **Ticket:** <linear-or-github-url>  <!-- optional; only if /plan-master got a ticket source -->
 
 > **Ticket(s):** <Linear/Jira refs or n/a>
 > **PRD / Source:** <doc paths>
@@ -133,24 +152,35 @@ Strikethrough (`~~Phase 1: …~~`) on completed phase rows is allowed but not re
 ---
 
 ## Open Questions
-| Q | Blocking? |
-|---|---|
+
+- **Q1 — <one-line question>:** <free-form context. Blocking: yes/no.>
+- **Q2 — <one-line question>:** <context>
 
 ## Resolved Questions
-| Q | Resolution |
-|---|---|
+
+- **Q1 — <question>:** <resolution prose, no length limit>
+- **Q2 — <question>:** <resolution>
 
 ## Implementation Phases
 
-| Phase | Name | Status | Scope |
-|---|---|---|---|
-| 1 | … | ⏳ | Concrete file paths, code snippets, exit criteria |
-| 2 | … | ⏳ | … |
+### Phase 1: <verb-led phase name> ⏳
+
+- [ ] <Scope item: action + concrete file path + line range>
+- [ ] <Scope item with `code spans` and **bolded emphasis** as needed>
+- [ ] **Tests:** <test files to add/update, named cases>
+- [ ] **Exit criteria:** <what proves the phase is done — green checks, behavior verified>
+
+### Phase 2: <verb-led phase name> ⏳
+
+- [ ] …
+- [ ] **Exit criteria:** …
 
 ## Design Principles
+
 1. …
 
 ## What's NOT in <TOPIC> (and why)
+
 - …
 
 <!-- Trigger-based optional sections inserted here based on what the worker findings indicate the work touches -->

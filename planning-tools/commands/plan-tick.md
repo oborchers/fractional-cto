@@ -64,48 +64,69 @@ Never call `AskUserQuestion`. If multiple plans tie on modification time and no 
 
 ---
 
-## Step 3 — Read and validate the plan
+## Step 3 — Read, detect shape, and parse the plan
 
 1. Read the plan file.
 2. Find the `## Implementation Phases` heading. **Reject** `## Implementation Sub-Phases` or any other variant with an error pointing at the integer-only phase rule in `planning-tools:master-plan-methodology`.
-3. Find the markdown table immediately after that heading.
-4. Parse the table header. **Reject** if there is no `Status` column with this exact header text, and error:
-   ```
-   Plan does not conform to master-plan-methodology v0.2.1+ — the Implementation Phases table must include a Status column with emoji values (⏳ 🚧 ✅ ❌). See planning-tools:master-plan-methodology.
-   ```
-5. Parse the table rows. For each row, extract the Phase column value (trimmed) and the Status emoji.
-6. If any phase value is non-integer (`1a`, `A`, `0.5`, ranges), error with the integer-only rule pointer — do not attempt to tick a malformed plan.
+3. **Detect the plan shape** by scanning the content immediately after the `## Implementation Phases` heading:
+
+   - **v0.3.0 list shape (preferred):** one or more `### Phase <N>: <name> <emoji>` H3 headings appear under `## Implementation Phases`. Use the **heading parser** (step 4 below).
+   - **v0.2.x table shape (legacy, transition-supported):** a markdown table with header row `| Phase | Name | Status | Scope |` appears immediately after the heading. Use the **legacy table parser** (step 5 below). Emit one note to the user: `Plan uses v0.2.x table shape — supported during transition window. Consider migrating to v0.3.0 list shape (see planning-tools:master-plan-methodology).`
+   - **Neither:** error with `Plan does not conform to master-plan-methodology v0.3.0+ — Implementation Phases must use ### Phase <N>: <name> <emoji> H3 headings with - [ ] checklists (or, transitionally, the v0.2.x | Phase | Name | Status | Scope | table shape). See planning-tools:master-plan-methodology.`
+
+### Step 4 — Heading parser (v0.3.0 list shape)
+
+For each `### Phase <N>: <name> <emoji>` heading under `## Implementation Phases`:
+
+- Extract `<N>` (the integer phase number, e.g., `1`, `2`, `10`).
+- Extract `<emoji>` (the last token on the line, separated from the phase name by exactly one space — one of `⏳ 🚧 ✅ ❌`).
+- Capture the scope as the text between this heading and the **next `### Phase` heading or next `## ` heading** (the scope text is the bulleted `- [ ]` / `- [x]` checklist).
+- If `<N>` is non-integer (`1a`, `A`, `0.5`, ranges), error with the integer-only rule pointer.
+- If `<emoji>` is missing or not one of `⏳ 🚧 ✅ ❌`, error with `Phase <N> heading does not end with a status emoji (⏳ 🚧 ✅ ❌). See planning-tools:master-plan-methodology v0.3.0 Status conventions.`
+
+### Step 5 — Legacy table parser (v0.2.x)
+
+For each row of the `| Phase | Name | Status | Scope |` table:
+
+- Extract the Phase column value (trimmed) and the Status emoji.
+- Reject if there is no `Status` column with this exact header text.
+- Reject if any phase value is non-integer.
 
 ---
 
-## Step 4a — Manual override mode (a `<phase>` argument was provided)
+## Step 6a — Manual override mode (a `<phase>` argument was provided)
 
-1. Look up the requested phase number in the parsed rows. If not found, error with the list of phase numbers actually present.
-2. If the row's Status is already `✅`, report `Phase N already done in <path>. No changes.` and **stop** (idempotent).
-3. Use the Edit tool with the entire row line as `old_string` and the modified line (only the Status emoji replaced with `✅`) as `new_string`.
+1. Look up the requested phase number in the parsed phases. If not found, error with the list of phase numbers actually present.
+2. If the phase's Status is already `✅`, report `Phase N already done in <path>. No changes.` and **stop** (idempotent).
+3. Edit the phase to flip its emoji to `✅`:
+   - **v0.3.0 heading shape:** Edit the full `### Phase <N>: <name> <old-emoji>` line; preserve everything before the last token; replace only the last-token emoji with `✅`. Anchor with the exact heading line.
+   - **v0.2.x table shape:** Edit the full row line; replace only the Status cell emoji with `✅`.
 4. Report: `Marked Phase N done in <path>. <K> phase(s) remain.`
 
 **Stop here.** Do not run the auditor in manual mode.
 
 ---
 
-## Step 4b — Auto mode (no `<phase>` argument)
+## Step 6b — Auto mode (no `<phase>` argument)
 
-1. Collect the list of **unticked phase numbers** — every row whose Status is not `✅` (`⏳`, `🚧`, `❌`, or empty).
+1. Collect the list of **unticked phase numbers** — every phase whose Status is not `✅` (`⏳`, `🚧`, `❌`, or missing).
 2. If the list is empty, report: `All phases already done in <path>. Nothing to tick.` Stop.
 3. **Dispatch the `plan-tick-auditor` agent** (sonnet). Pass:
    - The plan path
    - The base branch (`$BASE`)
    - The merge-base SHA (`$MERGE_BASE`)
    - The list of unticked phase numbers
+   - The **plan shape** (`v0.3.0` or `v0.2.x`) so the auditor knows how to extract scope from the file
 4. Receive the auditor's structured report (Per-phase verdicts + Summary table).
 5. **Surface the audit** to the user verbatim from the agent's report — copy the Per-phase verdicts and the Summary table into the conversation. The user sees exactly what was decided and why.
-6. For each phase in the `ACHIEVED phases (safe to tick)` list, use the Edit tool to flip its Status emoji to `✅`. Use the full row line as `old_string` to anchor.
-7. Skip rows the auditor verdicted `UNCERTAIN` or `NOT_ACHIEVED` — leave them as-is.
+6. For each phase in the `ACHIEVED phases (safe to tick)` list, use the Edit tool to flip its emoji to `✅`:
+   - **v0.3.0 heading shape:** Edit the `### Phase <N>: <name> <old-emoji>` line, replacing the last-token emoji with `✅`. Anchor with the full heading line.
+   - **v0.2.x table shape:** Edit the full row line; replace only the Status cell emoji with `✅`.
+7. Skip phases the auditor verdicted `UNCERTAIN` or `NOT_ACHIEVED` — leave them as-is.
 
 ---
 
-## Step 5 — Report
+## Step 7 — Report
 
 Output one final summary line:
 
@@ -135,7 +156,7 @@ The `plan-tick-auditor` agent also must not call `AskUserQuestion` (and cannot, 
 
 ## Notes
 
-- This command **only** writes Status cells. It does not commit, push, PR, modify Name cells (no strikethrough), or touch any other section.
+- This command **only** writes the status emoji (heading suffix for v0.3.0, Status cell for v0.2.x). It does not commit, push, PR, modify phase names (no strikethrough), or touch any other section.
 - The command is **idempotent**: ticking an already-done phase is a no-op.
-- The command only works on plans conforming to `planning-tools:master-plan-methodology` v0.2.1+ (integer phases, Status column with emoji values). Legacy plans require manual editing.
+- Supports both **v0.3.0 list shape** (`### Phase <N>: <name> <emoji>` headings with `- [ ]` checklists) and **v0.2.x legacy table shape** (`| Phase | Name | Status | Scope |`). Shape detection is automatic.
 - The auditor is **conservative**. If it under-ticks (verdicts `UNCERTAIN` for a phase you know is done), run `/planning-tools:plan-tick <phase>` to override.

@@ -49,9 +49,9 @@ Your job is to compose a master plan that follows the conventions in the `master
 3. **Determine the universal-core content.**
    - **Title + synopsis:** one H1, one line.
    - **Context block:** Ticket(s) (if known), PRD/Source (if cited), Evidence (the most important transcript / bug / source citations), Depends on (with **artifact-level specificity**), Constraints.
-   - **Open Questions:** consolidate the Gaps from all workers into a single table. Put this **immediately after the context block** — not at the end.
-   - **Resolved Questions:** any decisions already locked (e.g., from a prior AskUserQuestion round in /planning-tools:plan-master). Empty table is allowed.
-   - **Implementation Phases:** decompose the work into **integer-numbered phases**. Each phase row: `| <int> | <verb-led name> | ⏳ | <concrete scope with path:line, code snippets, exit criteria> |`. Never use 0, 0.5, 1A, Phase A, ranges, or sub-phases. If the urge to sub-phase appears, fold or split into integers.
+   - **Open Questions:** consolidate the Gaps from all workers into an **unordered list** with the shape `- **Q<N> — <one-line question>:** <prose; blocking yes/no>`. Put this section **immediately after the context block** — not at the end. **No tables (v0.3.0+).**
+   - **Resolved Questions:** any decisions already locked (e.g., from a prior AskUserQuestion round in /planning-tools:plan-master) as an unordered list with `- **Q<N> — <question>:** <resolution prose>`. Empty list is allowed. **No tables.**
+   - **Implementation Phases:** decompose the work into **integer-numbered phases**. Each phase is one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a GitHub-flavored to-do checklist under it. Each scope item is `- [ ]` (or `- [x]` if already done). The phase emoji is the **last token of the heading line**, separated by one space. Include a bolded `**Exit criteria:** …` scope item at the end of every phase. Never use 0, 0.5, 1A, Phase A, ranges, or sub-phases. **No tables (v0.3.0+).**
    - **Design Principles:** numbered list of opinionated rules that govern this work.
    - **What's NOT in <TOPIC> (and why):** explicit out-of-scope items, each with reasoning.
 
@@ -86,10 +86,12 @@ Your job is to compose a master plan that follows the conventions in the `master
 
 ## Skeleton template
 
-Reproduce this exact shape, inserting trigger-based optional sections after the `What's NOT in <TOPIC>` section:
+Reproduce this exact shape, inserting trigger-based optional sections after the `What's NOT in <TOPIC>` section. **Tables are forbidden for Open Questions, Resolved Questions, and Implementation Phases** (v0.3.0+ per `planning-tools:master-plan-methodology`).
 
 ```markdown
 # <Title>: <one-line synopsis>
+
+> **Ticket:** <linear-or-github-url>  <!-- only if /plan-master got a ticket source -->
 
 > **Ticket(s):** <Linear/Jira refs or n/a>
 > **PRD / Source:** <doc paths>
@@ -100,24 +102,35 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 ---
 
 ## Open Questions
-| Q | Blocking? |
-|---|---|
+
+- **Q1 — <one-line question>:** <prose context. Blocking: yes/no.>
+- **Q2 — <one-line question>:** <prose>
 
 ## Resolved Questions
-| Q | Resolution |
-|---|---|
+
+- **Q1 — <question>:** <resolution prose, no length limit>
+- **Q2 — <question>:** <resolution>
 
 ## Implementation Phases
 
-| Phase | Name | Status | Scope |
-|---|---|---|---|
-| 1 | … | ⏳ | <Concrete file paths, code snippets, exit criteria> |
-| 2 | … | ⏳ | … |
+### Phase 1: <verb-led phase name> ⏳
+
+- [ ] <Scope item: action + concrete `path:line`>
+- [ ] <Scope item with code spans and **bolded emphasis** as needed>
+- [ ] **Tests:** <test files to add or update, named cases>
+- [ ] **Exit criteria:** <what proves the phase is done>
+
+### Phase 2: <verb-led phase name> ⏳
+
+- [ ] …
+- [ ] **Exit criteria:** …
 
 ## Design Principles
+
 1. …
 
 ## What's NOT in <TOPIC> (and why)
+
 - …
 
 <!-- Trigger-based optional sections inserted here -->
@@ -125,7 +138,9 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 
 ## Rules
 
-1. **Integer phase numbering, always.** `1, 2, 3, …`. No `0`, `0.5`, `1A`, `Phase A`, ranges, or sub-phases. This is non-negotiable — the verifier will flag any violation as Critical.
+1. **Integer phase numbering, always.** `1, 2, 3, …`. No `0`, `0.5`, `1A`, `Phase A`, ranges, or sub-phases. The integer appears in the `### Phase <N>:` H3 heading. This is non-negotiable — the verifier will flag any violation as Critical.
+
+   **Heading shape (v0.3.0+):** `### Phase <N>: <verb-led name> <emoji>` where emoji is one of `⏳ 🚧 ✅ ❌` and is the last token on the line. Scope is a `- [ ]` checklist underneath. No tables.
 
 2. **No sizing.** No XS/S/M/L, no T-shirt sizes, no time estimates, no `Size` column.
 

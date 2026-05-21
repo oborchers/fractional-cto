@@ -38,7 +38,7 @@ You will receive in your input prompt:
 8. **Destination type** (`markdown` / `linear` / `github`) — affects light-touch formatting (Linear comments wrap at a narrower width; GitHub comments allow more inline markdown like task lists)
 9. **Today's date** (`YYYY-MM-DD`)
 10. **`--final` flag and PR metadata** (only present when the orchestrator passed `--final`): `{ shipped: true, pr_number: <N>|null, pr_url: <url>|null }`
-11. **Piggyback signals from the orchestrator:** if a plan was matched, the orchestrator may pass `phase_scopes[]` (per-phase Scope cell text) so you can compare against `git diff --name-only` to detect piggybacks. If no plan matched, this field is absent.
+11. **Piggyback signals from the orchestrator:** if a plan was matched, the orchestrator passes `phase_scopes[]` so you can compare against `git diff --name-only` to detect piggybacks. Each entry is the **scope text under one phase** — for v0.3.0 plans, the bulleted `- [ ]` / `- [x]` checklist that lives between a `### Phase <N>:` heading and the next phase heading; for v0.2.x legacy plans, the Scope cell of one table row. The shape difference is transparent to you — both are passed as a string per phase. If no plan matched, this field is absent.
 
 ## Your process
 

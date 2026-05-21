@@ -31,30 +31,34 @@ You will receive:
 2. The **base branch name** (e.g., `main`, `master`)
 3. The **merge-base SHA** between `HEAD` and the base branch
 4. The list of **unticked phase numbers** to evaluate
+5. The **plan shape** (`v0.3.0` or `v0.2.x`) — determines how to extract per-phase scope from the file
 
 ## Your Process
 
-1. **Read the master plan.** Parse the Implementation Phases table. For each unticked phase number you were assigned, capture the row's Scope cell.
+1. **Read the master plan.** Extract per-phase scope based on the shape:
+   - **v0.3.0 list shape:** Walk `### Phase <N>: <name> <emoji>` H3 headings under `## Implementation Phases`. For each assigned unticked phase, capture all lines from the heading until the next `### Phase` heading or next `## ` heading. That bulleted region is the phase's scope (a list of `- [ ]` / `- [x]` items, possibly with bolded `**Exit criteria:**` and `**Tests:**` sub-items).
+   - **v0.2.x table shape:** Find the markdown table after `## Implementation Phases`. For each assigned unticked phase, capture the Scope cell of that row.
 
 2. **Read the branch diff once.** Run `git diff <merge-base>...HEAD --name-only` to get the set of files modified on this branch. Cache this list — you will check phase scopes against it.
 
 3. **For each unticked phase, audit it:**
-   a. **Extract evidence anchors** from the Scope cell:
+   a. **Extract evidence anchors** from the scope text (list items or table cell):
       - **File paths** mentioned (anything matching a path pattern like `src/foo/bar.ts`, `supabase/functions/<x>/index.ts`, `__tests__/x.test.ts`, etc.)
       - **Symbol names** mentioned (function names, class names, type names, SQL identifiers, i18n keys, analytics event names)
-      - **Exit criteria** (e.g., "tests pass", "type-check clean", "X file exists")
+      - **Exit criteria** (extracted from the `**Exit criteria:**` bolded item in v0.3.0; from prose in the Scope cell in v0.2.x)
    b. **Check file existence.** For each file path mentioned, Read it (or check it exists). If a file is referenced as needing to be created and is missing → strong NOT_ACHIEVED signal.
    c. **Check branch diff membership.** For each in-scope file path, check whether it appears in the diff name-only list. At least one file must appear in the diff for ACHIEVED.
    d. **Check symbol presence.** For each named symbol, grep the relevant file(s) for the symbol. The symbol must be present in the current working tree.
-   e. **Tally:** all-conditions-pass → `ACHIEVED`. Partial → `UNCERTAIN`. Failures (missing files, no diff hits) → `NOT_ACHIEVED`.
+   e. **Check checkbox state (v0.3.0 only).** Count `- [ ]` vs `- [x]` items in the phase's scope. If every checkbox is `- [x]`, treat as a **strong additional ACHIEVED signal** — but still require diff-membership + file-existence to verdict ACHIEVED. An all-checked phase with no diff hits is still `NOT_ACHIEVED` (the checkboxes can be ticked optimistically; the code is the source of truth).
+   f. **Tally:** all-conditions-pass → `ACHIEVED`. Partial → `UNCERTAIN`. Failures (missing files, no diff hits) → `NOT_ACHIEVED`.
 
-4. **Emit one verdict per phase** in your output report.
+4. **Emit one verdict per phase** in your output report. Include in the Evidence rows: file existence, symbol presence, diff hits, AND (for v0.3.0) the checkbox state (`5/5 ticked`, `3/5 ticked`).
 
 ## Verdict criteria (conservative — err toward NOT ticking)
 
 | Verdict | All of these must hold |
 |---|---|
-| `ACHIEVED` | (a) every file path in Scope exists, (b) ≥1 in-scope file appears in the branch diff vs merge-base, (c) every named symbol is present in the working tree, (d) no scope-mentioned file is conspicuously absent |
+| `ACHIEVED` | (a) every file path in Scope exists, (b) ≥1 in-scope file appears in the branch diff vs merge-base, (c) every named symbol is present in the working tree, (d) no scope-mentioned file is conspicuously absent. For v0.3.0 plans: an all-`- [x]` scope strengthens the verdict but does not on its own grant ACHIEVED — code evidence still required. |
 | `UNCERTAIN` | Some evidence present (e.g., files exist) but not enough — diff doesn't include the files, or a key symbol is missing, or the phase is non-code (docs/planning) and the auditor cannot judge from code state |
 | `NOT_ACHIEVED` | Scope references files that don't exist, or zero in-scope files appear in the branch diff, or named symbols are missing across the board |
 

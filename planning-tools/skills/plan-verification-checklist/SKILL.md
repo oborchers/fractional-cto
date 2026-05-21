@@ -1,7 +1,7 @@
 ---
 name: plan-verification-checklist
-description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, trigger-based section-coverage gaps, phase actionability, integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
-version: 0.2.1
+description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + checklist + exit criteria), integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
+version: 0.3.0
 ---
 
 # Plan Verification Checklist
@@ -24,9 +24,9 @@ Verify every required section is present and in the prescribed order:
 
 - [ ] **Title** (H1) with one-line synopsis
 - [ ] **Quoted context block** (blockquote starting with `>`) containing Ticket(s), PRD/Source, Evidence, Depends on, Constraints
-- [ ] **Open Questions** section, located **immediately after the context block** (Critical finding if at the bottom)
-- [ ] **Resolved Questions** section (may be empty)
-- [ ] **Implementation Phases** table
+- [ ] **Open Questions** section as an **unordered list** (no table), located **immediately after the context block** (Critical finding if at the bottom)
+- [ ] **Resolved Questions** section as an **unordered list** (may be empty; no table)
+- [ ] **Implementation Phases** section with `### Phase <N>: <name> <emoji>` H3 headings (no table)
 - [ ] **Design Principles** numbered list
 - [ ] **What's NOT in <TOPIC> (and why)** section
 
@@ -55,17 +55,16 @@ For each trigger observed in the plan, check the corresponding optional section 
 
 Missing trigger-driven section = **Important**.
 
-### 3. Phase actionability
+### 3. Phase actionability (v0.3.0 list shape)
 
-Every phase row in the Implementation Phases table must have:
+Every phase must be one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a GitHub-flavored to-do checklist. Each phase block must contain:
 
-- [ ] A short imperative name (verb-led)
-- [ ] A `Status` emoji (`⏳ 🚧 ✅ ❌`)
-- [ ] Concrete **file paths** in scope (when the work touches code)
-- [ ] **Exit criteria** or **definition of done** (in Scope cell or in a per-phase callout)
-- [ ] **Test requirements** when tests are needed
+- [ ] An H3 heading of the exact shape `### Phase <N>: <verb-led name> <emoji>` where `<N>` is a positive integer and `<emoji>` is one of `⏳ 🚧 ✅ ❌` and is the last token on the line
+- [ ] At least one `- [ ]` (or `- [x]`) scope item with a concrete **file path** or named symbol (when the work touches code)
+- [ ] A bolded `**Exit criteria:** …` scope item describing definition of done
+- [ ] A bolded `**Tests:** …` scope item when the phase requires tests (omit when no tests are needed)
 
-Phases with vague scope ("update the UI", "improve performance") = **Critical**.
+Phases with vague scope ("update the UI", "improve performance") = **Critical**. Phases missing exit criteria = **Critical**. Phases missing any `- [ ]` scope item at all = **Critical**.
 
 ### 4. Integer phase numbering (non-negotiable)
 
@@ -123,8 +122,8 @@ If Open Questions is at the bottom = **Important**.
 
 ### 9. No sizing estimates
 
-- [ ] No `Size` column in Implementation Phases
 - [ ] No XS/S/M/L, T-shirt sizes, or time estimates anywhere in the plan
+- [ ] No `**Size:**` or `**Effort:**` bolded scope items in any phase
 
 Sizing present = **Important** (will be deleted on next revision).
 
@@ -143,10 +142,23 @@ Per-phase PR creation, merging, or review-request = **Critical**. The fix is to 
 
 ### 11. Status conventions
 
-- [ ] `Status` column uses emoji from the set `⏳ 🚧 ✅ ❌`
-- [ ] No raw text like "Pending" / "Done" instead of emoji (the column header is "Status", values are emoji)
+- [ ] Every `### Phase <N>:` heading ends with one of `⏳ 🚧 ✅ ❌` as the last token on the line (separated from the phase name by exactly one space)
+- [ ] No raw text like "Pending" / "Done" instead of emoji on the heading
+- [ ] Within scope checklists, `- [ ]` / `- [x]` shapes are well-formed (no `- [-]`, no `- [?]`)
 
-Mixed conventions = **Suggestion**.
+Mixed conventions = **Suggestion**. Missing heading emoji = **Important**.
+
+### 12. No tables for phases / questions (v0.3.0+)
+
+Implementation Phases, Open Questions, and Resolved Questions must use the v0.3.0 list shape — not markdown tables.
+
+- [ ] Implementation Phases uses `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists, **not** a `| Phase | Name | Status | Scope |` markdown table
+- [ ] Open Questions uses bulleted `- **Q<N> — <question>:** ...` lines, **not** a `| Q | Blocking? |` table
+- [ ] Resolved Questions uses bulleted `- **Q<N> — <question>:** <resolution>` lines, **not** a `| Q | Resolution |` table
+
+Any of these three sections rendered as a markdown table (i.e., a header row with `|` delimiters) = **Critical**, pointing the user at `planning-tools:master-plan-methodology` for the v0.3.0 shape.
+
+**Narrow-cell tables elsewhere in the plan** (Architecture matrices, Code Changes file × phase, Dependency tables, Cost summaries, etc.) are explicitly **allowed** and do not trigger this finding. The ban is scoped to wide-cell sections only.
 
 ## Report format
 
