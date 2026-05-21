@@ -51,7 +51,9 @@ Your job is to compose a master plan that follows the conventions in the `master
    - **Context block:** Ticket(s) (if known), PRD/Source (if cited), Evidence (the most important transcript / bug / source citations), Depends on (with **artifact-level specificity**), Constraints.
    - **Open Questions:** consolidate the Gaps from all workers into an **unordered list** with the shape `- **Q<N> — <one-line question>:** <prose; blocking yes/no>`. Put this section **immediately after the context block** — not at the end. **No tables (v0.3.0+).**
    - **Resolved Questions:** any decisions already locked (e.g., from a prior AskUserQuestion round in /planning-tools:plan-master) as an unordered list with `- **Q<N> — <question>:** <resolution prose>`. Empty list is allowed. **No tables.**
-   - **Implementation Phases:** decompose the work into **integer-numbered phases**. Each phase is one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a GitHub-flavored to-do checklist under it. Each scope item is `- [ ]` (or `- [x]` if already done). The phase emoji is the **last token of the heading line**, separated by one space. Include a bolded `**Exit criteria:** …` scope item at the end of every phase. Never use 0, 0.5, 1A, Phase A, ranges, or sub-phases. **No tables (v0.3.0+).**
+   - **Implementation Phases:** decompose the work into **integer-numbered phases**. Each phase is one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a required `**TL;DR:**` callout and then a GitHub-flavored to-do checklist. Each scope item is `- [ ]` (or `- [x]` if already done). The phase emoji is the **last token of the heading line**, separated by one space. Include a bolded `**Exit criteria:** …` scope item at the end of every phase. Never use 0, 0.5, 1A, Phase A, ranges, or sub-phases. **No tables (v0.3.0+). Per-phase TL;DR required (v0.3.1+).**
+
+     **TL;DR shape:** on the **first non-blank line under each phase heading**, emit `**TL;DR:** <1–3 sentences>`. First sentence = what the phase does (the verb action). Subsequent sentence(s) = why — motivation, constraint, gap addressed. No file paths or line numbers in the TL;DR (those go in scope items). No verdicts or exit criteria (those are scope items). Inline markdown allowed (code spans, bold, links to ADRs/tickets). The verifier will flag any phase missing a TL;DR as Important. See `planning-tools:master-plan-methodology` → "Per-phase TL;DR" for the full rule.
    - **Design Principles:** numbered list of opinionated rules that govern this work.
    - **What's NOT in <TOPIC> (and why):** explicit out-of-scope items, each with reasoning.
 
@@ -115,12 +117,16 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 
 ### Phase 1: <verb-led phase name> ⏳
 
+**TL;DR:** <One sentence stating what the phase does.> <Optional 1–2 sentences explaining why — the motivation, constraint, or gap addressed.>
+
 - [ ] <Scope item: action + concrete `path:line`>
 - [ ] <Scope item with code spans and **bolded emphasis** as needed>
 - [ ] **Tests:** <test files to add or update, named cases>
 - [ ] **Exit criteria:** <what proves the phase is done>
 
 ### Phase 2: <verb-led phase name> ⏳
+
+**TL;DR:** <What + why, 1–3 sentences.>
 
 - [ ] …
 - [ ] **Exit criteria:** …

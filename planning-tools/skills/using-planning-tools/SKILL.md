@@ -1,7 +1,7 @@
 ---
 name: using-planning-tools
 description: "This skill should be used when the user invokes any /plan-* command from the planning-tools plugin (/plan-context, /plan-master, /plan-open-questions, /plan-verify, /plan-tick, /plan-progress, /plan-delete), asks how Claude Code's plan files work, asks where plans are stored, asks to author or audit a multi-phase master planning document, asks how to walk through a plan's Open Questions interactively, asks how to write progress entries, or mentions ~/.claude/plans/ or .claude/planning-tools.local.md. Provides the index of planning-tools commands, the master-plan workflow lifecycle, the v0.3.0+ list-shape mandate (phases and questions as headings + to-do checklists, never tables), the progress-entry methodology, and the mechanics of Claude Code's plan-mode file storage."
-version: 0.7.1
+version: 0.7.2
 ---
 
 # Planning Tools
@@ -109,6 +109,7 @@ If the grep returns empty, the session has not entered plan mode yet — bootstr
 
 - **Integer phase numbering only** — phases are `1, 2, 3, …`. No decimals, no letter suffixes, no sub-phases. The word "Phase" is reserved for integer-numbered work units inside a master plan.
 - **List shape for phases and questions (v0.3.0+)** — Implementation Phases is a series of `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists underneath. Open Questions and Resolved Questions are bulleted `- **Q<N> — <question>:** ...` lines. **No markdown tables for any of these three sections.** `/planning-tools:plan-tick` supports the legacy v0.2.x table shape during a transition window.
+- **Per-phase TL;DR (v0.3.1+)** — each phase has a `**TL;DR:**` callout under its heading capturing what the phase does and why, 1–3 sentences. Tooling ignores the line; readers get a glance-able digest. Missing TL;DR = Important finding from `/planning-tools:plan-verify`.
 - **No sizing estimates** — phases describe scope, not effort. No XS/S/M/L, no time estimates.
 - **Open Questions at the top** — blocking questions appear immediately after the context block, not at the end of the plan.
 - **Project-agnostic** — the plugin does not assume any ticket-prefix convention. The architect picks optional sections based on what the work touches, not from a classifier.

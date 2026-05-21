@@ -1,7 +1,7 @@
 ---
 name: plan-verification-checklist
-description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + checklist + exit criteria), integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
-version: 0.3.0
+description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + per-phase TL;DR + checklist + exit criteria), the v0.3.1+ per-phase TL;DR requirement, integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
+version: 0.3.1
 ---
 
 # Plan Verification Checklist
@@ -55,16 +55,17 @@ For each trigger observed in the plan, check the corresponding optional section 
 
 Missing trigger-driven section = **Important**.
 
-### 3. Phase actionability (v0.3.0 list shape)
+### 3. Phase actionability (v0.3.0 list shape, v0.3.1 TL;DR)
 
-Every phase must be one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a GitHub-flavored to-do checklist. Each phase block must contain:
+Every phase must be one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a `**TL;DR:**` callout and a GitHub-flavored to-do checklist. Each phase block must contain:
 
 - [ ] An H3 heading of the exact shape `### Phase <N>: <verb-led name> <emoji>` where `<N>` is a positive integer and `<emoji>` is one of `⏳ 🚧 ✅ ❌` and is the last token on the line
+- [ ] **Per-phase TL;DR (v0.3.1+):** the **first non-blank line under the heading** must start with `**TL;DR:**` and contain 1–3 sentences capturing what the phase does and why. Missing or empty TL;DR = **Important**. Existing v0.3.0 plans without TL;DRs are flagged Important but not Critical — the rest of the audit still proceeds and PASS verdict is still reachable if no other Critical findings exist.
 - [ ] At least one `- [ ]` (or `- [x]`) scope item with a concrete **file path** or named symbol (when the work touches code)
 - [ ] A bolded `**Exit criteria:** …` scope item describing definition of done
 - [ ] A bolded `**Tests:** …` scope item when the phase requires tests (omit when no tests are needed)
 
-Phases with vague scope ("update the UI", "improve performance") = **Critical**. Phases missing exit criteria = **Critical**. Phases missing any `- [ ]` scope item at all = **Critical**.
+Phases with vague scope ("update the UI", "improve performance") = **Critical**. Phases missing exit criteria = **Critical**. Phases missing any `- [ ]` scope item at all = **Critical**. Phases missing TL;DR = **Important** (not Critical).
 
 ### 4. Integer phase numbering (non-negotiable)
 

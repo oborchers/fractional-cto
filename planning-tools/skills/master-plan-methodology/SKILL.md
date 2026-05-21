@@ -1,7 +1,7 @@
 ---
 name: master-plan-methodology
-description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, and the v0.3.0 list-shape mandate (phases and questions are heading + to-do list, never markdown tables). Project-agnostic — no ticket-prefix or plan-type taxonomy.
-version: 0.3.0
+description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, the v0.3.0 list-shape mandate (phases and questions are heading + to-do list, never markdown tables), and the v0.3.1 per-phase TL;DR requirement (1–3 sentence what/why summary under each phase heading for glance-ability). Project-agnostic — no ticket-prefix or plan-type taxonomy.
+version: 0.3.1
 ---
 
 # Master Plan Methodology
@@ -39,7 +39,7 @@ Every master plan **must** include these sections in this order:
 3. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
 4. **Open Questions** — unordered list of blocking questions with `**Q<N> — <one-line question>:**` prefix, **placed immediately after the context block** (not at the end). **No tables.**
 5. **Resolved Questions** — unordered list with the same `**Q<N> — <question>:** <resolution>` shape (may be empty). **No tables.**
-6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, with a GitHub-flavored to-do checklist (`- [ ]` items) underneath as Scope. **No tables.**
+6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, followed by a required `**TL;DR:**` callout (1–3 sentences, what + why), then a GitHub-flavored to-do checklist (`- [ ]` items) as Scope. **No tables.** See the "Per-phase TL;DR" section below for the v0.3.1 TL;DR requirement.
 7. **Design Principles** — numbered list of opinionated rules
 8. **What's NOT in <TOPIC> (and why)** — explicit out-of-scope items with reasoning
 
@@ -123,6 +123,36 @@ The emoji is the **last token** of the heading line. `/planning-tools:plan-tick`
 
 **Within a phase's scope checklist**, the GitHub `- [ ]` / `- [x]` checkbox state is per-item — the author or executor can tick scope items as they finish each one. `/planning-tools:plan-tick`'s inline audit treats an all-`- [x]` phase as a **strong** ACHIEVED signal, but still requires diff-membership + file-existence evidence before verdicting ACHIEVED.
 
+## Per-phase TL;DR (non-negotiable, v0.3.1+)
+
+Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturing what the phase does and why — placed on the **first non-blank line under the heading**, before the first `- [ ]` scope item.
+
+**Shape:**
+
+```markdown
+### Phase 3: Wire MutationCache.onError through shouldInvalidateSession ⏳
+
+**TL;DR:** Add a session-classifier branch at the top of `MutationCache.onError` so real session-expired mutations trigger the modal instead of a silent toast. Needed because the existing path only classified queries — mutations 401'd into a dead-end UX.
+
+- [ ] <scope item>
+- [ ] **Exit criteria:** …
+```
+
+**Content rules:**
+
+- **First sentence:** what the phase does (the verb action).
+- **Subsequent sentence(s):** why — the motivation, the constraint, the problem it addresses.
+- **Length:** 1–3 sentences as guidance. The verifier checks presence, not length.
+- **No file paths, line numbers, or test counts** in the TL;DR. Those belong in the scope checklist below it.
+- **No verdicts or exit criteria** in the TL;DR. Those are scope items.
+- Inline markdown allowed (code spans, bold for emphasis, links to ADRs or tickets).
+
+**Why:** master plans accumulate 30–60 bullets across 6–10 phases. Without a glance-able summary, the reader has to scan every bullet to grasp what each phase does. With a `**TL;DR:**` per phase, scrolling the plan top-to-bottom reading only the bolded TL;DR lines gives a 60-second overview of intent — useful for re-orienting after time away, for reviewers, and for the "did I forget anything?" pass before opening the PR.
+
+**Severity if missing:** `plan-verifier` flags missing TL;DRs as **Important** — readability gap, not correctness gap. Existing v0.3.0 plans without TL;DRs continue to tick, get progress entries, and walk Open Questions. The verifier nudges; it does not block.
+
+**Tooling transparency:** `/plan-tick`, `/plan-progress`, and `/plan-open-questions` all read per-phase scope as the line region under each heading. The TL;DR is just one more line in that region — invisible to them. No parser updates needed.
+
 ## No tables for phases / questions (non-negotiable, v0.3.0+)
 
 The Implementation Phases, Open Questions, and Resolved Questions sections **must not** use markdown tables. Use:
@@ -165,12 +195,16 @@ The `plan-verifier` agent flags any master plan that uses tables for phases or q
 
 ### Phase 1: <verb-led phase name> ⏳
 
+**TL;DR:** <One sentence stating what the phase does.> <Optional 1–2 sentences explaining why — motivation, constraint, gap addressed.>
+
 - [ ] <Scope item: action + concrete file path + line range>
 - [ ] <Scope item with `code spans` and **bolded emphasis** as needed>
 - [ ] **Tests:** <test files to add/update, named cases>
 - [ ] **Exit criteria:** <what proves the phase is done — green checks, behavior verified>
 
 ### Phase 2: <verb-led phase name> ⏳
+
+**TL;DR:** <What + why, 1–3 sentences.>
 
 - [ ] …
 - [ ] **Exit criteria:** …
@@ -200,6 +234,7 @@ Every factual claim in a master plan must be traceable to a source. Use these fo
 
 Bold-prefix lines for inline emphasis (do **not** use GitHub-style `> [!NOTE]` admonitions):
 
+- `**TL;DR:** …` — required under every `### Phase` heading (v0.3.1+): 1–3 sentences capturing what the phase does and why. See "Per-phase TL;DR" above for the full rule.
 - `**Decision:** …` — a settled choice
 - `**Rationale:** …` — the reasoning for a Decision
 - `**Risk:** …` — a known risk

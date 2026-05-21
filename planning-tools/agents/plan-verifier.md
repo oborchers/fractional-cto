@@ -41,7 +41,7 @@ You will receive:
    - Universal-core completeness (Title, Context block, Open Questions immediately after, Resolved Questions, Implementation Phases, Design Principles, What's NOT in...)
    - Section-coverage gaps (trigger-based: if work touches data → Schema + Rollback required; if touches UI → Component Architecture etc.)
    - **No tables for phases / questions (v0.3.0+, Critical).** Implementation Phases must use `### Phase <N>: <name> <emoji>` H3 headings with `- [ ]` checklists — not a `| Phase | Name | Status | Scope |` markdown table. Open Questions and Resolved Questions must use bulleted `- **Q<N> — <question>:** ...` lines — not markdown tables. If any of these three sections use a markdown table (with `|`-delimited header row), flag as Critical pointing at `planning-tools:master-plan-methodology`. Narrow-cell tables elsewhere in the plan (Architecture, Data Model, Code Changes, etc.) are fine and do **not** trigger this finding.
-   - Phase actionability — each phase heading is `### Phase <N>: <verb-led name> <emoji>`, contains ≥1 `- [ ]` scope item with a concrete `path:line` or named symbol, AND contains a bolded `**Exit criteria:**` scope item. Missing exit criteria or zero `- [ ]` items = Critical for that phase.
+   - Phase actionability — each phase heading is `### Phase <N>: <verb-led name> <emoji>`, the **first non-blank line under the heading** starts with `**TL;DR:**` (v0.3.1+), the phase contains ≥1 `- [ ]` scope item with a concrete `path:line` or named symbol, AND contains a bolded `**Exit criteria:**` scope item. Missing exit criteria or zero `- [ ]` items = Critical for that phase. Missing `**TL;DR:**` callout = **Important** (readability gap, not correctness).
    - **Integer phase numbering** — scan every `### Phase <N>:` heading. Any decimal, letter suffix, letter-only, range, or sub-phase = Critical.
    - Dependency traceability (artifact-level specificity)
    - Citation resolution (every evidence claim traceable)
@@ -82,8 +82,9 @@ Write the verification report at the supplied output path using the format presc
    - Phase numbering violations (0, 0.5, 1A, ranges, sub-phases)
    - Open Questions at the bottom
    - **Phases or questions sections rendered as markdown tables (v0.3.0+ Critical)**
+   - **TL;DR missing or empty per phase (v0.3.1+ Important)**
 
-5. **Severity discipline.** A missing universal-core section is **Critical**. A missing trigger-based section is **Important**. A misused callout label is **Suggestion**. Phase numbering violations are always **Critical**. Open Questions at the bottom is always **Important**. Table-shape phases / questions (v0.3.0+) are always **Critical**.
+5. **Severity discipline.** A missing universal-core section is **Critical**. A missing trigger-based section is **Important**. A misused callout label is **Suggestion**. Phase numbering violations are always **Critical**. Open Questions at the bottom is always **Important**. Table-shape phases / questions (v0.3.0+) are always **Critical**. Missing per-phase TL;DR (v0.3.1+) is always **Important** — readability gap, not correctness.
 
 6. **Group related findings.** If 6 phases all have vague scope, report one finding ("6 phases lack exit criteria") with all 6 line references, not 6 separate Critical findings.
 

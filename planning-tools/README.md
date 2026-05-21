@@ -160,6 +160,7 @@ Codified in the `master-plan-methodology` skill. Highlights:
 - **Open Questions at the top** — placed immediately after the context block, not at the end. Blockers must be visible to anyone skimming the first 30 lines.
 - **Project-agnostic** — no ticket-prefix or plan-type taxonomy. Optional sections are added based on what the work touches, derived from worker findings.
 - **Authoring shape (v0.3.0+)** — phases are `### Phase <N>: <verb-led name> <emoji>` H3 headings with `- [ ]` to-do checklists underneath. Open Questions and Resolved Questions are bulleted `- **Q<N> — <question>:** ...` lines. **No markdown tables for any of these three sections** — wide-cell tables in markdown become unreadable. Narrow-cell tables elsewhere (Architecture, Data Model, file × phase matrix, etc.) are still allowed.
+- **Per-phase TL;DR (v0.3.1+)** — each phase has a `**TL;DR:** <1–3 sentences>` line under the heading, before scope items. First sentence = what the phase does, subsequent sentence(s) = why. Lets readers scan the plan top-to-bottom reading only TL;DR lines to grasp every phase in 60 seconds. The verifier flags missing TL;DRs as Important.
 - **Status emoji** — `⏳ 🚧 ✅ ❌` as the last token of each phase heading.
 - **Evidence attribution** — every claim cites source (transcript+date+speaker, ADR-NN, `path:line`).
 - **Callout labels** — bold-prefix `**Decision:**`, `**Rationale:**`, `**Risk:**`, `**Mitigation:**`, `**Note:**`.
@@ -171,12 +172,16 @@ Codified in the `master-plan-methodology` skill. Highlights:
 
 ### Phase 1: Add invalid_session discriminator to requireAuth 401s ⏳
 
+**TL;DR:** Stamp `code: 'invalid_session'` on every `requireAuth` 401 response so the frontend can discriminate genuine session expiry from upstream-relayed 401s. Needed because the current discriminator is bare HTTP status, which conflates auth-gate failures with EPOS/SF upstream rejection.
+
 - [ ] Widen `ProblemDetails.status` to `401 | 404 | 503` at `_shared/problem-response.ts:32`
 - [ ] Replace 3 `corsError(string, 401)` paths in `_shared/auth.ts:82-128` with `problemResponse({ status: 401, code: 'invalid_session', ... })`
 - [ ] **Tests:** `_shared/auth.test.ts` — assert all 3 paths emit Content-Type `application/problem+json`
 - [ ] **Exit criteria:** `make test-functions` green; local curl returns 401 + problem+json + `code: invalid_session`
 
 ### Phase 2: Add code-match safety net to session-errors.ts ✅
+
+**TL;DR:** Add positive `code === 'session_expired' | 'invalid_session' | 'PGRST302'` branches to `shouldInvalidateSession` before removing the bare-401 fallback in Phase 4. Lands the safety net first so real session expiry continues to fire when Phase 4 removes the broad branch.
 
 - [x] Add `error.code === 'session_expired' || 'invalid_session'` branches to `shouldInvalidateSession` at `:175`
 - [x] Add `error.code === 'PGRST302'` branch (closes JWT-malformed gap)
