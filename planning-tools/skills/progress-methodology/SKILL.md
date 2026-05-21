@@ -1,7 +1,7 @@
 ---
 name: progress-methodology
-description: This skill should be used when authoring or applying a progress update via the planning-tools plugin (the /planning-tools:plan-progress command and the plan-progress-synthesizer agent). Codifies the dense-paragraph progress style, sub-markers (Piggybacked / Verification / Out of scope / Shipped), entry-key marker convention, SHA-tracking idempotency rule, three-way entry detection (no / in-flight / completed), comment-fetch policy (all, no cap), and the read-only source adapter + read-write destination adapter contracts (v1: markdown file, Linear comment, GitHub issue/PR comment).
-version: 0.1.0
+description: This skill should be used when authoring or applying a progress update via the planning-tools plugin (the /planning-tools:plan-progress command). Codifies the dense-paragraph progress style, sub-markers (Piggybacked / Verification / Out of scope / Shipped), entry-key marker convention, SHA-tracking idempotency rule, three-way entry detection (no / in-flight / completed), comment-fetch policy (all, no cap), and the read-only source adapter + read-write destination adapter contracts (v1: markdown file, Linear comment, GitHub issue/PR comment).
+version: 0.2.0
 ---
 
 # Progress Methodology
@@ -9,7 +9,7 @@ version: 0.1.0
 A **progress entry** is one durable record of what a single branch / PR / feature shipped or is in the process of shipping. The plugin's `/planning-tools:plan-progress` command synthesizes these entries from the working tree, git log, the matching master plan, and optionally a source ticket. The format is **opinionated and dense**: one paragraph per branch, narrative prose, evidence-rich.
 
 This skill is read by:
-- the `plan-progress-synthesizer` agent (to learn the style spec)
+- the `/planning-tools:plan-progress` command's inline composition routine (which loads this skill to learn the style spec — no separate agent)
 - the `/planning-tools:plan-progress` command (to learn the adapter contracts + three-way detection rule)
 - the `plan-verifier` agent and other auditors (as the single owner of progress-related conventions)
 

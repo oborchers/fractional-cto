@@ -241,25 +241,88 @@ If the result is non-empty, capture `pr_number` and `pr_url`. If empty (no PR op
 
 ---
 
-## Step 10 — Dispatch the synthesizer agent
+## Step 10 — Compose the entry (inline, in the main conversation)
 
-Use the Agent tool with `subagent_type: plan-progress-synthesizer` (sonnet). The agent prompt must include, as separate labeled sections:
+Compose the dense paragraph entry **in the main conversation**. No subagent is dispatched. See `[[no-subagents-for-procedural-wrappers]]` for the design choice.
 
-- Plan path (or `"none"`)
-- Phase scopes (the parsed Scope cells; or `"none"`)
-- Branch + base + merge-base
-- Commit log (`git log <merge-base>..HEAD --pretty=format:'%h %an %ad%n%s%n%b%n---'`)
-- Diff stats (`git diff <merge-base>..HEAD --stat`)
-- Diff name-only (`git diff <merge-base>..HEAD --name-only`)
-- Existing entry body (or `"none"`)
-- Style exemplars (1-3 entries verbatim)
-- Source-ticket context block (or `"none"`)
+### Inputs already assembled by Steps 1–9
+
+- Plan path + parsed phase scopes (from Step 2; may be empty if no plan matched)
+- Branch + base + merge-base SHA
+- Commit log: run `git log <MERGE_BASE>..HEAD --pretty=format:'%h %an %ad%n%s%n%b%n---'` now
+- Diff stats: `git diff <MERGE_BASE>..HEAD --stat`
+- Diff name-only: `git diff <MERGE_BASE>..HEAD --name-only`
+- Existing entry body (from Step 6; may be empty)
+- Style exemplars (from Step 8; 1–3 prior entries or the fallback `progress-methodology/examples/sample-entry.md`)
+- Source-ticket context block (from Step 5; may be empty)
 - Destination type (`markdown` / `linear` / `github`)
 - Today's date
-- `--final` and PR metadata (if applicable)
-- Pre-resolved verdict (one of `NEW_ENTRY`, `IN_FLIGHT_UPDATE`, `COMPLETED_REFRESH`)
+- `--final` flag + PR metadata (from Step 9; only when `--final` was passed)
+- Pre-resolved verdict (`NEW_ENTRY` / `IN_FLIGHT_UPDATE` / `COMPLETED_REFRESH` from Step 7)
 
-The agent returns a structured report including the verdict, the entry body verbatim, any low-confidence piggyback notes, and caveats.
+### Compose process
+
+1. **Read the `progress-methodology` skill** via the `Skill` tool to learn the style spec (sub-marker order, entry-key marker format, SHA-tracking convention, comment-fetch policy). Do this before composing.
+
+2. **Extract the covered-SHA set** from the existing entry body. Regex: `\b[0-9a-f]{7,12}\b`. Treat case-insensitively. Cross-check against the branch's full SHA list — only keep tokens that match a real commit.
+
+3. **Compute new commits** = branch commit SHAs not in the covered-SHA set.
+
+4. **Idempotency early-exit:** if the existing entry contains `✅` AND `new commits` is empty → set verdict to `NO_CHANGES` and skip composition. Step 11 will report and exit cleanly.
+
+5. **Plan piggyback comparison** (only if phase scopes were extracted in Step 2):
+   - Collect the set of files touched by new commits (from `git diff --name-only`).
+   - For each touched file, check whether any phase Scope text mentions the file path (substring match, normalized — strip leading `./`, lowercase).
+   - **Confidence levels:**
+     - Touched file matches no phase scope → high-confidence piggyback (`**Piggybacked:**`).
+     - Touched file is in a related directory but the phase Scope doesn't explicitly name it → low-confidence (`**Piggybacked?:**`).
+   - Group piggybacked files by topical unit (a refactor, a fix, a feature). One mini-paragraph per unit, not per file.
+   - If no plan matched (no phase scopes), **omit the Piggybacked marker entirely**.
+
+6. **Compose the entry body** in this order:
+
+   **Heading line** — exact format:
+   ```
+   ## <ticket-id-or-branch-slug>: <one-line synopsis>
+   ```
+   Append ` ✅` to the heading **only** when `--final` was passed.
+
+   **First content line** — the entry-key marker as an HTML comment, on its own line, immediately above the heading:
+   ```html
+   <!-- planning-tools:plan-progress entry-key:<branch-slug> -->
+   ```
+
+   **Body** — one dense paragraph in the style spec (see `progress-methodology` skill). Open with:
+   - **In-flight (no `--final`):** `**Branch:** \`<branch-name>\` (N commits, ready to PR).` then narrate scope.
+   - **Shipped (`--final`):** `**Shipped <YYYY-MM-DD> via PR #<N>.**` (omit ` via PR #<N>` if `pr_number` is null), then narrate scope.
+
+   **Sub-markers** in this order, omitting any whose content would be empty: `**Piggybacked:**` / `**Piggybacked?:**`, `**Verification:**`, `**Out of scope:**`, `**Operational rollout:**`, `**Rollback:**`.
+
+7. **Preserve already-cited SHAs.** If extending an in-flight entry, the sentences citing earlier commits stay in the new body verbatim where possible. Append new sentences for new commits; only refine prior prose if a new commit explicitly invalidates a prior claim (rare — flag with `[updated]` parenthetical when you do).
+
+8. **Cite every new commit by short SHA** in the prose. Do not list SHAs in a footer or appendix. They go in the sentences that narrate the work, e.g., "...refactored the foo orchestrator (commit `1a2b3c4`)..."
+
+9. **Verification sub-marker** — for in-flight entries, narrate gates that the **commits themselves claim to have passed** (read commit messages for `Verification:` / `Tests:` / `make test` mentions). For shipped entries with `--final`, the user typically supplies these via the entry context; if absent, include what is observable from the commit messages with a hedging phrase ("Verification claimed in commit messages: ...").
+
+### Verdict decisions
+
+| Verdict | Conditions |
+|---|---|
+| `NEW_ENTRY` | No existing entry body (Step 6 returned no match). |
+| `IN_FLIGHT_UPDATE` | Existing entry present, no `✅`, ≥1 new commit. |
+| `COMPLETED_REFRESH` | Step 7 prompted the user; they chose "Refresh completed entry"; existing body has `✅`. |
+| `NO_CHANGES` | Existing entry has `✅` AND zero new commits (step 4 above). |
+
+### Strict composition rules
+
+- **One paragraph per entry.** Multi-paragraph structure is wrong. Sub-markers are inline section breaks, not separate paragraphs.
+- **Names, paths, SHAs, counts — not vagueness.** "We refactored the cache" is wrong; "split `processBatch` into three pure functions wired by a thin orchestrator in `src/foo/orchestrate.ts` (commit `1a2b3c4`)" is right.
+- **Never invent SHAs, file paths, line numbers, test counts, or PR numbers.** If a piece of evidence isn't in your input, omit it. Hedge with "claimed in commit message" when relying on commit text.
+- **Preserve already-cited SHAs** when extending an in-flight entry — the prior sentences citing earlier commits stay in place.
+- **Omit empty sub-markers.** If no piggybacks exist, no `Piggybacked:` marker. If no verification gates are observable, no `Verification:` marker.
+- **If no plan was matched, no piggyback detection.** Without a plan reference there is no notion of in-scope vs out-of-scope.
+
+Track any low-confidence `Piggybacked?:` items separately — surface them above the apply gate in Step 11 so the user can resolve before approving.
 
 ---
 
@@ -273,7 +336,7 @@ The agent returns a structured report including the verdict, the entry body verb
 - **For `IN_FLIGHT_UPDATE`:** Print a unified diff of the existing entry vs the new body (use `diff -u` over temp files, or hand-roll a brief diff if `diff` unavailable). Ask via binary `AskUserQuestion`: `"Update <destination>"` / `"Discard"`.
 - **For `COMPLETED_REFRESH`:** Print the proposed refreshed body. Ask `"Apply refresh to <destination>"` / `"Discard"`.
 
-Surface any low-confidence `Piggybacked?:` notes from the synthesizer **above** the AskUserQuestion so the user can edit before approving (the user edits the proposed body manually after `Discard`-ing and re-running).
+Surface any low-confidence `Piggybacked?:` notes from Step 10 **above** the `AskUserQuestion` so the user can edit before approving (the user edits the proposed body manually after `Discard`-ing and re-running).
 
 On `Discard`: stop without writing. On approval: proceed to Step 12.
 
@@ -319,7 +382,7 @@ If `--final` was applied, also note the PR number / URL or `(no PR found)`.
 
 ## Mandatory Use of AskUserQuestion
 
-The main conversation owns all user interaction. Subagents (the synthesizer) never call `AskUserQuestion`.
+The main conversation owns all user interaction.
 
 - **Step 4 destination prompt** (only if no `--destination` flag and no saved destination) — **binary** confirm.
 - **Step 7 completed-entry branch** — **3-option** question (within the 4-option cap, FIXED shape, safe).
@@ -333,6 +396,10 @@ Per `[[askuserquestion-4option-cap]]`, never use multi-select with dynamic-lengt
 - Never auto-commits or auto-pushes. The user controls when commits happen.
 - Never modifies `.gitignore`. Emits a note for the user to do it manually.
 - Never silently downgrades destinations. If the configured destination's adapter is unavailable, fails loudly.
+
+## No subagent dispatch
+
+The composition routine in Step 10 runs entirely in the main conversation. No subagent is dispatched. See `[[no-subagents-for-procedural-wrappers]]` for the design choice — reads + ruleset application + style transfer for a single dense paragraph is procedural-wrapper territory, not real isolation.
 
 ## Notes
 

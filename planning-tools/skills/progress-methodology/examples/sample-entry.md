@@ -1,4 +1,4 @@
-<!-- This file is a fallback style exemplar for the plan-progress-synthesizer agent.
+<!-- This file is a fallback style exemplar for the /planning-tools:plan-progress composition routine.
      It is used only when a destination has no prior entries to learn from (cold start).
      The entry below is fabricated — names and SHAs are illustrative, not real. -->
 

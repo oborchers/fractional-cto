@@ -109,20 +109,89 @@ For each row of the `| Phase | Name | Status | Scope |` table:
 
 ## Step 6b — Auto mode (no `<phase>` argument)
 
+The audit runs **entirely in the main conversation**. No subagent is dispatched. See `[[no-subagents-for-procedural-wrappers]]` for the design choice.
+
 1. Collect the list of **unticked phase numbers** — every phase whose Status is not `✅` (`⏳`, `🚧`, `❌`, or missing).
 2. If the list is empty, report: `All phases already done in <path>. Nothing to tick.` Stop.
-3. **Dispatch the `plan-tick-auditor` agent** (sonnet). Pass:
-   - The plan path
-   - The base branch (`$BASE`)
-   - The merge-base SHA (`$MERGE_BASE`)
-   - The list of unticked phase numbers
-   - The **plan shape** (`v0.3.0` or `v0.2.x`) so the auditor knows how to extract scope from the file
-4. Receive the auditor's structured report (Per-phase verdicts + Summary table).
-5. **Surface the audit** to the user verbatim from the agent's report — copy the Per-phase verdicts and the Summary table into the conversation. The user sees exactly what was decided and why.
-6. For each phase in the `ACHIEVED phases (safe to tick)` list, use the Edit tool to flip its emoji to `✅`:
+3. **Read the branch diff once.** Run `git diff <MERGE_BASE>...HEAD --name-only` to get the set of files modified on this branch. Cache this list — you will check phase scopes against it for every phase. Do not call `git diff` again per phase.
+
+   ```bash
+   git diff "$MERGE_BASE"...HEAD --name-only
+   ```
+
+4. **For each unticked phase, audit it inline:**
+
+   a. **Extract evidence anchors** from the phase's scope text (the bulleted region under the `### Phase <N>:` heading for v0.3.0, or the Scope cell for v0.2.x):
+      - **File paths** mentioned (anything matching a path pattern like `src/foo/bar.ts`, `supabase/functions/<x>/index.ts`, `__tests__/x.test.ts`, etc.).
+      - **Symbol names** mentioned (function names, class names, type names, SQL identifiers, i18n keys, analytics event names).
+      - **Exit criteria** (extracted from the bolded `**Exit criteria:**` scope item in v0.3.0; from prose in the Scope cell in v0.2.x).
+
+   b. **Check file existence.** For each in-scope file path, Read it (or check it exists). If a file is referenced as needing to be created and is missing → strong `NOT_ACHIEVED` signal.
+
+   c. **Check branch diff membership.** For each in-scope file path, check whether it appears in the cached diff name-only list. At least one file must appear in the diff for `ACHIEVED`.
+
+   d. **Check symbol presence.** For each named symbol, grep the relevant file(s) for the symbol. The symbol must be present in the current working tree.
+
+   e. **Check checkbox state (v0.3.0 only).** Count `- [ ]` vs `- [x]` items in the phase's scope. If every checkbox is `- [x]`, treat as a **strong additional `ACHIEVED` signal** — but still require diff-membership + file-existence to verdict `ACHIEVED`. An all-checked phase with no diff hits is still `NOT_ACHIEVED` (checkboxes can be ticked optimistically; code is the source of truth).
+
+   f. **Tally** per the conservative verdict criteria table below.
+
+5. **Verdict criteria (conservative — err toward NOT ticking):**
+
+   | Verdict | All of these must hold |
+   |---|---|
+   | `ACHIEVED` | (a) every file path in Scope exists, (b) ≥1 in-scope file appears in the branch diff vs merge-base, (c) every named symbol is present in the working tree, (d) no scope-mentioned file is conspicuously absent. For v0.3.0 plans: an all-`- [x]` scope strengthens the verdict but does not on its own grant `ACHIEVED` — code evidence still required. |
+   | `UNCERTAIN` | Some evidence present (e.g., files exist) but not enough — diff doesn't include the files, or a key symbol is missing, or the phase is non-code (docs/planning) and the audit cannot judge from code state. |
+   | `NOT_ACHIEVED` | Scope references files that don't exist, or zero in-scope files appear in the branch diff, or named symbols are missing across the board. |
+
+   **The default verdict is `NOT_ACHIEVED` / `UNCERTAIN`.** Only graduate to `ACHIEVED` with concrete evidence. The user can always manually tick via `/planning-tools:plan-tick <phase>` if the audit is too conservative; recovering from a wrongly-ticked phase is harder.
+
+   **Non-code phases** (Scope describes planning, documentation, or analysis work with no code paths cited and no symbols to check) are `UNCERTAIN` by default. The user manually ticks these via `/planning-tools:plan-tick <phase>`.
+
+6. **Surface the audit report verbatim to the user.** Use this exact shape:
+
+   ```markdown
+   # Plan Tick Audit Report
+
+   > Plan: <path>
+   > Branch base: <BASE> (merge-base <short-sha>)
+   > Phases evaluated: <N>
+
+   ## Per-phase verdicts
+
+   ### Phase <N>: <name>
+   - **Verdict:** ACHIEVED | UNCERTAIN | NOT_ACHIEVED
+   - **Evidence:**
+     - <one-line check result, e.g., `src/features/sf-links.ts` exists ✓>
+     - <`getRoaUrl` symbol present at `src/features/sf-links.ts:42` ✓>
+     - <file appears in branch diff ✓>
+     - <(v0.3.0) checkbox state: 5/5 ticked>
+   - **Conclusion:** <one short sentence>
+
+   ### Phase <N+1>: …
+   …
+
+   ## Summary
+
+   | Phase | Verdict |
+   |---|---|
+   | 1 | ACHIEVED |
+   | 2 | ACHIEVED |
+   | 3 | UNCERTAIN |
+   | 4 | NOT_ACHIEVED |
+
+   **ACHIEVED phases (safe to tick):** 1, 2
+   **UNCERTAIN phases (leave for now):** 3
+   **NOT_ACHIEVED phases (skip):** 4
+   ```
+
+   Every verdict must include 2–4 one-line evidence rows. "Symbol present in file" without a line number is too vague — say `getRoaUrl` defined at `src/features/sf-links.ts:42`.
+
+7. For each phase in the `ACHIEVED phases (safe to tick)` bucket, use the Edit tool to flip its emoji to `✅`:
    - **v0.3.0 heading shape:** Edit the `### Phase <N>: <name> <old-emoji>` line, replacing the last-token emoji with `✅`. Anchor with the full heading line.
    - **v0.2.x table shape:** Edit the full row line; replace only the Status cell emoji with `✅`.
-7. Skip phases the auditor verdicted `UNCERTAIN` or `NOT_ACHIEVED` — leave them as-is.
+
+8. Skip phases verdicted `UNCERTAIN` or `NOT_ACHIEVED` — leave them as-is.
 
 ---
 
@@ -138,7 +207,7 @@ Ticked <K> phase(s) in <path>: <list>.
 If `K == 0`:
 
 ```
-No phases ticked. <remaining-pending> phase(s) remain — auditor verdicted them UNCERTAIN or NOT_ACHIEVED. To override, run /planning-tools:plan-tick <phase>.
+No phases ticked. <remaining-pending> phase(s) remain — audit verdicted them UNCERTAIN or NOT_ACHIEVED. To override, run /planning-tools:plan-tick <phase>.
 ```
 
 If all phases are now `✅`, append: `All phases complete. Consider running /planning-tools:plan-verify to confirm and then opening the single PR per the Release section.`
@@ -152,11 +221,12 @@ This command **must not** call `AskUserQuestion` in any code path. The user expl
 - Use the deterministic fallback rule documented in each step.
 - If no fallback exists, **error** with a clear message and a hint at the manual override or explicit path arg.
 
-The `plan-tick-auditor` agent also must not call `AskUserQuestion` (and cannot, per its prompt). All decisions are made from local code state.
+All decisions are made from local code state.
 
 ## Notes
 
 - This command **only** writes the status emoji (heading suffix for v0.3.0, Status cell for v0.2.x). It does not commit, push, PR, modify phase names (no strikethrough), or touch any other section.
 - The command is **idempotent**: ticking an already-done phase is a no-op.
 - Supports both **v0.3.0 list shape** (`### Phase <N>: <name> <emoji>` headings with `- [ ]` checklists) and **v0.2.x legacy table shape** (`| Phase | Name | Status | Scope |`). Shape detection is automatic.
-- The auditor is **conservative**. If it under-ticks (verdicts `UNCERTAIN` for a phase you know is done), run `/planning-tools:plan-tick <phase>` to override.
+- The audit is **conservative**. If it under-ticks (verdicts `UNCERTAIN` for a phase you know is done), run `/planning-tools:plan-tick <phase>` to override.
+- **No subagent is dispatched.** The audit runs entirely in the main conversation. See `[[no-subagents-for-procedural-wrappers]]` for why.

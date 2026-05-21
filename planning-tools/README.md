@@ -66,7 +66,7 @@ Emits Critical / Important / Suggestion findings with `path:line` references and
 
 ### `/planning-tools:plan-tick [phase-number] [path]`
 
-**Auto mode (no args):** detect the current branch, find the master plan that matches it (by filename → branch-name substring), dispatch the `plan-tick-auditor` agent (sonnet) to verdict each unticked phase against the working tree + branch diff vs the merge-base, then tick every phase the auditor verdicts `ACHIEVED`. Conservative — `UNCERTAIN` and `NOT_ACHIEVED` phases stay unticked.
+**Auto mode (no args):** detect the current branch, find the master plan that matches it (by filename → branch-name substring), then in the **main conversation** walk each unticked phase against the working tree + branch diff vs the merge-base (file existence + diff membership + symbol presence + checkbox state) and tick every phase the audit verdicts `ACHIEVED`. Conservative — `UNCERTAIN` and `NOT_ACHIEVED` phases stay unticked. No subagent is dispatched.
 
 **Manual override:** `/planning-tools:plan-tick <phase>` ticks the named phase explicitly without invoking the auditor. Use this when the auditor under-judges (e.g., non-code phases like documentation or planning) or when you know better than the audit.
 

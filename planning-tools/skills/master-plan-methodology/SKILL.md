@@ -121,7 +121,7 @@ Example: `### Phase 3: Wire MutationCache.onError through shouldInvalidateSessio
 
 The emoji is the **last token** of the heading line. `/planning-tools:plan-tick` flips this emoji to `✅` when the phase is verdicted ACHIEVED. Strikethrough (`~~Phase 1: …~~`) on completed phase headings is allowed but not required.
 
-**Within a phase's scope checklist**, the GitHub `- [ ]` / `- [x]` checkbox state is per-item — the author or executor can tick scope items as they finish each one. `plan-tick-auditor` treats an all-`- [x]` phase as a **strong** ACHIEVED signal, but still requires diff-membership + file-existence evidence before verdicting ACHIEVED.
+**Within a phase's scope checklist**, the GitHub `- [ ]` / `- [x]` checkbox state is per-item — the author or executor can tick scope items as they finish each one. `/planning-tools:plan-tick`'s inline audit treats an all-`- [x]` phase as a **strong** ACHIEVED signal, but still requires diff-membership + file-existence evidence before verdicting ACHIEVED.
 
 ## No tables for phases / questions (non-negotiable, v0.3.0+)
 
