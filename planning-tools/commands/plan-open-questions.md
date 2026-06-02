@@ -1,9 +1,11 @@
 ---
-description: "Walk through a master plan's Open Questions one by one. For each question, read cited evidence, compose a context block with 2–4 alternatives (always including a Defer path), and capture the user's choice via AskUserQuestion. Apply all resolutions to the plan in one batch — moving answered questions from Open to Resolved. Runs entirely in the main conversation; no subagent dispatch."
+description: "Walk through a master plan's Open Questions one by one. For each question, read cited evidence, compose a context block with 2–4 alternatives (always including a Defer path), and capture the user's choice via a dedicated AskUserQuestion call per question (exactly one question per call — never batched). Apply all resolutions to the plan in one batch — moving answered questions from Open to Resolved. Runs entirely in the main conversation; no subagent dispatch."
 argument-hint: "[path] [question-number]"
 ---
 
-You are **walking the user through a master plan's Open Questions**. For each question you (a) ground the analysis by reading the question's cited evidence, (b) compose a context block in the canonical shape, (c) call `AskUserQuestion` with 2–4 alternatives, and (d) accumulate the user's choices. After all questions are walked you present a batch summary and apply all resolutions to the plan in one mutation.
+You are **walking the user through a master plan's Open Questions**. For each question you (a) ground the analysis by reading the question's cited evidence, (b) compose a context block in the canonical shape, (c) make **one** `AskUserQuestion` call carrying **exactly that one question** with 2–4 alternatives, and (d) accumulate the user's choice. Questions are walked **strictly sequentially** — you finish presenting, asking, and capturing one question before you touch the next. After all questions are walked you present a batch summary and apply all resolutions to the plan in one mutation.
+
+**Never batch.** `AskUserQuestion` accepts up to 4 questions in a single call, but you must never use that to ask several open questions at once. One open question = one `AskUserQuestion` call. The user resolves each question in isolation.
 
 **This command runs entirely in the main conversation.** Do not dispatch a subagent. All per-question reading, analysis, and alternative-generation happens here.
 
@@ -88,6 +90,8 @@ Otherwise walk all parsed questions.
 
 For each open question to address, do all of the following **in the main conversation**. Do not dispatch any agent.
 
+**Walk strictly one question at a time.** Fully present, ask, and capture question *i* before reading any evidence for question *i+1*. Never prepare a single `AskUserQuestion` call that covers several questions — even if the questions look related or trivial. Each open question is its own round-trip so the user can consider it in isolation.
+
 ### (a) Read evidence anchors
 
 Scan the question text + `contextProse` + the surrounding plan body for concrete anchors:
@@ -160,6 +164,8 @@ Adapt the shape to the question's nature:
 One of the 2–4 options is always the Defer path. When the natural answer set has 3 options, Defer is the 4th. When it has 2 options, Defer is the 3rd. When it has only 1 obvious answer, present that as Option 1 and Defer as Option 2.
 
 ### (e) Call `AskUserQuestion`
+
+**This call contains exactly one question — a single entry in the `questions` array.** One `AskUserQuestion` call per open question; never place two or more open questions in the same call, even though the tool accepts up to 4 questions per call. Make the call only after *this* question's context block has been printed, and before you read the next question's evidence. The walk is one round-trip per question, always.
 
 Pass the 2–4 alternatives as options:
 
@@ -264,11 +270,11 @@ If zero questions were answered (all deferred), report: `No questions resolved (
 
 Three `AskUserQuestion` call points, all in the main conversation:
 
-- **Step 6 per-question** — 2–4 single-select options per question. Always includes a Defer path.
+- **Step 6 per-question** — **one call per question, exactly one question per call**, walked sequentially. 2–4 single-select options per question, always including a Defer path. Never bundle multiple open questions into one call, even though the tool accepts up to 4 questions per call.
 - **Step 7 apply gate** — 3 options (`Apply / Show diff first / Discard`).
 - **Show-diff-first sub-flow** — binary follow-up (`Apply / Discard`).
 
-Per `[[askuserquestion-4option-cap]]`, never exceed 4 options.
+Two orthogonal caps apply: `[[askuserquestion-4option-cap]]` — never exceed 4 **options** per question; and (Step 6) exactly one **question** per call for this sequential walkthrough.
 
 ## Strict no-modify rules
 

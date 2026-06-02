@@ -1,7 +1,7 @@
 ---
 name: plan-context-worker
 description: |
-  Use this agent for parallel context discovery during master-plan creation. Each worker investigates one confirmed domain (e.g., backend, frontend, analytics, research, ADRs) and writes intermediate findings with concrete path:line references. Spawn multiple instances simultaneously — one per confirmed domain — to investigate in parallel.
+  Use this agent for parallel context discovery during master-plan creation. Each worker investigates one confirmed domain (e.g., backend, frontend, analytics, research, ADRs) and returns well-cited findings with concrete path:line references (as its final message; best-effort persisted to a scratch file). Spawn multiple instances simultaneously — one per confirmed domain — to investigate in parallel.
 
   <example>
   Context: User invoked /plan-context for a new master plan. After Triage + Confirm, the main conversation has a list of 4 confirmed domains.
@@ -39,7 +39,7 @@ You will receive:
 1. A **topic** (the planning subject — e.g., a ticket ID, brief, or doc path)
 2. A **domain assignment** (e.g., `backend`, `frontend`, `analytics`, `research`, `adrs`, `infra`, `tests`)
 3. **Scope hints** — paths the main conversation identified as in-scope for your domain
-4. An **output file path** to write your intermediate findings document
+4. An **output file path** — a best-effort persistence target for your findings document. Your primary deliverable is the document **returned as your final message** (see Rule #9); writing this file is a secondary durability step, not the deliverable itself.
 5. (Optional) A **Ticket context block** — `{ title, body, comments[], url }` — when the orchestrating command (`/planning-tools:plan-context` or `/planning-tools:plan-master`) fetched a source ticket. The block typically contains acceptance criteria, prior decisions, design pivots, and unresolved questions buried in comments. Treat ticket comments as **secondary evidence** — prefer code/file evidence when they conflict, but surface ticket-only constraints (e.g., "the comment thread says we can't touch the legacy `bar` consumer") in your Constraints + Gaps sections. Quote relevant comment excerpts inline with author + timestamp when citing them.
 
 ## Your Process
@@ -67,7 +67,7 @@ You will receive:
 
 6. **Flag uncertainties.** If something looks ambiguous or under-documented, say so explicitly in the Gaps section.
 
-7. **Write findings to your output file** — use Write to create it, then Edit to append as you go.
+7. **Deliver your findings.** Your findings document (the Output Format below) is the deliverable. **Return it in full as your final message** — this is the source of truth the orchestrator persists. As a best-effort durability step, also `Write` the same document to your output file path. If the two ever diverge, the returned message wins. See Rule #9.
 
 ## Output Format
 
@@ -134,6 +134,6 @@ A non-binding recommendation for how to phase the work *within this domain*. The
 
 8. **Flag uncertainty.** When the evidence is ambiguous or you cannot locate something the topic requires, say so in Gaps. Do not guess.
 
-9. **Write incrementally.** Use Write to create your findings file early, then Edit to append as you go. This keeps disk-of-record up to date and lets the architect (or a re-dispatch) pick up partial findings if you hit a context limit.
+9. **Your final message is the deliverable.** Always return the complete findings document (the full Output Format above) as your final output — never a summary, and never a pointer like "wrote findings to `<path>`". The orchestrator persists your returned document to disk. Additionally best-effort `Write` the same document to your output file path for durability, but never let the file substitute for the returned message. If you hit a context limit, return whatever findings you have so far — a partial document in the final message is still recoverable; a missing one is not.
 
 10. **No web searches.** This is a codebase investigation. Use Read, Glob, Grep, and Bash (for `ls`/`find`) only. If the topic requires external research (e.g., an unfamiliar library), flag it in Gaps and let the main conversation decide whether to dispatch a web-research worker.

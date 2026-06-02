@@ -76,8 +76,9 @@ Otherwise, run the same four stages as `/planning-tools:plan-context`:
 
 1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, propose a domain partition.
 2. **Stage 2 — Confirm domains** (binary `AskUserQuestion`): print the proposed N domains as a plain-text numbered list, then call `AskUserQuestion` with exactly two options — `"Proceed with all N domains"` / `"Cancel — I'll re-run with --domains"`. Never multi-select. Skip Stage 2 entirely if `--domains` was supplied or Triage yielded a single trivial domain. (Same pattern as `/planning-tools:plan-context` Stage 2.)
-3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each writes findings to `/tmp/plan-context/<topic-slug>/<domain>.md`. **If Step 0 fetched a ticket source**, include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent sees the same acceptance criteria + decision history.
-4. **Stage 4 — Verify**: read 3–6 critical files each worker cited to confirm patterns hold.
+3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each returns its full findings as its final message and best-effort writes it to `/tmp/plan-context/<topic-slug>/<domain>.md`. **If Step 0 fetched a ticket source**, include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent sees the same acceptance criteria + decision history.
+4. **Stage 3.5 — Persist + backstop (orchestrator-owned)**: do **not** assume the worker wrote its file (Opus 4.8 workers frequently skip the `Write`). After all workers complete, confirm each expected `/tmp/plan-context/<topic-slug>/<domain>.md` exists and is non-empty (`Bash: test -s <path>` or a quick Read); for any missing or empty file, `Write` it from that worker's returned final message. Every findings file must exist on disk before Stage 4 and before the architect reads them in Step 3.
+5. **Stage 4 — Verify**: read 3–6 critical files each worker cited to confirm patterns hold.
 
 Capture the worker findings paths — you will pass them to the architect in Step 3.
 

@@ -46,6 +46,8 @@ Your job is to compose a master plan that follows the conventions in the `master
    - Suggested phase splits from each domain
    - Gaps and uncertainties
 
+   If a cited findings file is **missing or empty**, do not fabricate its contents — note the gap (the orchestrator should have backstopped it from the worker's returned message) and proceed with the available findings. Surface the missing domain in your return summary so the main conversation can re-dispatch if needed.
+
 3. **Determine the universal-core content.**
    - **Title + synopsis:** one H1, one line.
    - **Context block:** Ticket(s) (if known), PRD/Source (if cited), Evidence (the most important transcript / bug / source citations), Depends on (with **artifact-level specificity**), Constraints.

@@ -116,6 +116,15 @@ Each agent's prompt must be **self-contained** — it has not seen this conversa
 
 Agent count = number of confirmed domains.
 
+### Stage 3.5 — Persist + backstop (orchestrator-owned)
+
+Each worker returns its full findings document as its final message and best-effort writes it to its output path. **Do not assume the worker wrote the file** — Opus 4.8 workers frequently return the findings but skip the `Write`. The orchestrator guarantees persistence:
+
+1. After **all** workers complete, for each expected `/tmp/plan-context/<topic-slug>/<domain>.md`, confirm it exists and is non-empty (`Bash: test -s <path>` or a quick Read).
+2. For any file that is **missing or empty**, `Write` it from that worker's returned final message.
+3. Track which domains had to be backstopped — surface them in the scope report's "Worker findings" list.
+4. **Do not proceed to Stage 4 until every expected findings file exists on disk and is non-empty.**
+
 ---
 
 ## Stage 4 — Verify (direct Reads, no subagents)
@@ -176,8 +185,10 @@ A non-binding suggestion for how to phase the work in the master plan. The archi
 
 ## Worker findings (intermediate docs)
 
+Append `(backstopped)` to any domain whose file the orchestrator had to write from the worker's returned message (the worker skipped its own `Write`).
+
 - `/tmp/plan-context/<topic-slug>/<domain1>.md`
-- `/tmp/plan-context/<topic-slug>/<domain2>.md`
+- `/tmp/plan-context/<topic-slug>/<domain2>.md` (backstopped)
 - ...
 ```
 
@@ -195,5 +206,5 @@ The main conversation owns all user interaction. Subagents only fetch and report
 ## Notes
 
 - This command is a **port and generalization** of `aia-knowledge-platform-interface/.claude/commands/verify-plan.md` with an added explicit Triage + Confirm stage and project-agnostic domain selection.
-- It writes intermediate worker findings to `/tmp/plan-context/<topic-slug>/`. These are scratch files, not the master plan — they are inputs to `/planning-tools:plan-master`.
+- It writes intermediate worker findings to `/tmp/plan-context/<topic-slug>/`. These are scratch files, not the master plan — they are inputs to `/planning-tools:plan-master`. **Persistence is orchestrator-owned (Stage 3.5):** a worker may return its findings as its final message without writing the file itself, so the main conversation verifies each expected file on disk after workers complete and writes any that are missing or empty from the worker's returned message. Never trust the worker's `Write` to have happened.
 - It does **not** modify the project, the plan file, or anything in `~/.claude/plans/`.
