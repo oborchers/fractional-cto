@@ -31,7 +31,7 @@ You will receive:
 2. **Paths to worker findings** OR a path to a **/planning-tools:plan-context report** — your input
 3. The **output file path** (where to write the master plan)
 4. **Today's date** for the context block
-5. (Optional) A **Ticket context block** — `{ title, body, comments[], url }` — when the `/planning-tools:plan-master` command fetched a source ticket. The block typically contains acceptance criteria, prior decisions, design pivots, and unresolved questions in comments. Treat ticket comments as **secondary evidence** — prefer code/worker-finding evidence when they conflict, but use comments to populate Open Questions (questions still under discussion), Resolved Questions (decisions sign-off'd in comments), and the Context block's Evidence rows. **If the ticket block is present, prepend a `> **Ticket:** <url>` callout above the Context block** so anyone reading the plan can navigate back to the source.
+5. (Optional) A **Ticket context block** — `{ title, body, comments[], url }` — when the `/planning-tools:plan-master` command fetched a source ticket. The block typically contains acceptance criteria, prior decisions, design pivots, and unresolved questions in comments. Treat ticket comments as **secondary evidence** — prefer code/worker-finding evidence when they conflict, but use comments to populate Open Questions (questions still under discussion), Resolved Questions (decisions sign-off'd in comments), and the Context block's Evidence bullet. **If the ticket block is present, emit a `- **Ticket:** <url>` bullet as the first context bullet** so anyone reading the plan can navigate back to the source.
 
 Your job is to compose a master plan that follows the conventions in the `master-plan-methodology` skill exactly. Read that skill first.
 
@@ -50,7 +50,8 @@ Your job is to compose a master plan that follows the conventions in the `master
 
 3. **Determine the universal-core content.**
    - **Title + synopsis:** one H1, one line.
-   - **Context block:** Ticket(s) (if known), PRD/Source (if cited), Evidence (the most important transcript / bug / source citations), Depends on (with **artifact-level specificity**), Constraints.
+   - **Plan-level TL;DR:** on the **first non-blank line under the H1**, emit `**TL;DR:** <2–4 sentences>` — what the whole plan does (first sentence) and why (the motivation, problem, or blocker it clears). No file paths, line numbers, or test counts (those go in the context bullets and phases). This is distinct from the per-phase TL;DRs. The verifier flags a missing plan-level TL;DR as Important. See `planning-tools:master-plan-methodology` → "Plan-level TL;DR + context block shape".
+   - **Context block:** a plain **bullet list** (not a blockquote, v0.3.3+) — `- **Ticket:** <url>` (first, only if a ticket source resolved), `- **Ticket(s):** …`, `- **PRD / Source:** …`, `- **Evidence:** …` (the most important transcript / bug / source citations), `- **Depends on:** …` (with **artifact-level specificity**), `- **Constraints:** …`.
    - **Open Questions:** consolidate the Gaps from all workers into an **unordered list** with the shape `- **Q<N> — <one-line question>:** <prose; blocking yes/no>`. Put this section **immediately after the context block** — not at the end. **No tables (v0.3.0+).**
    - **Resolved Questions:** any decisions already locked (e.g., from a prior AskUserQuestion round in /planning-tools:plan-master) as an unordered list with `- **Q<N> — <question>:** <resolution prose>`. Empty list is allowed. **No tables.**
    - **Implementation Phases:** decompose the work into **integer-numbered phases**. Each phase is one `### Phase <N>: <verb-led name> <emoji>` H3 heading followed by a required `**TL;DR:**` callout and then a plain unordered bulleted list of scope items. Each scope item is `- <action>` — **no `- [ ]` checkboxes** (v0.3.2+). The phase emoji is the **last token of the heading line**, separated by one space, and is the sole tick signal. Include a bolded `- **Exit criteria:** …` scope item at the end of every phase. Never use 0, 0.5, 1A, Phase A, ranges, or sub-phases. **No tables (v0.3.0+). Per-phase TL;DR required (v0.3.1+). Plain bullets, no checkboxes (v0.3.2+).**
@@ -95,13 +96,14 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 ```markdown
 # <Title>: <one-line synopsis>
 
-> **Ticket:** <linear-or-github-url>  <!-- only if /plan-master got a ticket source -->
+**TL;DR:** <2–4 sentences: what this plan does and why. The elevator pitch before any metadata or phases.>
 
-> **Ticket(s):** <Linear/Jira refs or n/a>
-> **PRD / Source:** <doc paths>
-> **Evidence:** <transcript YYYY-MM-DD speaker quote | bug report | research path:line>
-> **Depends on:** <ticket> (<specific artifact>)
-> **Constraints:** <viewport, env, etc.>
+- **Ticket:** <linear-or-github-url>  <!-- only if /plan-master got a ticket source -->
+- **Ticket(s):** <Linear/Jira refs or n/a>
+- **PRD / Source:** <doc paths>
+- **Evidence:** <transcript YYYY-MM-DD speaker quote | bug report | research path:line>
+- **Depends on:** <ticket> (<specific artifact>)
+- **Constraints:** <viewport, env, etc.>
 
 ---
 
@@ -166,7 +168,7 @@ Reproduce this exact shape, inserting trigger-based optional sections after the 
 
 8. **Preserve conventions.** Honor the existing naming, formatting, and idioms surfaced by the workers. The master plan must read as if written by someone who has worked in the codebase.
 
-9. **Use the prescribed callout labels.** Bold-prefix `**Decision:**`, `**Rationale:**`, `**Risk:**`, `**Mitigation:**`, `**Note:**`. Blockquotes only for invariants and the context block. No GitHub admonitions.
+9. **Use the prescribed callout labels.** Bold-prefix `**Decision:**`, `**Rationale:**`, `**Risk:**`, `**Mitigation:**`, `**Note:**`. Blockquotes only for invariants and constraints — **not** the context block (v0.3.3+: the context block is a plan-level `**TL;DR:**` + bullets). No GitHub admonitions.
 
 10. **One H1, one synopsis.** The H1 is the title. No additional H1s anywhere in the document.
 

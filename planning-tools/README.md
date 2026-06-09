@@ -29,7 +29,7 @@ Draft a multi-phase master planning document.
 - Then dispatches `plan-master-architect` (opus) to synthesize the multi-phase plan in the user's standard template.
 - Writes to a project-local path. The plugin tries `context/tickets/`, then `docs/plans/`, then `.claude/plans/master/`, asking via `AskUserQuestion` if none exist.
 
-The architect composes the **universal core** sections (Title, Context block, Open Questions, Implementation Phases, Design Principles, Out of Scope) plus **trigger-based optional sections** (Schema + Rollback for data work; Component Architecture + UI States for UI work; Cost + Risks for ops; Recovery + Schema for incidents; etc.). Phases are numbered with **integers only** (`1, 2, 3, …`).
+The architect composes the **universal core** sections (Title, plan-level **TL;DR**, Context block, Open Questions, Implementation Phases, Design Principles, Out of Scope) plus **trigger-based optional sections** (Schema + Rollback for data work; Component Architecture + UI States for UI work; Cost + Risks for ops; Recovery + Schema for incidents; etc.). Phases are numbered with **integers only** (`1, 2, 3, …`).
 
 ### `/planning-tools:plan-open-questions [path] [question-number]`
 
@@ -62,7 +62,7 @@ Audit a drafted master plan against the `plan-verification-checklist` skill. Dis
 - Callout / evidence convention compliance
 - Open Questions placement (immediately after context block)
 
-Emits Critical / Important / Suggestion findings with `path:line` references and a PASS / FAIL verdict. On PASS, optionally appends `> **Verified:** YYYY-MM-DD` to the plan's context block (with explicit user approval via `AskUserQuestion`).
+Emits Critical / Important / Suggestion findings with `path:line` references and a PASS / FAIL verdict. On PASS, optionally appends a `- **Verified:** YYYY-MM-DD` bullet to the plan's context block (a `> **Verified:**` line on legacy blockquote plans), with explicit user approval via `AskUserQuestion`.
 
 ### `/planning-tools:plan-tick [phase-number] [path]`
 
@@ -122,7 +122,7 @@ Clear the current session's plan file at `~/.claude/plans/<slug>.md`. Detects th
 
 ## Ticket-aware planning
 
-`/planning-tools:plan-master` and `/planning-tools:plan-context` accept ticket URLs or IDs as their first argument. When matched, the plugin fetches the ticket via the source adapter — title, body, and **all comments, no cap** — and injects the block into Stage 1 Triage + every Stage 3 worker prompt. The architect uses the ticket for the Context block's Evidence row, propagates unresolved comment-thread questions into Open Questions, and prepends a `> **Ticket:** <url>` callout above the plan's Context block.
+`/planning-tools:plan-master` and `/planning-tools:plan-context` accept ticket URLs or IDs as their first argument. When matched, the plugin fetches the ticket via the source adapter — title, body, and **all comments, no cap** — and injects the block into Stage 1 Triage + every Stage 3 worker prompt. The architect uses the ticket for the Context block's Evidence bullet, propagates unresolved comment-thread questions into Open Questions, and emits a `- **Ticket:** <url>` bullet as the first context bullet.
 
 Supported ticket sources (v1): Linear (via `mcp__linear-server__*`) and GitHub (via `gh` CLI). Free-text topics still work — pattern detection runs first; on no match, existing behavior is preserved.
 

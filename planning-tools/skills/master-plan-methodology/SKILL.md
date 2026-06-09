@@ -1,7 +1,7 @@
 ---
 name: master-plan-methodology
-description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, the v0.3.0 list-shape mandate (phases and questions are heading + bulleted list, never markdown tables), the v0.3.1 per-phase TL;DR requirement (1–3 sentence what/why summary under each phase heading for glance-ability), and the v0.3.2 plain-bullet scope shape (`- <action>` items, no `- [ ]` checkboxes — the phase status emoji is the sole tick signal). Project-agnostic — no ticket-prefix or plan-type taxonomy.
-version: 0.3.2
+description: This skill should be used when authoring, reviewing, or modifying a multi-phase master planning document via the planning-tools plugin (especially the /plan-master and /plan-verify commands). Codifies the universal core sections, trigger-based optional sections, integer-only phase numbering, Open Questions placement, one-PR-per-plan rule, status conventions, evidence attribution, callouts, cross-reference formats, the v0.3.0 list-shape mandate (phases and questions are heading + bulleted list, never markdown tables), the v0.3.1 per-phase TL;DR requirement (1–3 sentence what/why summary under each phase heading for glance-ability), the v0.3.2 plain-bullet scope shape (`- <action>` items, no `- [ ]` checkboxes — the phase status emoji is the sole tick signal), and the v0.3.3 context-block shape (a plan-level `**TL;DR:**` + a bulleted metadata list instead of a `>` blockquote; legacy blockquote blocks accepted silently). Project-agnostic — no ticket-prefix or plan-type taxonomy.
+version: 0.3.3
 ---
 
 # Master Plan Methodology
@@ -16,7 +16,7 @@ The plugin orchestrates master plans through five steps:
 
 1. **`/planning-tools:plan-context [topic | path] [--domains a,b,c]`** — Pre-load context. Stage 1 Triage proposes domains, Stage 2 Confirm checks them with the user, Stage 3 dispatches parallel Explore agents (one per confirmed domain), Stage 4 verifies findings with direct Reads. Emits a scope report. **NO plan file written.**
 2. **`/planning-tools:plan-master [topic] [--context <report-path>]`** — Draft the master plan. Reuses a fresh `/planning-tools:plan-context` report if `--context` is passed; otherwise runs the same Triage + Confirm + Explore + Verify pre-flight internally. Then synthesizes the multi-phase plan via the `plan-master-architect` agent (opus). Writes to a project-local path.
-3. **`/planning-tools:plan-verify <path>`** — Audit the drafted plan. Dispatches the `plan-verifier` agent against the `plan-verification-checklist` skill, presents Critical/Important/Suggestion findings, and (on user approval) appends a `> **Verified:** YYYY-MM-DD` callout to the context block.
+3. **`/planning-tools:plan-verify <path>`** — Audit the drafted plan. Dispatches the `plan-verifier` agent against the `plan-verification-checklist` skill, presents Critical/Important/Suggestion findings, and (on user approval) appends a `- **Verified:** YYYY-MM-DD` bullet to the context block (a `> **Verified:**` line on legacy blockquote plans).
 4. **Manual phase iteration** — User copies the next unticked phase into Claude Code's built-in `/plan`. Plan mode produces the per-phase plan in `~/.claude/plans/<slug>.md`. User executes the phase and manually ticks the row in the master plan.
 5. **`/planning-tools:plan-delete`** — Clears the per-session plan file. Loop back to step 4 for the next phase.
 
@@ -35,8 +35,8 @@ If none exist and the user does not specify a path, the architect asks via `AskU
 Every master plan **must** include these sections in this order:
 
 1. **Title** (H1) — name + one-line synopsis
-2. **Ticket callout** (optional, prepended above the context block) — `> **Ticket:** <url>`. The architect emits this when `/planning-tools:plan-master` was invoked with a ticket URL/ID that resolved via the source adapter (see `planning-tools:progress-methodology`). Omit if no ticket source was supplied.
-3. **Quoted context block** — Ticket(s), PRD/Source, Evidence, Depends on, Constraints
+2. **Plan-level TL;DR** — `**TL;DR:**` on the first non-blank line under the title: 2–4 sentences capturing what the whole plan does and why. See "Plan-level TL;DR + context block shape" below (v0.3.3+).
+3. **Context block** — a plain bullet list of metadata: `- **Ticket:** <url>` (optional, when a ticket source resolved), `- **Ticket(s):** …`, `- **PRD / Source:** …`, `- **Evidence:** …`, `- **Depends on:** …`, `- **Constraints:** …`. **No blockquote (v0.3.3+).**
 4. **Open Questions** — unordered list of blocking questions with `**Q<N> — <one-line question>:**` prefix, **placed immediately after the context block** (not at the end). **No tables.**
 5. **Resolved Questions** — unordered list with the same `**Q<N> — <question>:** <resolution>` shape (may be empty). **No tables.**
 6. **Implementation Phases** — one `### Phase <N>: <verb-led name> <emoji>` H3 heading per phase, followed by a required `**TL;DR:**` callout (1–3 sentences, what + why), then a plain unordered bulleted list (`- <action>` items) as Scope. **No tables. No `- [ ]` checkboxes (v0.3.2+).** See the "Per-phase TL;DR" section below for the v0.3.1 TL;DR requirement and "Plain-bullet scope shape" below for v0.3.2+.
@@ -153,6 +153,44 @@ Every phase **must** include a `**TL;DR:**` callout — 1–3 sentences capturin
 
 **Tooling transparency:** `/plan-tick`, `/plan-progress`, and `/plan-open-questions` all read per-phase scope as the line region under each heading. The TL;DR is just one more line in that region — invisible to them. No parser updates needed.
 
+## Plan-level TL;DR + context block shape (non-negotiable, v0.3.3+)
+
+The plan opens with a **plan-level TL;DR** followed by a **bulleted context block** — not a `>` blockquote.
+
+**Shape:**
+
+```markdown
+# <Title>: <one-line synopsis>
+
+**TL;DR:** Add a session-classifier branch so real session-expired mutations trigger the modal instead of a silent toast. The existing path only classified queries — mutations 401'd into a dead-end UX, blocking the StudSek rollout.
+
+- **Ticket:** https://linear.app/acme/issue/SA-2241
+- **Ticket(s):** SA-2241 — [StudSek Rollout]
+- **PRD / Source:** Linear SA-2241 body + worker findings
+- **Evidence:** Live read-only SF probe 2026-06-08 (`scripts/sf-probe.ts`)
+- **Depends on:** SA-2241 Chatter comment subsystem (`src/.../comment.ts` write path)
+- **Constraints:** ADR-15/25/28/34/47/53; no DB schema change
+
+---
+
+## Open Questions
+```
+
+**TL;DR content rules** (mirror the per-phase TL;DR):
+
+- First sentence = what the plan does; subsequent sentence(s) = why (the motivation, the problem, the blocker it clears).
+- 2–4 sentences as guidance. The verifier checks presence, not length.
+- **No file paths, line numbers, or test counts** — those belong in the context bullets and phases.
+- Inline markdown allowed (code spans, bold, links to ADRs/tickets).
+
+**Context-block bullets:** each metadata field is a `- **Label:** value` bullet. `- **Ticket:** <url>` is the first bullet and is present only when `/planning-tools:plan-master` resolved a ticket source (folds in the old above-the-block nav callout). The remaining fields (Ticket(s), PRD/Source, Evidence, Depends on, Constraints) follow. `/planning-tools:plan-verify` appends a trailing `- **Verified:** <date>` bullet on PASS.
+
+**Why:** the old `>` blockquote context block stacked six-plus bold-prefixed lines of wrapping prose into an unscannable wall that readers skimmed past. A plan-level TL;DR gives the elevator pitch first; bullets make each metadata field individually scannable.
+
+**Severity if the plan-level TL;DR is missing:** `plan-verifier` flags it **Important** (readability gap, not correctness) — same as the per-phase TL;DR rule. Plans without it still tick, verify-to-PASS-reachable, and walk Open Questions.
+
+**Legacy blockquote shape (transition).** Plans authored before v0.3.3 use a `> **Ticket(s):** …` / `> **Constraints:** …` blockquote context block (with `> **Verified:** …`). These continue to parse and **pass verification with no finding** — the goal is reducing noise, not creating it. `/planning-tools:plan-verify` appends the Verified marker as a `>` line on these legacy plans. New plans use the TL;DR + bullets shape.
+
 ## No tables for phases / questions (non-negotiable, v0.3.0+)
 
 The Implementation Phases, Open Questions, and Resolved Questions sections **must not** use markdown tables. Use:
@@ -179,13 +217,14 @@ Phase scope is a plain `- <action>` unordered list — **no `- [ ]` checkboxes**
 ```markdown
 # <Title>: <one-line synopsis>
 
-> **Ticket:** <linear-or-github-url>  <!-- optional; only if /plan-master got a ticket source -->
+**TL;DR:** <2–4 sentences: what this plan does and why. The elevator pitch a reader gets before any metadata or phases.>
 
-> **Ticket(s):** <Linear/Jira refs or n/a>
-> **PRD / Source:** <doc paths>
-> **Evidence:** <transcript YYYY-MM-DD speaker quote | bug report | research path:line>
-> **Depends on:** <ticket> (<specific artifact>)
-> **Constraints:** <viewport, env, etc.>
+- **Ticket:** <linear-or-github-url>  <!-- optional; only if /plan-master got a ticket source -->
+- **Ticket(s):** <Linear/Jira refs or n/a>
+- **PRD / Source:** <doc paths>
+- **Evidence:** <transcript YYYY-MM-DD speaker quote | bug report | research path:line>
+- **Depends on:** <ticket> (<specific artifact>)
+- **Constraints:** <viewport, env, etc.>
 
 ---
 
@@ -249,7 +288,7 @@ Bold-prefix lines for inline emphasis (do **not** use GitHub-style `> [!NOTE]` a
 - `**Mitigation:** …` — how the Risk is addressed
 - `**Note:** …` — informational aside
 
-Blockquotes (`>`) are reserved for **invariants and constraints** (e.g., `> Templates are immutable after first publish`), and for the **top-of-file context block**.
+Blockquotes (`>`) are reserved for **invariants and constraints** (e.g., `> Templates are immutable after first publish`). The top-of-file context block is **no longer a blockquote** (v0.3.3+) — it is a plan-level `**TL;DR:**` + a bulleted metadata list. See "Plan-level TL;DR + context block shape" above.
 
 ## Cross-reference conventions
 
@@ -260,13 +299,13 @@ Blockquotes (`>`) are reserved for **invariants and constraints** (e.g., `> Temp
 
 ## Verified marker
 
-When `/planning-tools:plan-verify` passes a plan, it appends one line to the **context block** (not the end of the document):
+When `/planning-tools:plan-verify` passes a plan, it appends one entry to the **context block** (not the end of the document), surfacing verification status near the top where it is read first:
 
-```markdown
-> **Verified:** 2026-05-11
-```
-
-This matches the existing bold-prefix callout convention and surfaces verification status near the top where it will be read first.
+- **v0.3.3+ plans** (bulleted context block): a trailing bullet at the end of the context bullet list:
+  ```markdown
+  - **Verified:** 2026-05-11
+  ```
+- **Legacy blockquote plans:** the old `> **Verified:** 2026-05-11` line after the last `>` line of the block.
 
 ## Single-owner rule
 

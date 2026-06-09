@@ -3,7 +3,7 @@ description: "Audit a drafted master plan against the plan-verification-checklis
 argument-hint: "<path to master plan>"
 ---
 
-You are **auditing a master planning document** against the `plan-verification-checklist` skill. The audit emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, you may append a `> **Verified:** YYYY-MM-DD` callout to the plan's context block — but only with the user's explicit approval.
+You are **auditing a master planning document** against the `plan-verification-checklist` skill. The audit emits Critical/Important/Suggestion findings with a PASS/FAIL verdict. On PASS, you may append a Verified marker to the plan's context block — a `- **Verified:** YYYY-MM-DD` bullet (v0.3.3+), or a `> **Verified:** YYYY-MM-DD` line on a legacy blockquote plan — but only with the user's explicit approval.
 
 **Input:** `$ARGUMENTS` — the path to the master plan.
 
@@ -59,14 +59,16 @@ For each Critical finding, show the location and a one-line description. Do not 
 
 If the verdict is `PASS` (zero Critical, ≤ 2 Important), call `AskUserQuestion`:
 
-- **Append the Verified marker** — adds `> **Verified:** <today>` as a new line inside the plan's context block (after the existing `> **Constraints:** …` or the last `>` line of the block).
+- **Append the Verified marker** — adds the Verified marker to the plan's context block: a `- **Verified:** <today>` bullet (v0.3.3+ bulleted context block), or a `> **Verified:** <today>` line (legacy blockquote context block).
 - **Skip the marker** — leave the plan as-is.
 
 On `Append the Verified marker`:
 
 1. Read the plan file.
-2. Locate the **last line of the context block** (the last consecutive `>` line at the top of the document, before the `---` separator).
-3. Use the Edit tool to insert `> **Verified:** YYYY-MM-DD` immediately after that last `>` line, before the `---`. Use today's date.
+2. **Detect the context-block shape:**
+   - **Bulleted (v0.3.3+):** the metadata under the title is a `- **Label:** …` bullet list. Locate the **last consecutive `- ` context bullet** (e.g., the `- **Constraints:** …` bullet), before the `---` separator / `## Open Questions`. Insert `- **Verified:** YYYY-MM-DD` immediately after it.
+   - **Legacy blockquote:** the metadata is a `>` blockquote. Locate the **last consecutive `>` line** before the `---` separator and insert `> **Verified:** YYYY-MM-DD` immediately after it.
+3. Use the Edit tool to insert the marker with today's date in the shape matching the detected block. Do not convert a legacy blockquote to bullets — match what the plan already uses.
 4. Confirm to the user: `Appended Verified marker to <path>.`
 
 On `Skip the marker`, just acknowledge.

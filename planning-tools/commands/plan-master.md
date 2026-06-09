@@ -31,11 +31,11 @@ On a match:
    - Linear: `mcp__linear-server__get_issue(id)` + `mcp__linear-server__list_comments(issueId)`.
    - GitHub: `gh issue view <N> --repo <owner>/<repo> --json title,body,state,url,comments` (or `gh pr view`).
 2. **Treat the fetched `{ title, body, comments[] }` as additional source artifact context** for Stage 1 Triage and propagate it to Stage 3 workers + the architect. The Triage step scans comments for: acceptance criteria, prior decisions, unresolved questions to surface as Open Questions, and recent reroutes that override the body.
-3. **Save the ticket URL** on the architect's input so the rendered plan prepends a `> **Ticket:** <url>` callout above the Context block (per the `master-plan-methodology` skill).
+3. **Save the ticket URL** on the architect's input so the rendered plan includes a `- **Ticket:** <url>` bullet as the first context bullet (per the `master-plan-methodology` skill).
 
 If the matched provider's MCP/CLI is unavailable, **fail loudly**: e.g., `Linear MCP not loaded — cannot fetch <ticket>. Re-run on a session that has the Linear MCP, or pass the topic as free-form text.` Do not silently degrade.
 
-If no pattern matches → existing free-text behavior (no fetch, no `> **Ticket:**` callout).
+If no pattern matches → existing free-text behavior (no fetch, no `- **Ticket:**` bullet).
 
 ---
 
@@ -92,7 +92,7 @@ Dispatch the `plan-master-architect` agent (opus). The agent receives:
 - Paths to all worker findings (either from Step 2 or from the supplied `--context` directory)
 - The **output file path** resolved in Step 1
 - **Today's date**
-- **Ticket context block** (optional) — if Step 0 fetched a ticket source, pass `{ title, body, comments[], url }` verbatim. The architect uses this for the Context block, the `> **Ticket:** <url>` callout, and Open Questions extraction.
+- **Ticket context block** (optional) — if Step 0 fetched a ticket source, pass `{ title, body, comments[], url }` verbatim. The architect uses this for the Context block, the `- **Ticket:** <url>` bullet, and Open Questions extraction.
 
 The architect reads the `master-plan-methodology` skill, then composes the master plan: universal core sections + trigger-based optional sections. It writes the plan to disk. Integer phases only. Open Questions at the top. No sizing.
 

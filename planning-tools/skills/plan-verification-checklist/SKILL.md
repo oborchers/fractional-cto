@@ -1,7 +1,7 @@
 ---
 name: plan-verification-checklist
-description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + per-phase TL;DR + bulleted scope + exit criteria), the v0.3.1+ per-phase TL;DR requirement, the v0.3.2+ plain-bullet scope shape (legacy `- [ ]`/`- [x]` accepted silently), integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
-version: 0.3.2
+description: This skill should be used by the plan-verifier agent and the /plan-verify command to audit a drafted master plan against a fixed checklist. Covers universal-core completeness, the v0.3.0+ no-tables-for-phases-or-questions rule, trigger-based section-coverage gaps, phase actionability (heading + per-phase TL;DR + bulleted scope + exit criteria), the v0.3.1+ per-phase TL;DR requirement, the v0.3.2+ plain-bullet scope shape (legacy `- [ ]`/`- [x]` accepted silently), the v0.3.3+ context-block shape (plan-level `**TL;DR:**` + bulleted metadata, legacy `>` blockquote accepted silently), integer phase numbering enforcement, dependency traceability, citation resolution, callout/evidence convention compliance, Open Questions placement, and the one-PR-per-master-plan rule. Single-owner of the audit checklist.
+version: 0.3.3
 ---
 
 # Plan Verification Checklist
@@ -23,7 +23,8 @@ The checklist applies to any master plan written under the `master-plan-methodol
 Verify every required section is present and in the prescribed order:
 
 - [ ] **Title** (H1) with one-line synopsis
-- [ ] **Quoted context block** (blockquote starting with `>`) containing Ticket(s), PRD/Source, Evidence, Depends on, Constraints
+- [ ] **Plan-level TL;DR (v0.3.3+):** the **first non-blank line under the H1** starts with `**TL;DR:**` and contains 2–4 sentences (what the plan does + why). Missing or empty = **Important** (readability gap, not Critical; PASS still reachable). Mirrors the per-phase TL;DR rule.
+- [ ] **Context block** — a bulleted metadata list (`- **Ticket(s):** …`, `- **PRD / Source:** …`, `- **Evidence:** …`, `- **Depends on:** …`, `- **Constraints:** …`, optional leading `- **Ticket:** <url>`) immediately under the TL;DR. **Legacy `>` blockquote context blocks (pre-v0.3.3) are accepted silently — no finding either way.**
 - [ ] **Open Questions** section as an **unordered list** (no table), located **immediately after the context block** (Critical finding if at the bottom)
 - [ ] **Resolved Questions** section as an **unordered list** (may be empty; no table)
 - [ ] **Implementation Phases** section with `### Phase <N>: <name> <emoji>` H3 headings and `- ` bulleted scope items (no table; v0.3.2+ canonical shape is plain bullets, legacy `- [ ]`/`- [x]` accepted silently)
@@ -110,7 +111,7 @@ Bold-prefix callouts must use the prescribed labels:
 - [ ] `**Mitigation:** …` for risk responses
 - [ ] `**Note:** …` for informational asides
 
-Blockquotes (`>`) are used **only** for invariants/constraints and the top-of-file context block. GitHub-style `> [!NOTE]` admonitions are not used.
+Blockquotes (`>`) are used **only** for invariants/constraints. The top-of-file context block is **not** a blockquote (v0.3.3+: plan-level `**TL;DR:**` + bullets); legacy blockquote context blocks are accepted silently. GitHub-style `> [!NOTE]` admonitions are not used.
 
 Misused callout labels = **Suggestion**.
 
@@ -203,7 +204,7 @@ The verifier emits findings in this exact shape:
 | Suggestion | <n> |
 
 **Verdict:**
-- `PASS` — zero Critical, ≤ 2 Important. Safe to append `> **Verified:** <date>` to the context block.
+- `PASS` — zero Critical, ≤ 2 Important. Safe to append the Verified marker to the context block — a `- **Verified:** <date>` bullet (v0.3.3+), or a `> **Verified:** <date>` line on a legacy blockquote plan.
 - `FAIL` — any Critical or > 2 Important. Plan must be revised.
 
 **Top 3 highest-impact fixes:**
@@ -214,4 +215,4 @@ The verifier emits findings in this exact shape:
 
 ## Mandatory Use of AskUserQuestion
 
-The verifier agent does **not** call `AskUserQuestion` — it emits the report only. The main conversation (in `/planning-tools:plan-verify`) presents the report and calls `AskUserQuestion` to ask the user whether to append the `> **Verified:** YYYY-MM-DD` callout to the context block when the verdict is `PASS`.
+The verifier agent does **not** call `AskUserQuestion` — it emits the report only. The main conversation (in `/planning-tools:plan-verify`) presents the report and calls `AskUserQuestion` to ask the user whether to append the Verified marker to the context block when the verdict is `PASS` — a `- **Verified:** YYYY-MM-DD` bullet (v0.3.3+), or a `> **Verified:** YYYY-MM-DD` line on a legacy blockquote plan.
