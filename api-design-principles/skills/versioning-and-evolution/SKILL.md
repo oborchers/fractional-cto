@@ -1,107 +1,67 @@
 ---
 name: versioning-and-evolution
-description: "This skill should be used when the user is designing API versioning strategy, choosing between URL path and header-based versioning, implementing Stripe-style date-based versioning, planning API deprecation, using sunset headers, or evolving an API without breaking clients. Covers URL versioning, additive evolution, backward compatibility, and deprecation communication."
+description: "Use when designing API versioning strategy with URL path or header-based approaches, implementing Stripe-style date-based version pinning with per-request overrides, adding new fields or endpoints without breaking existing clients, classifying changes as breaking vs non-breaking, planning API deprecation timelines with RFC 8594 Sunset headers, writing migration guides with before and after code diffs, configuring version response headers like X-API-Version, implementing brownout periods before hard sunset dates, or reviewing PRs for backward compatibility violations like field removal or type changes. Covers URL path versioning as default, additive-only evolution rules, breaking change classification, Stripe version gate architecture, four-phase deprecation lifecycle, and consumer migration guide format."
 version: 1.0.0
 ---
 
-# Ship V1 and Never Break It
+# API Versioning and Evolution
 
-Your API version is a promise. The moment a consumer writes code against your endpoint, you have entered a contract. Breaking that contract -- renaming a field, removing an endpoint, changing a type -- destroys trust and costs integration partners real engineering time. The best APIs treat backward compatibility as non-negotiable and version changes as a carefully managed migration, not a surprise.
+The API version is a contract. Backward compatibility is non-negotiable within a major version. Breaking changes require version bumps with documented migration paths.
 
-Stripe has kept `/v1/` stable since 2012. Over a decade, zero URL-level version bumps. They ship breaking changes behind dated version headers, and every account stays pinned to the version it was created with. This is the gold standard. Your API should aspire to the same discipline.
+## Versioning Strategy Selection
 
-## Versioning Strategies
+| Strategy | Mechanism | Best For |
+|----------|-----------|----------|
+| **URL path** (default) | `/v1/resources` | Most APIs — explicit, cacheable, easy to route |
+| **Custom header** | `Stripe-Version: 2024-11-20` | Fine-grained control within a major version |
+| **Query parameter** | `?api-version=2022-12-01` | Easy to add but pollutes query string |
+| **Date-based (Stripe)** | Account pinned to signup date, per-request override | High-consumer APIs that ship frequent changes |
 
-Four strategies exist in production. Each has real tradeoffs.
+**Default to URL path versioning.** Prefix every endpoint with `/v1/`. Do not increment to `/v2/` unless fundamentally restructuring the entire API surface. Route at the load balancer — different prefixes can point to different deployments.
 
-| Strategy | Mechanism | Pros | Cons | Used By |
-|----------|-----------|------|------|---------|
-| **URL path** | `/v1/resources` | Explicit, visible, cacheable, trivial to route at the gateway | URL changes break clients on major bumps, encourages big-bang migrations | Stripe, Google, Twilio, Facebook, Spotify |
-| **Custom header** | `Stripe-Version: 2024-11-20` or `X-GitHub-Api-Version: 2022-11-28` | Clean URLs, per-request granularity, enables incremental migration | Invisible in URLs, harder to debug and cache, must remember the header | Stripe (secondary), GitHub |
-| **Query parameter** | `?api-version=2022-12-01` | Easy to add, visible in logs | Mixes versioning with resource params, easily omitted, pollutes query string | Azure, AWS |
-| **Date-based header (Stripe model)** | Account pinned to signup date, override with `Stripe-Version` header | Granular per-request migration, no URL changes, each change documented by date | Requires version gate infrastructure internally | Stripe |
+## Additive Evolution Rules
 
-**Default to URL path versioning.** It is the most intuitive, most cacheable, and easiest to route. Every developer understands `/v1/`. Reserve header-based versioning for fine-grained control within a major version, following Stripe's hybrid model.
+Within a major version, only additive, backward-compatible changes are permitted.
 
-## URL Path Versioning as the Default
-
-Use a single major version in the URL path and keep it stable for years.
-
-- Prefix every endpoint with `/v1/`. Do not increment to `/v2/` unless you are fundamentally restructuring the entire API surface.
-- Route at the load balancer or API gateway -- different URL prefixes can point to different deployments.
-- Cache naturally -- `/v1/users` and `/v2/users` are different cache keys with no extra configuration.
-- Document the version in every code example so consumers always know what they are targeting.
-
-Stripe has been on `/v1/` since 2012. Google Cloud APIs use `/v1/` and `/v2/` across services. Twilio's legacy API bakes the date `2010-04-01` into every URL path. The takeaway: pick a version prefix and commit to it for the long term.
-
-## Additive Evolution: The Only Safe Default
-
-Within a major version, evolve the API using only additive, backward-compatible changes. This is the single most important rule for API stability.
-
-**Non-breaking changes (always safe):**
-- Add new optional fields to response bodies
-- Add new optional query parameters or request body fields (compatible with strict request validation — the API accepts fields it knows about and rejects unknown ones; see `rate-limiting-and-security` skill)
+**Non-breaking (always safe):**
+- Add optional response fields, query parameters, or request body fields
 - Add new endpoints
-- Add new enum values (if clients handle unknown values gracefully)
-- Increase rate limits
-- Relax validation to accept a wider range of inputs
+- Add enum values (if docs instruct clients to handle unknowns)
+- Increase rate limits or relax validation
 
-**Breaking changes (never without a version bump):**
-- Remove or rename fields in response bodies
-- Change a field's type (string to number, object to array)
-- Change response structure or envelope format
-- Remove endpoints
-- Make optional parameters required
-- Tighten validation to reject previously accepted inputs
-- Change error response formats
-- Change authentication requirements
-- Reduce rate limits
+**Breaking (requires version bump):**
+- Remove or rename response fields
+- Change field types (string→number, object→array)
+- Remove endpoints or make optional params required
+- Tighten validation, change error formats, reduce rate limits
 
-| Change | Breaking? | Why |
-|--------|-----------|-----|
-| Add `metadata` field to response | No | Existing clients ignore unknown fields |
-| Remove `receipt_url` from response | **Yes** | Clients relying on it will break |
-| Rename `source` to `payment_method` | **Yes** | Field access by old name fails |
-| Change `amount` from integer to string | **Yes** | Type coercion breaks parsers |
-| Add optional `?expand[]` parameter | No | Existing requests are unaffected |
-| Make `email` required on create | **Yes** | Existing create calls without email fail |
-| Add new `paused` status enum value | No | Only if clients handle unknown enums |
-| Change 200 response to 201 for creation | **Yes** | Clients checking status codes break |
+**Quick reference:**
 
-**Treat new enum values as non-breaking only if your documentation instructs consumers to handle unknown values.** Stripe does this explicitly -- their docs state that new enum values may be added at any time and client code should not break on unrecognized values.
+| Change | Breaking? | Reason |
+|--------|-----------|--------|
+| Add `metadata` to response | No | Clients ignore unknown fields |
+| Remove `receipt_url` | **Yes** | Clients relying on it break |
+| Rename `source` → `payment_method` | **Yes** | Old field access fails |
+| Change `amount` int → string | **Yes** | Parsers break |
+| Add optional `?expand[]` | No | Existing requests unaffected |
+| Make `email` required | **Yes** | Existing creates without email fail |
+| Add `paused` enum value | No | Only if clients handle unknowns |
 
-## Stripe's Date-Based Versioning Deep Dive
+## Stripe Date-Based Versioning
 
-Stripe operates the most sophisticated API versioning system in the industry. Understand it, then decide how much of it your API needs.
+For high-consumer APIs needing granular migration:
 
-**How it works:**
+1. **Account pinning** — default to version at signup
+2. **Per-request override** — `Stripe-Version: 2024-11-20.acacia` for testing
+3. **Forward-only upgrade** — no downgrades after pinning
+4. **Webhook version consistency** — payload version matches endpoint config, not triggering request
+5. **Version gates** — single API server transforms responses through compatibility layers per version
 
-1. **Account pinning.** Every Stripe account is pinned to the API version that was current at signup. All requests from that account default to the pinned version.
-2. **Per-request override.** Send `Stripe-Version: 2024-11-20.acacia` to use a specific version for a single request. This enables testing new versions without committing your entire integration.
-3. **Forward-only upgrade.** Once you upgrade your account's pinned version via the Dashboard, you cannot downgrade. This prevents version confusion.
-4. **Webhook version consistency.** Webhook payloads use the version configured on the webhook endpoint, not the version of the triggering request. Consumers are never surprised by schema changes they did not opt into.
-5. **Version gates, not separate codebases.** Stripe runs a single API server. Responses are serialized as the latest version, then transformed through version gates -- runtime compatibility layers that reshape the response for older versions.
+**When to adopt:** Many consumers, frequent changes, zero-breakage requirement. For smaller APIs, URL path + additive evolution is sufficient.
 
-From Amber Feng (former Stripe engineering lead): "We have a single API server that handles all versions. We transform the response at the edge based on the requested version. This means we only have to maintain one set of business logic."
+## Deprecation Lifecycle
 
-**Version changelog entries are specific and actionable:**
-
-```
-2024-11-20.acacia
-- Removed `charges` field from PaymentIntent (use `latest_charge` instead)
-- Changed `customer.discount` from object to array
-- Renamed `pending_invoice_item_interval` to `pending_update_interval`
-```
-
-Each entry documents what changed, the old behavior, the new behavior, and migration instructions. Date-based versions like `2024-11-20` are more meaningful than `v37` because developers immediately know when the version was released and can correlate it with their integration timeline.
-
-**When to adopt this model:** If your API has many consumers, ships changes frequently, and cannot afford to break anyone, the Stripe model is worth the infrastructure investment. For smaller APIs with fewer consumers, URL path versioning with additive evolution is sufficient.
-
-## The Sunset Header and Deprecation Timeline
-
-When retiring an old API version or endpoint, communicate early, loudly, and through multiple channels. RFC 8594 defines the `Sunset` HTTP header for exactly this purpose.
-
-**Return deprecation headers on every response from a deprecated endpoint:**
+**Always return deprecation headers on deprecated endpoints:**
 
 ```http
 HTTP/1.1 200 OK
@@ -111,89 +71,66 @@ Link: <https://api.example.com/docs/migration-v2>; rel="successor-version"
 X-API-Version: 2024-01-15
 ```
 
-**Follow a four-phase deprecation timeline:**
+**Four-phase timeline:**
 
-1. **Announce (6-12 months before sunset).** Email all API key owners. Add a dashboard warning. Update documentation. Publish a changelog entry with the sunset date and migration guide.
-2. **Warn (3-6 months before sunset).** Add `Sunset` and `Deprecation` response headers to every request hitting deprecated endpoints. Send follow-up emails with migration instructions. Track per-API-key usage of deprecated endpoints to identify who still needs to migrate.
-3. **Brownout (1-2 months before sunset).** Schedule periodic downtime of deprecated endpoints -- for example, one hour every Tuesday. Alert remaining users each time. This forces stragglers to migrate before the hard cutoff.
-4. **Sunset (removal day).** Return `410 Gone` with a response body that includes the migration guide URL. Do not return `404` -- a `410` explicitly signals that the resource existed but has been permanently removed.
+| Phase | Timing | Actions |
+|-------|--------|---------|
+| Announce | 6–12 months before | Email all API key owners, dashboard warning, changelog entry, migration guide |
+| Warn | 3–6 months before | `Sunset` + `Deprecation` headers, per-key usage tracking, follow-up emails |
+| Brownout | 1–2 months before | Periodic downtime (e.g., 1hr every Tuesday), alert remaining users |
+| Sunset | Removal day | Return `410 Gone` with migration guide URL (not `404`) |
 
-**After sunset, return a helpful 410:**
+**Post-sunset response:**
 
 ```json
 {
   "error": {
     "type": "api_version_error",
-    "message": "API version 2022-03-01 has been sunset. Please upgrade to version 2024-01-15 or later.",
+    "message": "API version 2022-03-01 has been sunset. Upgrade to 2024-01-15 or later.",
     "doc_url": "https://docs.example.com/api/migration/2024-01-15"
   }
 }
 ```
 
-## Deprecation Communication Channels
+**Communication channels:** Headers alone are insufficient. Use changelog, direct email to affected API key owners, dashboard banners, SDK deprecation warnings, and visual markers in docs.
 
-Headers alone are not enough. Consumers rarely inspect response headers in production unless something breaks. Use every channel available:
+## Version Response Headers
 
-- **Changelog.** Publish deprecation notices in your public API changelog. Date them. Include before/after examples.
-- **Email.** Send direct email to every API key owner associated with traffic to deprecated endpoints. Include the sunset date, what changes, and a link to the migration guide.
-- **Dashboard warnings.** Surface a persistent banner in the developer dashboard for accounts still using deprecated versions.
-- **SDK warnings.** If you ship client libraries, emit deprecation warnings in logs when deprecated endpoints or parameters are used.
-- **Documentation.** Mark deprecated endpoints visually (strikethrough, badges, banners) and link to the replacement.
-
-GitHub announces deprecations in their changelog, sends email notifications, provides migration guides, returns `Warning` headers on deprecated endpoints, and uses `410 Gone` after sunset. Stripe goes further -- API versions are effectively never removed, and the dashboard shows which version each account is pinned to with an upgrade guide for each version transition.
-
-## Version in Response Headers
-
-Always return the API version used to process the request in a response header. This eliminates debugging guesswork.
+Always return the applied API version in responses:
 
 ```http
-HTTP/1.1 200 OK
 X-API-Version: 2024-11-20
-X-Request-ID: req_9ofKRcFXZEvl2X
-Content-Type: application/json
 ```
 
-If the consumer sends a version header, echo back the version that was actually applied. If no version was sent, return the default version for that account or API key. This is critical for debugging version-related issues -- support can immediately verify which version a consumer is hitting.
+Echo the version actually applied (whether from header, account default, or API-key default). Critical for debugging version-related issues.
 
-Stripe returns `Stripe-Version` in every response. GitHub returns `X-GitHub-Api-Version`. Make this standard practice.
+## Migration Guide Format
 
-## Migration Guides for Consumers
+Every version bump requires a migration guide:
 
-Every version bump needs a migration guide. A bare changelog entry is not enough -- consumers need step-by-step instructions.
+1. **What changed** — exact field renames, type changes, removals
+2. **Why** — context reduces frustration
+3. **Before/after code diff:**
+   ```
+   Before: charge.receipt_url (always present)
+   After:  expand=["receipt_url"] to include (omitted by default)
+   ```
+4. **Deadline** — sunset date
+5. **Testing instructions** — per-request header override or sandbox
 
-**A good migration guide includes:**
-
-- **Exact diff of what changed.** Field renames, type changes, removed fields, new required fields.
-- **Before and after examples.** Show the old request/response and the new one side by side.
-- **Code migration snippets.** If `receipt_url` moved behind `expand[]`, show exactly how to update the API call.
-- **Timeline.** When does the old version sunset? How long do consumers have?
-- **Testing instructions.** How to test the new version without committing (per-request header override, test mode, sandbox).
-
-**Stripe's migration format is a model to follow:**
-
-```
-Before: charge.receipt_url (always present in response)
-After:  expand=["receipt_url"] to include (omitted by default)
-
-Before: invoice.finalized_at = 1705996400 (Unix timestamp)
-After:  invoice.finalized_at = "2025-01-23T12:00:00Z" (ISO 8601 string)
-```
-
-Provide a version comparison endpoint or tool if your API has complex version differences. At minimum, link to the migration guide from every deprecation header, error message, and dashboard warning.
+Link migration guides from every deprecation header, error message, and dashboard warning.
 
 ## Review Checklist
 
-When designing or reviewing API versioning and evolution:
-
-- [ ] URL path includes a major version prefix (`/v1/`) that remains stable for years
-- [ ] All changes within a major version are additive and backward-compatible
-- [ ] Breaking changes are documented in a versioned changelog with before/after examples
-- [ ] Response headers include the API version used to process the request (`X-API-Version`)
-- [ ] Deprecated endpoints return `Sunset` and `Deprecation` headers with the removal date
-- [ ] Deprecation is communicated through email, dashboard, changelog, and documentation -- not headers alone
-- [ ] Migration guides exist for every version transition with code snippets and timelines
-- [ ] Sunset endpoints return `410 Gone` with a migration guide URL, not `404`
-- [ ] Consumers can test new versions per-request before committing (header override or sandbox)
-- [ ] No fields have been removed or renamed without a version bump
-- [ ] New enum values are treated as non-breaking, and documentation instructs clients to handle unknown values
-- [ ] Brownout periods are scheduled before hard sunset dates to surface remaining consumers
+- [ ] URL path includes major version prefix (`/v1/`) stable for years
+- [ ] All changes within major version are additive and backward-compatible
+- [ ] Breaking changes documented in versioned changelog with before/after examples
+- [ ] Response headers include `X-API-Version` with applied version
+- [ ] Deprecated endpoints return `Sunset` and `Deprecation` headers
+- [ ] Deprecation communicated via email, dashboard, changelog, and docs — not headers alone
+- [ ] Migration guides exist for every version transition with code diffs and timelines
+- [ ] Sunset endpoints return `410 Gone` with migration URL, not `404`
+- [ ] Consumers can test new versions per-request before committing
+- [ ] No fields removed or renamed without version bump
+- [ ] Docs instruct clients to handle unknown enum values gracefully
+- [ ] Brownout periods scheduled before hard sunset dates
