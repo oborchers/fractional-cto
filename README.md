@@ -468,23 +468,23 @@ Two complementary workflows. **Master-plan authoring**: long, multi-phase planni
 <details>
 <summary><strong>13. agent-baton</strong> -- Chain work across two agent processes that share no session (1 skill, 2 commands, 0 agents)</summary>
 
-Agent A finishes its work and passes a baton -- a completion signal file. Agent B, in another terminal or another tool entirely, waits for that baton, then starts the work that depended on it. The protocol is harness-agnostic: each agent picks its own waiting mechanism, so one side can be Claude Code and the other Codex or Gemini.
+Agent A finishes its work and passes a baton -- a completion signal file, optionally carrying a payload. Agent B, in another terminal or another tool entirely, waits for that baton, then starts the work that depended on it. The protocol is harness-agnostic: each agent picks its own waiting mechanism, so one side can be Claude Code and the other Codex or Gemini.
 
 Use it only when there is no shared parent. If both agents live in one session, the harness already chains them and a baton is strictly worse. The uncovered case is two independent processes with no channel between them.
 
-**The baton is a doorbell, not a letter.** Its existence is the message; its contents are never instructions. That is a security property -- batons live in world-writable `/tmp`, so if one could carry instructions, a forged file would be an injection vector. Carrying none, the worst a forged baton does is start an agent early on work it was already assigned.
+**The baton tells you *when*. It never tells you *what*.** The waiting agent already knows its task -- the human gave it. An optional payload lets A hand B the branch it pushed, the SHA, or why it failed; that payload is content, not instructions, and informs *how* B works rather than *what* B does. Two threats drive the design: forgery (batons live in world-writable `/tmp`, so the `0700` directory is verified owned-by-you) and laundering (a legitimate agent echoing hostile content it read elsewhere -- which no permission fixes, only the content-not-instructions rule).
 
 **Skills (1):**
 
-- `agent-baton` -- The full protocol: signal file format, atomic publish, atomic claim, unique-id-per-run, mandatory deadlines, and the failure modes each rule buys off
+- `agent-baton` -- The full protocol: signal format, optional payload, payload-first publish ordering, derived-not-followed paths, atomic claim, unique-id-per-run, mandatory deadlines, and the failure modes each rule buys off
 
-**Commands:** `/agent-baton:baton-pass <id> [done|failed]` -- publish a completion signal. `/agent-baton:baton-wait <id> [timeout]` -- block until a baton with that id appears, then start the dependent task.
+**Commands:** `/agent-baton:baton-pass <id> [done|failed] [payload]` -- publish a completion signal. `/agent-baton:baton-wait <id> [timeout] [interval]` -- block until a baton with that id appears, then start the dependent task.
 
 **Examples:**
 
 - `/agent-baton:baton-pass ship-2026-07-15 done` -- Signal that this agent's 15 tasks are finished
-- `/agent-baton:baton-wait ship-2026-07-15 2h` -- Wait in another terminal, then run the dependent task
-- `When you're done with all of that, pass the baton 'migrate-db-run-3'.`
+- `/agent-baton:baton-wait ship-2026-07-15 2h 5m` -- Wait in another terminal, then run the dependent task
+- `When you're done, pass the baton 'migrate-db-run-3' with the branch you pushed in the payload.`
 
 </details>
 

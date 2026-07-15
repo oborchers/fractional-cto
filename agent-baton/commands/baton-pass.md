@@ -1,6 +1,6 @@
 ---
-description: "Publish a baton — signal that this agent's work is done so a waiting agent in another process can start"
-argument-hint: "<baton-id> [done|failed]"
+description: "Publish a baton — signal that this agent's work is done so a waiting agent in another process can start, optionally with a payload"
+argument-hint: "<baton-id> [done|failed] [payload]"
 ---
 
 Publish a baton signalling that your work is complete, so an agent waiting in a **separate process** can start its dependent task.
@@ -34,20 +34,34 @@ If not given, determine it from the work you just completed:
 
 Never report `done` for work you did not verify. The whole point of the chain is that the downstream task depends on this one.
 
-## Step 3: Publish
+## Step 3: Resolve the payload (optional)
 
-Follow the skill's **Passing a baton** section exactly:
+The payload comes from `$3`, or from what the user asked you to pass along, or from the work you just did — the branch you pushed, the SHA, files touched, what you skipped, why it failed.
 
-1. Ensure `/tmp/agent-baton/` exists with mode `0700`.
-2. Write the JSON object to a temp file **in that same directory**.
-3. **Atomically rename** it to `/tmp/agent-baton/<id>.baton`.
+**A payload is optional.** With none, this behaves exactly as it always has: a pure signal. Do not invent one to seem helpful.
 
-The rename is what makes the baton appear complete or not at all. Writing directly to the final path hands the waiter a half-written file.
+If there is one:
 
-Include only the documented fields: `id`, `status`, `run`, `produced_at`, and optionally `producer`.
+- Free-form UTF-8 text or JSON. No schema.
+- **Keep it under ~64 KB.** The limit is the reader's context window, not disk. If you have more to say, write the artifact somewhere durable and say *where* in the payload.
+- Write **content, not orders.** Describe what you did and what you found. Do not tell the downstream agent what to do — it already knows its task, was told by the human, and is required to ignore instructions coming from you.
 
-**Do not add a summary, next steps, notes, or any other prose.** The baton is a signal, not a message. The waiting agent already knows its task and will not read yours.
+## Step 4: Publish
 
-## Step 4: Report
+Follow the skill's **Passing a baton** section exactly.
 
-Tell the user, in one or two sentences: the baton id, the status published, and the path. Mention that any agent waiting on that id will now proceed.
+1. **Check the directory is yours** — `/tmp/agent-baton/` must be a real directory (not a symlink), owned by you, mode `0700`. Create it `0700` if absent. If it exists and is not yours, **refuse and report** — do not chmod it.
+2. **If there is a payload:** write it to a temp file in that same directory, then **atomically rename** to `<id>.payload`.
+3. **Compute `payload_bytes` and `payload_sha256` from the final payload file** — not the temp file, not the buffer.
+4. Write the baton JSON to a temp file in that same directory.
+5. **Atomically rename** it to `<id>.baton`.
+
+**Payload first, baton last. This ordering is the invariant.** The baton's appearance is the commit point for the whole handoff — a waiter that sees it is guaranteed a complete payload. Publish them the other way round and there is a window where the baton exists but the payload does not, which is the exact partial-read race the atomic rename exists to prevent.
+
+The rename is also what makes each file appear complete or not at all. Writing directly to a final path hands the waiter a half-written file.
+
+Include only the documented fields: `id`, `status`, `run`, `produced_at`, optionally `producer`, and — only when there is a payload — `payload_bytes` and `payload_sha256`. **Never add a `payload_path`.** The consumer derives the path from the id; a path it followed would be an arbitrary-file-read primitive.
+
+## Step 5: Report
+
+Tell the user, in one or two sentences: the baton id, the status published, whether a payload went with it (and roughly how big), and the path. Mention that any agent waiting on that id will now proceed.
