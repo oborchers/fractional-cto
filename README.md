@@ -4,11 +4,11 @@
 
 # fractional-cto: The AI CTO Co-Pilot for SaaS Engineering
 
-> 94 skills, 16 commands, and 16 agents across 12 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
+> 98 skills, 24 commands, and 19 agents across 13 plugins. Opinionated, research-backed Claude Code plugins for building SaaS products that ship.
 
 ![Plugins overview](.docs/images/plugins-overview.png)
 
-Designed for Claude Code and Cowork. Skills compatible with other AI assistants.
+Designed for Claude Code and Cowork. Every skill also installs into 70+ other agents with one command — see [Other AI assistants](#other-ai-assistants-skills-only).
 
 ## Start Here
 
@@ -19,6 +19,7 @@ Researching a topic? `/deep-research:research "your question"`
 Stress-testing a plan? `/stress-test:stress-test path/to/plan.md`
 Compressing your CLAUDE.md? `/markdown-compressor:compress path/to/file.md`
 Resetting your plan file? `/planning-tools:plan-delete`
+Chaining two agents across terminals? `/agent-baton:baton-pass` and `/agent-baton:baton-wait`
 
 If this project helps you, star the repo.
 
@@ -59,26 +60,32 @@ Each plugin carries review checklists, good/bad pattern comparisons, working cod
 /plugin install stress-test@fractional-cto
 /plugin install markdown-compressor@fractional-cto
 /plugin install planning-tools@fractional-cto
+/plugin install agent-baton@fractional-cto
 ```
 
 ### Other AI assistants (skills only)
 
-The `skills/*/SKILL.md` files follow the universal skill format and work with any tool that reads it. Commands and agents are Claude-specific.
-
-| Tool | How to use | What works |
-|------|-----------|------------|
-| **Gemini CLI** | Copy skill folders to `.gemini/skills/` | Skills only |
-| **OpenCode** | Copy skill folders to `.opencode/skills/` | Skills only |
-| **Cursor** | Copy skill folders to `.cursor/skills/` | Skills only |
-| **Codex CLI** | Copy skill folders to `.codex/skills/` | Skills only |
-| **Kiro** | Copy skill folders to `.kiro/skills/` | Skills only |
+All 98 skills install into any of 70+ agents with the [skills CLI](https://github.com/vercel-labs/skills) — Gemini CLI, Cursor, Codex, OpenCode, Copilot, Cline, Windsurf, and the rest. No copying, no npm package, nothing to keep in sync.
 
 ```bash
-# Example: copy all skills for Gemini CLI (project-level)
-for plugin in */; do
-  [ -d "$plugin/skills" ] && cp -r "$plugin/skills/"* .gemini/skills/ 2>/dev/null
-done
+# Browse every skill in this marketplace without installing
+npx skills add oborchers/fractional-cto --list
+
+# Install one skill
+npx skills add oborchers/fractional-cto --skill agent-baton
+
+# Install a few
+npx skills add oborchers/fractional-cto --skill naming-precision,form-design
+
+# Install everything, for every agent it detects
+npx skills add oborchers/fractional-cto --all
 ```
+
+Add `-g` for user-level instead of project-level, and `-a <agent>` to target specific agents. The CLI symlinks to a canonical copy by default, so `npx skills update` pulls new versions; pass `--copy` for independent files.
+
+**What you get:** skills only. Commands (`/plugin-name:command`) and agents are Claude-specific and do not travel — but every skill is written to stand on its own, so the guidance is complete without them.
+
+Prefer to vendor the files yourself? The `*/skills/*/SKILL.md` files follow the universal skill format and can simply be copied into your agent's skills directory (`.gemini/skills/`, `.cursor/skills/`, `.codex/skills/`, …).
 
 ### Local Development
 
@@ -108,7 +115,7 @@ Research-backed SaaS design principles drawn from Linear, Stripe, Shopify Polari
 - `authentication` -- Magic links, MFA, OTP, session management, GDPR
 - `accessibility` -- WCAG 2.2 AA, keyboard nav, focus management, SPA a11y
 - `design-tokens` -- Three-tier tokens, dark mode, CSS custom properties
-- `responsive-design` -- Breakpoints, table-to-card, touch targets, mobile nav
+- `saas-responsive` -- Breakpoints, table-to-card, touch targets, mobile nav
 - `using-saas-principles` -- Meta-skill: index of all principle skills
 
 **Commands:** `/saas-design-principles:saas-review` -- Review code against all SaaS design principles
@@ -427,21 +434,57 @@ Adversarial plan review using two independent agents: a red team generates what-
 </details>
 
 <details>
-<summary><strong>12. planning-tools</strong> -- Manage Claude Code plan-mode artifacts in ~/.claude/plans/ (1 skill, 1 command, 0 agents)</summary>
+<summary><strong>12. planning-tools</strong> -- Author, audit, and track multi-phase master plans, plus Claude Code plan-mode cleanup (4 skills, 7 commands, 3 agents)</summary>
 
-Tools for managing Claude Code's plan-mode files. Each session reuses one slug in ~/.claude/plans/<slug>.md across re-plans and compactions, so content accumulates unless explicitly cleared. Detection uses the authoritative `"slug"` field in the session transcript at ~/.claude/projects/<encoded-cwd>/<session-id>.jsonl -- never file mtime (breaks with parallel sessions).
+Two complementary workflows. **Master-plan authoring**: long, multi-phase planning documents that live in your project and decompose work into actionable phases -- drafted by parallel context workers plus a synthesizing architect, audited against a verification checklist, then ticked and tracked as work lands. Integer-only phases, no sizing, one PR per plan, list-shape phases (never tables), a plan-level TL;DR plus bulleted context block, and Open Questions at the top. **Plan-mode cleanup**: each session reuses one slug in ~/.claude/plans/<slug>.md across re-plans and compactions, so content accumulates unless explicitly cleared. Detection uses the authoritative `"slug"` field in the session transcript -- never file mtime (breaks with parallel sessions).
 
-**Skills (1):**
+**Skills (4):**
 
-- `using-planning-tools` -- Meta-skill: index of commands, detection mechanics, plan-mode file storage
+- `master-plan-methodology` -- Universal core sections, integer-only phases, list-shape mandate, per-phase and plan-level TL;DRs, evidence attribution
+- `plan-verification-checklist` -- The audit dimensions, severity guide, and PASS/FAIL verdict rules
+- `progress-methodology` -- Dense-paragraph progress entries, SHA-based idempotency, markdown / Linear / GitHub adapters
+- `using-planning-tools` -- Meta-skill: index of commands, the master-plan lifecycle, plan-mode file storage
 
-**Commands:** `/planning-tools:plan-delete` -- Clear the current session's plan file: detect via $CLAUDE_CODE_SESSION_ID + transcript slug field, delete, recreate empty, re-read to prime the next plan. Bootstraps with EnterPlanMode/ExitPlanMode if plan mode has never been entered this session.
+**Commands:**
+
+- `/planning-tools:plan-context` -- Pre-load context: Triage proposes domains, you confirm, workers explore in parallel
+- `/planning-tools:plan-master` -- Draft a multi-phase master plan (optional ticket fetch)
+- `/planning-tools:plan-open-questions` -- Walk a plan's Open Questions one at a time, each with its cited evidence
+- `/planning-tools:plan-verify` -- Audit a plan against the verification checklist
+- `/planning-tools:plan-tick` -- Auto-tick provenly-achieved phases from the current branch
+- `/planning-tools:plan-progress` -- Synthesize a per-branch progress entry with SHA-based idempotency
+- `/planning-tools:plan-delete` -- Clear the current session's plan file
+
+**Agents (3):** `plan-context-worker` (parallel domain discovery), `plan-master-architect` (synthesis), `plan-verifier` (audit)
 
 **Examples:**
 
+- `/planning-tools:plan-master CI-21` -- Draft a multi-phase plan from a ticket
+- `/planning-tools:plan-verify context/tickets/CI-21-PLAN.md` -- Audit it before committing to it
 - `/planning-tools:plan-delete` -- Reset the current session's plan file before drafting a new plan
-- `My plan file is stale, clear it.`
-- `Start fresh with plan mode in this session.`
+
+</details>
+
+<details>
+<summary><strong>13. agent-baton</strong> -- Chain work across two agent processes that share no session (1 skill, 2 commands, 0 agents)</summary>
+
+Agent A finishes its work and passes a baton -- a completion signal file. Agent B, in another terminal or another tool entirely, waits for that baton, then starts the work that depended on it. The protocol is harness-agnostic: each agent picks its own waiting mechanism, so one side can be Claude Code and the other Codex or Gemini.
+
+Use it only when there is no shared parent. If both agents live in one session, the harness already chains them and a baton is strictly worse. The uncovered case is two independent processes with no channel between them.
+
+**The baton is a doorbell, not a letter.** Its existence is the message; its contents are never instructions. That is a security property -- batons live in world-writable `/tmp`, so if one could carry instructions, a forged file would be an injection vector. Carrying none, the worst a forged baton does is start an agent early on work it was already assigned.
+
+**Skills (1):**
+
+- `agent-baton` -- The full protocol: signal file format, atomic publish, atomic claim, unique-id-per-run, mandatory deadlines, and the failure modes each rule buys off
+
+**Commands:** `/agent-baton:baton-pass <id> [done|failed]` -- publish a completion signal. `/agent-baton:baton-wait <id> [timeout]` -- block until a baton with that id appears, then start the dependent task.
+
+**Examples:**
+
+- `/agent-baton:baton-pass ship-2026-07-15 done` -- Signal that this agent's 15 tasks are finished
+- `/agent-baton:baton-wait ship-2026-07-15 2h` -- Wait in another terminal, then run the dependent task
+- `When you're done with all of that, pass the baton 'migrate-db-run-3'.`
 
 </details>
 

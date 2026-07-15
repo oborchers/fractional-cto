@@ -29,7 +29,7 @@ Use the `Skill` tool to invoke any skill by name. When invoked, follow the skill
 | `saas-design-principles:authentication` | Login, MFA, magic links, SSO, session management, GDPR |
 | `saas-design-principles:accessibility` | WCAG 2.2 AA, keyboard navigation, focus management, SPA a11y, ARIA |
 | `saas-design-principles:design-tokens` | Theming, dark mode, CSS variables, token architecture, color naming |
-| `saas-design-principles:responsive-design` | Breakpoints, mobile layouts, table-to-card conversion, touch targets |
+| `saas-design-principles:saas-responsive` | Breakpoints, mobile layouts, table-to-card conversion, touch targets |
 
 ## When to Invoke Skills
 

@@ -1,0 +1,24 @@
+{
+  "name": "agent-baton",
+  "version": "0.1.0",
+  "description": "Chain work across two independent agent processes that share no parent session. One agent passes a baton (a completion signal file) when done; another waits for it, with a deadline, then starts its dependent task. Harness-agnostic protocol — each agent picks its own waiting mechanism. The baton is a signal, never instructions. Provides /baton-pass and /baton-wait.",
+  "author": {
+    "name": "Dr. Oliver Borchers"
+  },
+  "repository": "https://github.com/oborchers/fractional-cto",
+  "license": "MIT",
+  "keywords": [
+    "agent-baton",
+    "baton",
+    "handoff",
+    "takeover",
+    "sentinel-file",
+    "signal",
+    "agent-coordination",
+    "agent-chaining",
+    "multi-agent",
+    "cross-harness",
+    "portable-skill",
+    "claude-code"
+  ]
+}

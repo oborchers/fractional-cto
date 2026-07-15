@@ -8,7 +8,7 @@
     {
       "name": "saas-design-principles",
       "description": "The holy principles of SaaS design: research-backed, opinionated guidance for building fast, predictable, and progressively powerful SaaS products",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "source": "./saas-design-principles",
       "author": {
         "name": "Dr. Oliver Borchers"
@@ -107,8 +107,17 @@
     {
       "name": "planning-tools",
       "description": "Manage Claude Code's plan-mode artifacts, author multi-phase master planning documents, walk through Open Questions interactively, and synthesize dense progress entries to markdown / Linear / GitHub. Provides /plan-context (pre-load with optional ticket fetch), /plan-master (draft with optional ticket fetch), /plan-open-questions (interactive Open-Questions walkthrough with batch apply), /plan-verify (audit), /plan-tick (auto-tick provenly-achieved phases), /plan-progress (per-branch progress entry with SHA-based idempotency), and /plan-delete (per-session cleanup). Integer-only phases, no sizing, project-agnostic.",
-      "version": "0.7.5",
+      "version": "0.7.6",
       "source": "./planning-tools",
+      "author": {
+        "name": "Dr. Oliver Borchers"
+      }
+    },
+    {
+      "name": "agent-baton",
+      "description": "Chain work across two independent agent processes that share no parent session. One agent passes a baton (a completion signal file) when done; another waits for it, with a deadline, then starts its dependent task. Harness-agnostic protocol — each agent picks its own waiting mechanism. The baton is a signal, never instructions. Provides /baton-pass and /baton-wait.",
+      "version": "0.1.0",
+      "source": "./agent-baton",
       "author": {
         "name": "Dr. Oliver Borchers"
       }

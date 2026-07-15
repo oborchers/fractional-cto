@@ -1,7 +1,7 @@
 ---
 name: progress-methodology
-description: This skill should be used when authoring or applying a progress update via the planning-tools plugin (the /planning-tools:plan-progress command). Codifies the dense-paragraph progress style, sub-markers (Piggybacked / Verification / Out of scope / Shipped), entry-key marker convention, SHA-tracking idempotency rule, three-way entry detection (no / in-flight / completed), comment-fetch policy (all, no cap), and the read-only source adapter + read-write destination adapter contracts (v1: markdown file, Linear comment, GitHub issue/PR comment).
-version: 0.2.0
+description: "This skill should be used when authoring or applying a progress update via the planning-tools plugin (the /planning-tools:plan-progress command). Codifies the dense-paragraph progress style, sub-markers (Piggybacked / Verification / Out of scope / Shipped), entry-key marker convention, SHA-tracking idempotency rule, three-way entry detection (no / in-flight / completed), comment-fetch policy (all, no cap), and the read-only source adapter + read-write destination adapter contracts (v1: markdown file, Linear comment, GitHub issue/PR comment)."
+version: 0.2.1
 ---
 
 # Progress Methodology

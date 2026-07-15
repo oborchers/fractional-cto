@@ -1,7 +1,7 @@
 ---
-name: responsive-design
-description: This skill should be used when the user is building or reviewing responsive layouts, mobile design, breakpoints, table-to-card patterns, touch targets, collapsible sidebars, or mobile/bottom navigation. Covers the "sacrifice principle" for mobile SaaS, desktop/tablet/mobile breakpoint strategy, and minimum touch target standards.
-version: 1.0.0
+name: saas-responsive
+description: "This skill should be used when the user is building or reviewing responsive layouts, mobile design, breakpoints, table-to-card patterns, touch targets, collapsible sidebars, or mobile/bottom navigation for a SaaS application. Covers the \"sacrifice principle\" for mobile SaaS, desktop/tablet/mobile breakpoint strategy, and minimum touch target standards."
+version: 1.1.0
 ---
 
 # Responsive Design Means Knowing What to Sacrifice

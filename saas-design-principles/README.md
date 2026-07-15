@@ -23,7 +23,7 @@ This plugin provides **principles and examples, not boilerplate.** It tells Clau
 | IX | Invisible authentication | `authentication` | Magic links, MFA, OTP, session management, GDPR |
 | X | Accessibility is law | `accessibility` | WCAG 2.2 AA, keyboard nav, focus management, SPA a11y |
 | XI | Tokens make theming trivial | `design-tokens` | Three-tier tokens, dark mode, CSS custom properties |
-| XII | Responsive means sacrifice | `responsive-design` | Breakpoints, table-to-card, touch targets, mobile nav |
+| XII | Responsive means sacrifice | `saas-responsive` | Breakpoints, table-to-card, touch targets, mobile nav |
 
 ## Installation
 
