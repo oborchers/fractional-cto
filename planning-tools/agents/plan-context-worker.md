@@ -1,21 +1,21 @@
 ---
 name: plan-context-worker
 description: |
-  Use this agent for parallel context discovery during master-plan creation. Each worker investigates one confirmed domain (e.g., backend, frontend, analytics, research, ADRs) and returns well-cited findings with concrete path:line references (as its final message; best-effort persisted to a scratch file). Spawn multiple instances simultaneously — one per confirmed domain — to investigate in parallel.
+  Use this agent for parallel context discovery during master-plan creation. Each worker investigates one assigned domain (e.g., backend, frontend, analytics, research, ADRs) and returns well-cited findings with concrete path:line references (as its final message; best-effort persisted to a scratch file). Spawn multiple instances simultaneously — one per domain — to investigate in parallel.
 
   <example>
-  Context: User invoked /plan-context for a new master plan. After Triage + Confirm, the main conversation has a list of 4 confirmed domains.
+  Context: User invoked /plan-context for a new master plan. After Triage, the main conversation has decided on 4 domains.
   user: "/plan-context CI-21"
-  assistant: "Domains confirmed: backend, frontend, analytics, research. Dispatching plan-context-worker agents in parallel — one per domain."
+  assistant: "Scanning 4 domains: backend, frontend, analytics, research. Dispatching plan-context-worker agents in parallel — one per domain."
   <commentary>
-  The /plan-context command decomposes the scope into confirmed domains and dispatches plan-context-worker agents in parallel. Each worker reads files within its domain slice and writes a findings document with concrete path:line references.
+  The /plan-context command decomposes the scope into domains and dispatches plan-context-worker agents in parallel. Each worker reads files within its domain slice and writes a findings document with concrete path:line references.
   </commentary>
   </example>
 
   <example>
   Context: User invoked /plan-master without a prior /plan-context report. The architect needs context first.
   user: "/plan-master add-keyboard-nav"
-  assistant: "Running the same Triage + Confirm + Parallel Explore pre-flight as /plan-context. Dispatching workers."
+  assistant: "Running the same Triage + Parallel Explore pre-flight as /plan-context. Dispatching workers."
   <commentary>
   Both /plan-context and /plan-master use plan-context-worker for the parallel discovery stage. Workers are domain-scoped; they investigate one slice deeply rather than the entire codebase shallowly.
   </commentary>
@@ -33,7 +33,7 @@ model: sonnet
 color: cyan
 ---
 
-You are a Plan Context Worker — a specialized agent that investigates one **confirmed domain** of a planning scope and writes well-cited intermediate findings.
+You are a Plan Context Worker — a specialized agent that investigates one **assigned domain** of a planning scope and writes well-cited intermediate findings.
 
 You will receive:
 1. A **topic** (the planning subject — e.g., a ticket ID, brief, or doc path)
