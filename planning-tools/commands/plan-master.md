@@ -1,6 +1,6 @@
 ---
-description: "Draft a multi-phase master planning document. Runs Triage + Confirm + Parallel Explore + Verify (or reuses a /plan-context report), then dispatches plan-master-architect to synthesize. Writes to a project-local path."
-argument-hint: "<topic> [--context <report-path>] [--domains a,b,c]"
+description: "Draft a multi-phase master planning document. Runs Triage + Parallel Explore + Verify (or reuses a /plan-context report), then dispatches plan-master-architect to synthesize. Writes to a project-local path."
+argument-hint: "<topic> [--context <report-path>] [--domains a,b,c] [--out <path>]"
 ---
 
 You are **drafting a master planning document**. The output is a project-local `.md` file in the user's repository, written by the `plan-master-architect` agent following the `master-plan-methodology` skill.
@@ -10,7 +10,8 @@ You are **drafting a master planning document**. The output is a project-local `
 Parse the arguments:
 - **Topic** (required) — a ticket ID, ticket URL, file path, or free-form scope statement.
 - `--context <path>` (optional) — path to a scratch directory from a prior `/planning-tools:plan-context` run (containing per-domain worker findings). If supplied, **skip the discovery pre-flight** and go straight to synthesis.
-- `--domains a,b,c` (optional) — pre-seed the domain partition (skips Stage 2 Confirm).
+- `--domains a,b,c` (optional) — use this domain partition verbatim instead of the Triage partition.
+- `--out <path>` (optional) — write the plan to this file or directory instead of the auto-resolved location.
 
 If arguments are empty, ask the user for a topic via `AskUserQuestion` before proceeding.
 
@@ -39,32 +40,27 @@ If no pattern matches → existing free-text behavior (no fetch, no `- **Ticket:
 
 ---
 
-## Step 1 — Resolve the plan output path
+## Step 1 — Resolve the plan output path (no confirmation)
 
-Determine where to write the master plan. Try these locations in order, picking the first that exists under the current git repository root (`git rev-parse --show-toplevel`):
+The command decides where the plan goes **autonomously**. It never asks the user to approve the path.
+
+**An explicit path always wins.** If `--out <path>` was supplied, or the arguments otherwise name a target path for the plan (e.g. "save it to `docs/rfc/auth.md`"), use it as-is. A path ending in `/` or pointing at an existing directory is a directory: append the default filename below. Create missing parent directories.
+
+**Otherwise, pick the directory.** Try these locations in order, picking the first that exists under the current git repository root (`git rev-parse --show-toplevel`):
 
 1. `context/tickets/`
 2. `docs/plans/`
 3. `.claude/plans/master/`
 
-If multiple exist, prefer the order above. If **none** exist, use the **binary-confirm pattern** (avoids `AskUserQuestion`'s 4-option cap):
+If **none** exist, create `context/tickets/` and use it. Outside a git repository, use the current working directory as the root.
 
-1. **Print** the candidate directories as a plain-text numbered list with creation status:
-   ```
-   No standard plan directory found. Candidate locations under <git root>:
-     1. context/tickets/ — does not exist (will create)
-     2. docs/plans/ — does not exist (will create)
-     3. .claude/plans/master/ — does not exist (will create)
-   ```
-2. **Call `AskUserQuestion`** with exactly two options:
-   - **Option 1 (recommended):** `"Create context/tickets/ and use it"` — description: "Make the standard ticket-style directory and write the plan there."
-   - **Option 2:** `"Cancel — I'll re-run with explicit path"` — description: "Stop now. Re-run /planning-tools:plan-master with the path arg set explicitly."
-
-The plan filename defaults to:
+**Default filename:**
 - `<TICKET-ID>-PLAN.md` if the topic is a ticket ID
 - A kebab-case slug derived from the topic otherwise
 
-Once the directory is settled, confirm the **final plan file path** (directory + filename) with the user via `AskUserQuestion`: `"Use <path>"` / `"Choose different"` — exactly 2 options. Both fixed (FIXED-pattern, safe).
+**Never overwrite silently.** If the resolved file already exists and the path was not given explicitly, append `-2`, `-3`, … before `.md` until the name is free. An explicitly given path is written as stated.
+
+Print the final path in one line (`Writing the plan to <path>.`) and continue. No `AskUserQuestion`.
 
 ---
 
@@ -74,9 +70,9 @@ If `--context <report-path>` is supplied, **skip this step** and go to Step 3.
 
 Otherwise, run the same four stages as `/planning-tools:plan-context`:
 
-1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, propose a domain partition.
-2. **Stage 2 — Confirm domains** (binary `AskUserQuestion`): print the proposed N domains as a plain-text numbered list, then call `AskUserQuestion` with exactly two options — `"Proceed with all N domains"` / `"Cancel — I'll re-run with --domains"`. Never multi-select. Skip Stage 2 entirely if `--domains` was supplied or Triage yielded a single trivial domain. (Same pattern as `/planning-tools:plan-context` Stage 2.)
-3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per confirmed domain. Each returns its full findings as its final message and best-effort writes it to `/tmp/plan-context/<topic-slug>/<domain>.md`. **If Step 0 fetched a ticket source**, include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent sees the same acceptance criteria + decision history.
+1. **Stage 1 — Triage** (no subagents): Read the source artifact, scan likely context locations, decide the domain partition.
+2. **Stage 2 — Announce domains** (no confirmation): print the chosen N domains as a plain-text numbered list and continue immediately. No `AskUserQuestion`. If `--domains` was supplied, use that list verbatim. (Same rules as `/planning-tools:plan-context` Stage 2.)
+3. **Stage 3 — Parallel Explore**: dispatch `plan-context-worker` subagents in a single message, one per domain. Each returns its full findings as its final message and best-effort writes it to `/tmp/plan-context/<topic-slug>/<domain>.md`. **If Step 0 fetched a ticket source**, include the `{ title, body, comments[], url }` block verbatim in every worker prompt so each domain agent sees the same acceptance criteria + decision history.
 4. **Stage 3.5 — Persist + backstop (orchestrator-owned)**: do **not** assume the worker wrote its file (Opus 4.8 workers frequently skip the `Write`). After all workers complete, confirm each expected `/tmp/plan-context/<topic-slug>/<domain>.md` exists and is non-empty (`Bash: test -s <path>` or a quick Read); for any missing or empty file, `Write` it from that worker's returned final message. Every findings file must exist on disk before Stage 4 and before the architect reads them in Step 3.
 5. **Stage 4 — Verify**: read 3–6 critical files each worker cited to confirm patterns hold.
 
@@ -125,8 +121,7 @@ Then **stop**. The user drives the next move.
 
 The main conversation owns all user interaction. Subagents never call `AskUserQuestion`.
 
-- **Plan output path resolution** (Step 1) — confirm the chosen path or pick from candidates.
-- **Domain confirmation** (Step 2 Stage 2) — same pattern as `/planning-tools:plan-context`.
+- **Plan output path** (Step 1) and **domain partition** (Step 2 Stage 2) are decided autonomously. Neither asks the user.
 - **If the topic cannot be located** — ask whether to proceed with a free-form scope.
 
 The architect agent never asks the user anything. If it encounters ambiguity, it propagates the question into the plan's Open Questions section for the user to resolve manually.

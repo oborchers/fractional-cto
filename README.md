@@ -447,7 +447,7 @@ Two complementary workflows. **Master-plan authoring**: long, multi-phase planni
 
 **Commands:**
 
-- `/planning-tools:plan-context` -- Pre-load context: Triage proposes domains, you confirm, workers explore in parallel
+- `/planning-tools:plan-context` -- Pre-load context: Triage picks domains autonomously, workers explore in parallel
 - `/planning-tools:plan-master` -- Draft a multi-phase master plan (optional ticket fetch)
 - `/planning-tools:plan-open-questions` -- Walk a plan's Open Questions one at a time, each with its cited evidence
 - `/planning-tools:plan-verify` -- Audit a plan against the verification checklist

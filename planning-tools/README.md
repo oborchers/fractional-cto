@@ -14,20 +14,20 @@ The plugin covers two workflows that complement each other:
 Pre-load context for a future master plan. Four stages:
 
 1. **Stage 1 Triage** — main conversation reads the source artifact and dir-scans likely context locations (`context/`, `docs/`, project root) to propose a non-overlapping domain partition.
-2. **Stage 2 Confirm** — main conversation prints the proposed N domains as a plain-text numbered list, then asks a **binary** `AskUserQuestion`: `Proceed with all N domains` / `Cancel — I'll re-run with --domains`. Binary (never multi-select) because `AskUserQuestion` has a hard 4-option cap that would crash on typical 5–10-domain partitions. To customize, the user cancels and re-runs with `--domains a,b,c`. Skipped if `--domains` was supplied or Triage yielded only one domain.
-3. **Stage 3 Parallel Explore** — dispatches `plan-context-worker` agents (one per confirmed domain) in a single message. Each returns its findings as its final message; the main conversation persists them to `/tmp/plan-context/<topic-slug>/<domain>.md` (writing any a worker didn't persist itself).
+2. **Stage 2 Announce** (v0.9.0+) — main conversation prints the chosen N domains as a plain-text numbered list and continues straight to Stage 3. **No confirmation prompt**: the domain partition is decided autonomously. To override it, re-run with `--domains a,b,c`.
+3. **Stage 3 Parallel Explore** — dispatches `plan-context-worker` agents (one per domain) in a single message. Each returns its findings as its final message; the main conversation persists them to `/tmp/plan-context/<topic-slug>/<domain>.md` (writing any a worker didn't persist itself).
 4. **Stage 4 Verify** — main conversation directly reads 3–6 critical files each worker cited, confirms patterns hold, flags any deltas.
 
 Emits a structured **scope report** (key locations, constraints, suggested phase split). **No plan file is written.**
 
-### `/planning-tools:plan-master <topic> [--context <report-path>] [--domains a,b,c]`
+### `/planning-tools:plan-master <topic> [--context <report-path>] [--domains a,b,c] [--out <path>]`
 
 Draft a multi-phase master planning document.
 
 - If `--context <path>` is supplied, reuse the worker findings from a prior `/planning-tools:plan-context` run and skip the discovery pre-flight.
-- Otherwise, run the same Triage + Confirm + Parallel Explore + Verify pre-flight internally.
+- Otherwise, run the same Triage + Parallel Explore + Verify pre-flight internally (domains chosen autonomously).
 - Then dispatches `plan-master-architect` (opus) to synthesize the multi-phase plan in the user's standard template.
-- Writes to a project-local path. The plugin tries `context/tickets/`, then `docs/plans/`, then `.claude/plans/master/`, asking via `AskUserQuestion` if none exist.
+- Writes to a project-local path **without asking** (v0.9.0+). `--out <path>` (or a path named in the arguments) wins; otherwise the first existing of `context/tickets/`, `docs/plans/`, `.claude/plans/master/`, creating `context/tickets/` if none exists. An existing file is never overwritten silently: the name gets a `-2`, `-3`, … suffix.
 
 The architect composes the **universal core** sections (Title, plan-level **TL;DR**, Context block, Open Questions, Implementation Phases, Design Principles, Out of Scope) plus **trigger-based optional sections** (Schema + Rollback for data work; Component Architecture + UI States for UI work; Cost + Risks for ops; Recovery + Schema for incidents; etc.). Phases are numbered with **integers only** (`1, 2, 3, …`).
 
