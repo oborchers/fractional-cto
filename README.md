@@ -492,7 +492,7 @@ Use it only when there is no shared parent. If both agents live in one session, 
 
 ## About
 
-Built by [Dr. Oliver Borchers](https://linkedin.com/in/oliverborchers). AI engineering lead, former startup CTO, open-source contributor ([fse](https://github.com/oborchers/Fast_Sentence_Embeddings)). I got tired of giving the same design reviews and architecture feedback across projects, so I turned them into Claude Code skills that kick in automatically.
+Built by [Dr. Oliver Borchers](https://www.drborchers.com), Executive AI and Automation Partner and Head of AI Engineering at IU Group, and author of [fse](https://github.com/oborchers/Fast_Sentence_Embeddings). I got tired of giving the same design reviews and architecture feedback across projects, so I turned them into Claude Code skills that kick in automatically.
 
 ## Contributing
 
